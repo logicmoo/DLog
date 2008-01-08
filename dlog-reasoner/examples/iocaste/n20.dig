@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tells uri="" xmlns="http://dl.kr.org/dig/2003/02/lang">
+    <defconcept name="a"/>
+    <defconcept name="b"/>
+    <defconcept name="c"/>
+    <defconcept name="d"/>
+    <defconcept name="e"/>
+    <defconcept name="Good"/>
+    <equalc>
+        <catom name="Good"/>
+        <and>
+            <some>
+                <ratom name="role_a"/>
+                <and>
+                    <catom name="a"/>
+                    <some>
+                        <ratom name="role_a"/>
+                        <catom name="nota"/>
+                    </some>
+                </and>
+            </some>
+        </and>
+    </equalc>
+    <defconcept name="nota"/>
+    <equalc>
+        <catom name="nota"/>
+        <and>
+            <not>
+                <catom name="a"/>
+            </not>
+        </and>
+    </equalc>
+    <defconcept name="notb"/>
+    <equalc>
+        <catom name="notb"/>
+        <and>
+            <not>
+                <catom name="b"/>
+            </not>
+        </and>
+    </equalc>
+    <defconcept name="notc"/>
+    <equalc>
+        <catom name="notc"/>
+        <and>
+            <not>
+                <catom name="c"/>
+            </not>
+        </and>
+    </equalc>
+    <defconcept name="notd"/>
+    <equalc>
+        <catom name="notd"/>
+        <and>
+            <not>
+                <catom name="d"/>
+            </not>
+        </and>
+    </equalc>
+    <defconcept name="note"/>
+    <equalc>
+        <catom name="note"/>
+        <and>
+            <not>
+                <catom name="e"/>
+            </not>
+        </and>
+    </equalc>
+    <defrole name="role_a"/>
+    <defrole name="role_b"/>
+    <defrole name="role_c"/>
+    <defrole name="role_d"/>
+    <defrole name="role_e"/>
+    <defrole name="role_f"/>
+    <defrole name="role_g"/>
+    <defrole name="role_h"/>
+    <defrole name="role_i"/>
+    <defrole name="role_j"/>
+    <defindividual name="i9"/>
+    <instanceof>
+        <individual name="i9"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i9"/>
+        <catom name="b"/>
+    </instanceof>
+    <related>
+        <individual name="i9"/>
+        <ratom name="role_a"/>
+        <individual name="i12"/>
+    </related>
+    <related>
+        <individual name="i9"/>
+        <ratom name="role_a"/>
+        <individual name="i20"/>
+    </related>
+    <related>
+        <individual name="i9"/>
+        <ratom name="role_c"/>
+        <individual name="i10"/>
+    </related>
+    <related>
+        <individual name="i9"/>
+        <ratom name="role_e"/>
+        <individual name="i17"/>
+    </related>
+    <defindividual name="i15"/>
+    <instanceof>
+        <individual name="i15"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i15"/>
+        <catom name="e"/>
+    </instanceof>
+    <related>
+        <individual name="i15"/>
+        <ratom name="role_c"/>
+        <individual name="i7"/>
+    </related>
+    <related>
+        <individual name="i15"/>
+        <ratom name="role_c"/>
+        <individual name="i19"/>
+    </related>
+    <related>
+        <individual name="i15"/>
+        <ratom name="role_d"/>
+        <individual name="i10"/>
+    </related>
+    <related>
+        <individual name="i15"/>
+        <ratom name="role_e"/>
+        <individual name="i3"/>
+    </related>
+    <defindividual name="i20"/>
+    <instanceof>
+        <individual name="i20"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i20"/>
+        <ratom name="role_b"/>
+        <individual name="i15"/>
+    </related>
+    <related>
+        <individual name="i20"/>
+        <ratom name="role_c"/>
+        <individual name="i19"/>
+    </related>
+    <defindividual name="i10"/>
+    <instanceof>
+        <individual name="i10"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i10"/>
+        <ratom name="role_b"/>
+        <individual name="i15"/>
+    </related>
+    <related>
+        <individual name="i10"/>
+        <ratom name="role_d"/>
+        <individual name="i3"/>
+    </related>
+    <related>
+        <individual name="i10"/>
+        <ratom name="role_d"/>
+        <individual name="i20"/>
+    </related>
+    <defindividual name="i4"/>
+    <instanceof>
+        <individual name="i4"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i4"/>
+        <catom name="nota"/>
+    </instanceof>
+    <related>
+        <individual name="i4"/>
+        <ratom name="role_e"/>
+        <individual name="i10"/>
+    </related>
+    <related>
+        <individual name="i4"/>
+        <ratom name="role_e"/>
+        <individual name="i20"/>
+    </related>
+    <defindividual name="i7"/>
+    <instanceof>
+        <individual name="i7"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i7"/>
+        <catom name="notb"/>
+    </instanceof>
+    <related>
+        <individual name="i7"/>
+        <ratom name="role_c"/>
+        <individual name="i7"/>
+    </related>
+    <related>
+        <individual name="i7"/>
+        <ratom name="role_c"/>
+        <individual name="i1"/>
+    </related>
+    <related>
+        <individual name="i7"/>
+        <ratom name="role_d"/>
+        <individual name="i3"/>
+    </related>
+    <related>
+        <individual name="i7"/>
+        <ratom name="role_d"/>
+        <individual name="i16"/>
+    </related>
+    <defindividual name="i5"/>
+    <instanceof>
+        <individual name="i5"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i5"/>
+        <ratom name="role_b"/>
+        <individual name="i6"/>
+    </related>
+    <related>
+        <individual name="i5"/>
+        <ratom name="role_c"/>
+        <individual name="i1"/>
+    </related>
+    <related>
+        <individual name="i5"/>
+        <ratom name="role_d"/>
+        <individual name="i11"/>
+    </related>
+    <related>
+        <individual name="i5"/>
+        <ratom name="role_d"/>
+        <individual name="i12"/>
+    </related>
+    <defindividual name="i16"/>
+    <instanceof>
+        <individual name="i16"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i16"/>
+        <ratom name="role_b"/>
+        <individual name="i16"/>
+    </related>
+    <defindividual name="i19"/>
+    <instanceof>
+        <individual name="i19"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i19"/>
+        <ratom name="role_c"/>
+        <individual name="i2"/>
+    </related>
+    <defindividual name="i1"/>
+    <instanceof>
+        <individual name="i1"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i1"/>
+        <catom name="notd"/>
+    </instanceof>
+    <related>
+        <individual name="i1"/>
+        <ratom name="role_a"/>
+        <individual name="i2"/>
+    </related>
+    <related>
+        <individual name="i1"/>
+        <ratom name="role_a"/>
+        <individual name="i3"/>
+    </related>
+    <related>
+        <individual name="i1"/>
+        <ratom name="role_b"/>
+        <individual name="i4"/>
+    </related>
+    <related>
+        <individual name="i1"/>
+        <ratom name="role_d"/>
+        <individual name="i13"/>
+    </related>
+    <defindividual name="i17"/>
+    <instanceof>
+        <individual name="i17"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i17"/>
+        <catom name="d"/>
+    </instanceof>
+    <related>
+        <individual name="i17"/>
+        <ratom name="role_d"/>
+        <individual name="i8"/>
+    </related>
+    <related>
+        <individual name="i17"/>
+        <ratom name="role_d"/>
+        <individual name="i2"/>
+    </related>
+    <defindividual name="i8"/>
+    <instanceof>
+        <individual name="i8"/>
+        <catom name="b"/>
+    </instanceof>
+    <defindividual name="i11"/>
+    <instanceof>
+        <individual name="i11"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i11"/>
+        <catom name="note"/>
+    </instanceof>
+    <related>
+        <individual name="i11"/>
+        <ratom name="role_b"/>
+        <individual name="i1"/>
+    </related>
+    <related>
+        <individual name="i11"/>
+        <ratom name="role_c"/>
+        <individual name="i9"/>
+    </related>
+    <defindividual name="i12"/>
+    <instanceof>
+        <individual name="i12"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i12"/>
+        <ratom name="role_e"/>
+        <individual name="i6"/>
+    </related>
+    <related>
+        <individual name="i12"/>
+        <ratom name="role_e"/>
+        <individual name="i3"/>
+    </related>
+    <defindividual name="i6"/>
+    <instanceof>
+        <individual name="i6"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i6"/>
+        <catom name="notd"/>
+    </instanceof>
+    <related>
+        <individual name="i6"/>
+        <ratom name="role_b"/>
+        <individual name="i9"/>
+    </related>
+    <related>
+        <individual name="i6"/>
+        <ratom name="role_e"/>
+        <individual name="i17"/>
+    </related>
+    <related>
+        <individual name="i6"/>
+        <ratom name="role_e"/>
+        <individual name="i19"/>
+    </related>
+    <defindividual name="i2"/>
+    <instanceof>
+        <individual name="i2"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i2"/>
+        <catom name="a"/>
+    </instanceof>
+    <related>
+        <individual name="i2"/>
+        <ratom name="role_a"/>
+        <individual name="i3"/>
+    </related>
+    <related>
+        <individual name="i2"/>
+        <ratom name="role_b"/>
+        <individual name="i10"/>
+    </related>
+    <defindividual name="i3"/>
+    <instanceof>
+        <individual name="i3"/>
+        <top/>
+    </instanceof>
+    <related>
+        <individual name="i3"/>
+        <ratom name="role_a"/>
+        <individual name="i4"/>
+    </related>
+    <related>
+        <individual name="i3"/>
+        <ratom name="role_d"/>
+        <individual name="i9"/>
+    </related>
+    <defindividual name="i13"/>
+    <instanceof>
+        <individual name="i13"/>
+        <top/>
+    </instanceof>
+    <instanceof>
+        <individual name="i13"/>
+        <catom name="e"/>
+    </instanceof>
+    <related>
+        <individual name="i13"/>
+        <ratom name="role_a"/>
+        <individual name="i19"/>
+    </related>
+    <related>
+        <individual name="i13"/>
+        <ratom name="role_b"/>
+        <individual name="i1"/>
+    </related>
+    <related>
+        <individual name="i13"/>
+        <ratom name="role_c"/>
+        <individual name="i13"/>
+    </related>
+    <related>
+        <individual name="i13"/>
+        <ratom name="role_e"/>
+        <individual name="i20"/>
+    </related>
+</tells>

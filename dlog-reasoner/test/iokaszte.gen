@@ -1,0 +1,14 @@
+testcase(12, 1, 0, 0, '../iokaszte/c10', [dig,owl]).
+testcase(13, 1, 0, 0, '../iokaszte/c11', [dig,owl]).
+testcase(14, 1, 0, 0, '../iokaszte/c12', [dig,owl]).
+testcase(15, 1, 0, 0, '../iokaszte/c13', [dig,owl]).
+testcase(16, 1, 0, 0, '../iokaszte/c14', [dig,owl]).
+testcase(17, 1, 0, 0, '../iokaszte/c15', [dig,owl]).
+testcase(18, 1, 0, 0, '../iokaszte/c16', [dig,owl]).
+testcase(22, 1, 0, 0, '../iokaszte/c20', [dig,owl]).
+testcase(102, 1, 0, 0, '../iokaszte/c100', [dig,owl]).
+testcase(1002, 1, 0, 0, '../iokaszte/c1000', [dig,owl]).
+testcase(12, 3, 5, 3, '../iokaszte/n12', [dig,owl]).
+testcase(12, 20, 5, 4, '../iokaszte/n200', [dig,owl]).
+testcase(12, 100, 5, 5, '../iokaszte/n1200', [dig,owl]).
+testcase(12, 700, 5, 6, '../iokaszte/n8000', [dig,owl]).
