@@ -51,12 +51,12 @@ saturate(W1,[C|W2],S):-
 	% nl, print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,S).
 saturate(W1,[C|W2],S):-
-	nl, print(C),
+	% nl, print(C),
 	findall(R,(
 		   resolve_list(C,W1,Res),
 		   simplifyClause(Res,Res1),
 		   cls_to_ocls(Res1,R),
-		   nl, print('  = '), print(R),
+		   % nl, print('  = '), print(R),
 		   true
 		  ), Rs),
 	elim_reds(W1,C,EW1),
@@ -405,15 +405,7 @@ remove_temp(L,R):-
 	saturate_specific(L,Pred,L2),
 	omit_structs(L2,nconcept(Pred,_),L3),	
 	remove_temp(L3,R).
-remove_temp(L,R):-
-	findall(C,(
-		   member([_,C],L),
-		   \+ (
-			contains_struct2(C,nconcept(Pred,_)),
-			atom_concat('trans',_,Pred)
-		      )
-		  ), R
-	       ).
+remove_temp(L,L).
 
 
 % saturate_specific(+L,+PredName,-R)
@@ -457,45 +449,15 @@ resolve_specific([_,C1],[_,C2],PredName,[10,R]):-
 
 % remove_redundant(+L,-R),
 % L klozlistabol kikuszobolve a redundansakat kapjuk R klozlistat
-% a klozok tipus nelkul szerepelnek
+% a klozok tipussal nelkul szerepelnek
 remove_redundant(L,R):-
 	remove_redundant(L,[],R).
 
 
 remove_redundant([],R,R).
 remove_redundant([L|Ls],Acc,R):-
-	redundant_notype(L,Acc), !,
+	redundant(L,Acc), !,
 	remove_redundant(Ls,Acc,R).
 remove_redundant([L|Ls],Acc,R):-
-	elim_reds_notype(Acc,L,Acc2),
+	elim_reds(Acc,L,Acc2),
 	remove_redundant(Ls,[L|Acc2],R).
-
-redundant_notype(C,_):-
-	member(true,C), !.
-
-redundant_notype(C,Clauses):-
-	member(D,Clauses),
-	length(D,LD),
-	length(C,LC),
-	LC >= LD,
-	copy_term(D,D2),
-	copy_term(C,C2),
-	term_variables(C2,Vars),
-	includes_notype(C2,D2),
-	none_related(Vars), !.
-
-elim_reds_notype([],_,[]).
-elim_reds_notype([A|Rest],C,Reduced):-
-	redundant_notype(A,[C]), !,
-	elim_reds_notype(Rest,C,Reduced).
-elim_reds_notype([A|Rest],C,[A|Reduced]):-
-	elim_reds_notype(Rest,C,Reduced).
-
-
-% includes(+C,+D): C kloz tartalmazza D-t
-% !!! behelyettesites tortenik !!!		  
-includes_notype(_,[]):- !.
-includes_notype(C,[LD|D]):-
-	select(LC,C,RestC),
-	subsumes(LD,LC),
-	includes_notype(RestC,D).

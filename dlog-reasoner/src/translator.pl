@@ -31,8 +31,8 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	axiomsToNNFConcepts(Tbox,NNF),
 	axiomsToNNFConcepts(TransTbox,TransNNF),	
 	
-	nl,print('Negacios normalformara hozas utan'),nl,	
-	nl,nl, show(NNF),nl, show(TransNNF), nl,nl,
+	% nl,print('Negacios normalformara hozas utan'),nl,	
+	% nl,nl, show(NNF),nl, show(TransNNF), nl,nl,
 
 	% strukturalis transzformacio
 	def_list(NNF,'n_',Defs),
@@ -40,8 +40,8 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 
 	append(Defs,TransDefs,AllDefs),
 	
-	nl,print('Strukturalis transzformacio utan'),nl,
-	nl,nl, show(AllDefs),nl,nl,
+	% nl,print('Strukturalis transzformacio utan'),nl,
+	% nl,nl, show(AllDefs),nl,nl,
 	
 	% elsorendu, skolemizalt formulak kepzese
 	toClauseList(AllDefs,FOLT),
@@ -51,21 +51,21 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	append(FOLT,FOLH,FOL2),
 	append(FOL2,FOLI,FOL),			
 
-	nl,print('FOL klozok kepzese'),nl,
-	nl,nl, show(FOL),nl,nl,
+	% nl,print('FOL klozok kepzese'),nl,
+	% nl,nl, show(FOL),nl,nl,
 
 	% nl,print('Klozok telitese'),nl,	
 	% klozhalmaz telitese alap-szuperpozicioval
 	saturate(FOL,Saturated),
 	
-	nl,print('Telites utan'),nl,
-	nl,nl, show(Saturated),nl,nl,	
+	% nl,print('Telites utan'),nl,
+	% nl,nl, show(Saturated),nl,nl,	
 
 	omit_structs(Saturated,fun(_,_),FunFree1),
 	omit_structs(FunFree1,[1,_],FunFree),
 
-        nl,print('Fuggvenyjelek kikuszobolesevel'),nl,
-	nl,nl, show(FunFree),nl,nl,
+        % nl,print('Fuggvenyjelek kikuszobolesevel'),nl,
+	% nl,nl, show(FunFree),nl,nl,
 
 	remove_temp(FunFree,Removed),
 	
@@ -73,9 +73,23 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	% nl,nl, show(Removed),nl,nl,
 
 	remove_double_proof_list(Removed,Removed2),
-	remove_redundant(Removed2,Clauses),
+	remove_redundant(Removed2,Removed3),
 
 	% nl,print('Kettos bizonyitasok kikuszobolese utan'),nl,
+	% nl,nl, show(Removed3),nl,nl,
+
+	% tranzitivitashoz kotodo axiomak es a tipusmegjelolesek elhagyasa
+	findall(C,(
+		   member([_,C],Removed3),		   
+%		   \+ (
+%			contains_struct2(C,nconcept(Pred,_)),
+%			atom_concat('trans',_,Pred)
+%		      )
+		   true
+		  ), Clauses
+	       ),
+
+	
 	% nl,nl, show(Clauses),nl,nl,
 	true.
 	
