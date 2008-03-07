@@ -33,7 +33,7 @@ load_KB0(KBFile, Statistics, TBox_Clauses, ABox, IBox, HBox):-
 	read_tell(KBFile,TBox,ABox, Statistics),
 	statistics(runtime, [T1,_]),T is T1-T0,
 	format(' DIG KB read in ~t~20|~t~3d sec ~n', [T]),
-	axioms_to_clauses(TBox,TBox_Clauses, IBox,HBox),
+	axioms_to_clauses(TBox,TBox_Clauses, IBox,HBox,_),
 	statistics(runtime, [T2,_]),TA is T2-T1,
 	format(' Axioms translated in ~t~20|~t~3d sec ~n', [TA]),	
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail
@@ -58,14 +58,18 @@ flush_tbox(Stream) :-
 	fail.
 flush_tbox(_).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Prolog interpretalas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 load_KB_interpreter(KBFile):-
 	statistics(runtime, [T0,_]),
 	read_tell(KBFile,TBox,ABox,_),
 	statistics(runtime, [T1,_]),T is T1-T0,
 	format(' DIG KB read in ~t~20|~t~3d sec ~n', [T]),
-	axioms_to_clauses(TBox,TBox_Clauses),
+	axioms_to_clauses(TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T2,_]),TA is T2-T1,
-	format(' Axioms translated in ~t~20|~t~3d sec ~n', [TA]),	
+	format(' Axioms translated in ~t~20|~t~3d sec ~n', [TA]),
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail
 	; true
 	),
@@ -73,42 +77,7 @@ load_KB_interpreter(KBFile):-
 	clauses_to_prolog(TBox_Clauses,ABox),
 	statistics(runtime, [T3,_]),TB is T3-T2,
 	format(' Clauses asserted in ~t~20|~t~3d sec ~n', [TB]).
-	
 		    
-
-% load_KB(+KBFile): KBFile DIG fajlban talalhato tudasbazis betoltese
-load_KB(KBFile) :-
-	load_KB(KBFile, _).
-
-load_KB(KBFile, Statistics):-
-	statistics(runtime, [T0,_]),
-	read_tell(KBFile,TBox,ABox, Statistics),
-	statistics(runtime, [T1,_]),T is T1-T0,
-	format(' DIG KB read in ~t~20|~t~3d sec ~n', [T]),
-	run(TBox, ABox).
-
-% load_KB(+KBFile): KBFile DIG fajlban talalhato tudasbazis betoltese
-load_KB(KBFile,TBox,ABox):-
-	statistics(runtime, [T0,_]),
-	read_tell(KBFile,TBox,ABox),
-	statistics(runtime, [T1,_]),T is T1-T0,
-	format(' DIG KB read in ~t~20|~t~3d sec ~n', [T]).
-
-run(TBox,ABox):-
-	statistics(runtime, [T0,_]),
-	axioms_to_clauses(TBox,TBox_Clauses),
-	statistics(runtime, [T1,_]),TA is T1-T0,
-	format(' Axioms translated in ~t~20|~t~3d sec ~n', [TA]),	
-	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail
-	; true
-	),
-	abolish(dl:_),
-	clauses_to_prolog(TBox_Clauses,ABox),
-	statistics(runtime, [T2,_]),TB is T2-T1,
-	format(' Clauses asserted in ~t~20|~t~3d sec ~n', [TB]).
-
-
-
 clauses_to_prolog(TBox_Clauses,ABox):-
 	findall(P, (
 		     ( member(C,TBox_Clauses)
@@ -146,188 +115,6 @@ trans(L,C):-
 	).
 
 
-
-/***************************************************/
-/********************* peldak **********************/
-/***************************************************/
-
-sample1:-
-	TBox = [	implies(top,atmost(1,arole(gyereke),top)),
-			implies(top,some(arole(gyereke),aconcept(gazdag))),
-			implies(top,some(arole(gyereke),aconcept(boldog))),
-			implies(some(arole(gyereke),and([aconcept(gazdag),aconcept(boldog)])),aconcept(query))						
-	       ],
-	ABox = [],
-	run(TBox,ABox),	
-	solve(query).
-
-
-sample2:-
-	TBox = [	subrole(arole(rr),arole(tt)),
-			subrole(arole(ss),arole(tt)),
-			implies(aconcept(cc),some(arole(rr),top)),
-			implies(top,some(arole(inv_ss),top)),						
-			implies(top,atmost(1,arole(tt),top)),												
-			implies(some(arole(ss),top),aconcept(dd)),
-			implies(some(arole(rr),top),not(aconcept(dd))),
-			implies(top,aconcept(cc))
-	       ],
-	ABox = [],
-	run(TBox,ABox).	
-
-		
-sample3:-
-	TBox	= [
-		   implies(top, atmost(2,arole(hasChild),top)),
-		   implies(and([atmost(1,arole(hasChild), not(aconcept(rich))), some(arole(hasChild),aconcept(rich))]),aconcept(satisfied)),
-		   implies(some(arole(inv_hasDescendant), aconcept(rich)),aconcept(rich)),
-		   subrole(arole(hasChild),arole(hasDescendant)),
-		   trans(arole(hasDescendant))		   
-		  ],	
-	ABox =	[
-		 arole(hasChild,a,b),
-		 arole(hasChild,a,c),
-		 arole(hasChild,d,e),
-		 arole(hasChild,e,c),
-		 aconcept(rich,d)						
-		],
-	run(TBox,ABox),	
-	solve(satisfied).
-	
-sample4:-
-	TBox  = [
-		 implies(top, atmost(2,arole(hasChild),top)),
-		 implies(atmost(1,arole(hasChild), not(aconcept(rich))),aconcept(satisfied)),
-		 subrole(arole(hasChild),arole(hasDescendant))
-		],
-	ABox =	[
-		 arole(hasChild,a,b),						
-		 aconcept(rich,b)
-		],
-	run(TBox,ABox),	
-	solve(satisfied).
-	
-sample5:-
-	TBox  = [
-		 implies(some(arole(gyereke),and([aconcept(apagyilkos), some(arole(gyereke),not(aconcept(apagyilkos)))])), aconcept(iokaszte_szeru))
-		],
-	ABox =	[
-		 arole(gyereke,i,o),
-		 arole(gyereke,i,p1),
-		 arole(gyereke,i,p2),
-		 arole(gyereke,o,p2),
-		 arole(gyereke,p2,p1),
-		 arole(gyereke,p1,t),
-		 
-		 aconcept(apagyilkos,o),
-		 not(aconcept(apagyilkos,t))
-		],
-	run(TBox,ABox),	
-	solve(iokaszte_szeru).
-
-sample6:-
-	TBox  = [
-		 implies(aconcept(n), atleast(2, arole(r),top)),
-		 implies(atleast(2, arole(r),top), aconcept(t))
-		],
-	ABox =	[
-		 aconcept(n,a)
-		],
-	run(TBox,ABox),	
-	solve(t).
-	
-sample7:-
-	TBox  = [
-		 implies(top,all(arole(hasAdpt),aconcept(adpt))),
-		 implies(top,all(arole(hasAcc3D),aconcept(acc3D))),
-		 implies(and([aconcept(adpt),aconcept(acc3D)]), aconcept(adptAcc3D)),
-		 implies(aconcept(adpt),aconcept(vd)),
-		 implies(aconcept(acc3D),aconcept(vd)),
-		 implies(aconcept(grws),aconcept(pc)),
-		 implies(aconcept(gapc),and([aconcept(grws), aconcept(pc)])),
-		 
-		 subrole(arole(hasAdpt),arole(hasVD)),
-		 subrole(arole(hasAcc3D),arole(hasVD)),
-		 subrole(arole(hasVD),arole(contains)),
-		 
-		 trans(arole(contains)),
-		 
-		 implies(aconcept(pc),some(arole(hasAdpt),top)),
-		 implies(aconcept(grws),some(arole(hasAcc3D),top)),
-
-		 implies(aconcept(gapc),atmost(1,arole(hasVD),aconcept(vd))),
-		 implies(aconcept(pci),all(arole(contains),aconcept(pci))),
-		 
-		 implies(some(arole(hasVD),aconcept(adptAcc3D)),aconcept(correct))
-		],
-	ABox =	[
-		 aconcept(gapc,pc1)
-		],
-	run(TBox,ABox),
-	solve(correct).
-	
-sample8:-
-	TBox  = [
-		 implies(not(aconcept(rich)),aconcept(happy))
-		],
-	ABox =	[
-		 not(aconcept(rich,a)),
-		 eq(a,b),
-		 eq(c,a),
-		 eq(c,d)
-		],
-	run(TBox,ABox),	
-	solve(happy).
-
-sample9:-
-	TBox = [
-		implies(top,atmost(2,arole(gyereke),aconcept(ravasz))),		
-		implies(top,atleast(2,arole(gyereke),aconcept(okos))),
-		implies(top,atleast(2,arole(gyereke),aconcept(ravasz))),
-		implies(some(arole(gyereke),aconcept(ravasz)),aconcept(szerencses))
-	       ],
-	ABox = [],		
-	run(TBox,ABox).
-sample10:-
-	TBox = [
-		equiv(aconcept(anya),and([aconcept(ember),aconcept(nonemu),some(arole(gyereke),top)])),
-		equiv(and([aconcept(ember),aconcept(nonemu)]),aconcept(no)),		
-		equiv(and([aconcept(ember),not(aconcept(nonemu))]),aconcept(ferfi)),
-		equiv(and([aconcept(ember),some(arole(gyereke),top)]),aconcept(szulo)),		
-		equiv(and([aconcept(ferfi),aconcept(szulo)]),aconcept(apa))
-		
-		% implies(and([aconcept(sikeres),not(aconcept(boldog))]),aconcept(gazdag)),
-		% implies(aconcept(gazdag),aconcept(sikeres)),
-		% implies(aconcept(boldog),aconcept(sikeres)),
-		
-		% implies(and([some(arole(inv_testvere),top),not(aconcept(no))]),aconcept(ferfi)),
-		% implies(all(arole(gyereke),aconcept(boldog)),aconcept(joszulo)),
-		% implies(some(arole(gyereke),top),aconcept(szep)),
-		% implies(aconcept(buszke),some(arole(testvere),aconcept(gazdag)))
-	       ],
-	ABox = [
-		not(aconcept(szep,rofi)),
-		aconcept(buszke,hugo),
-		aconcept(apa,ubul),
-		aconcept(boldog,oid),
-		not(aconcept(gazdag,thesz)),
-		arole(gyereke,ubul,oid),
-		arole(gyereke,ubul,polu),
-		arole(gyereke,oid,polu),
-		arole(gyereke,polu,thesz),
-		arole(gyereke,rofi,koca),
-		not(aconcept(no,koca)),
-		arole(baratja,hugo,odon),
-		arole(komoly,odon)
-	       ],
-	run(TBox,ABox).
-sample11:-
-	TBox = [
-		implies(top,some(arole(gyereke),aconcept(okos))),		
-		implies(top,atmost(1,arole(gyereke),top))
-	       ],
-	ABox = [],		
-	run(TBox,ABox).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % runtime system

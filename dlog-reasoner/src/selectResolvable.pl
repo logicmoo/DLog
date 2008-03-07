@@ -4,34 +4,60 @@
 :- use_module(library(lists), [select/3, append/3]).
 
 % selectResolvable(+Cs,-OCs)
-%	Cs klozhalmazban a rezolvalhato literalok
-%	elolre hozasaval kapjuk OCs klozhalamzt
+% Cs klozhalmazban a rezolvalhato literalok
+% elolre hozasaval kapjuk OCs klozhalamzt
 selectResolvable([],[]).
-selectResolvable([C|Cs],[OC|OCs]):-	
+selectResolvable([C|Cs],[OC|OCs]):-
 	cls_to_ocls(C,OC),
 	selectResolvable(Cs,OCs).
 
-% cls_to_ocls(+Cls,-OCls): Cls klozban egy rezolvalhato
-% literal elore hozasaval kapjuk OCls-t
-cls_to_ocls([],[]) :- !.
-cls_to_ocls([Cls],[Cls]):- !.
-cls_to_ocls(Cls,[Selected|Rest]):-
+% cls_to_ocls(+Cls,-OCls): Cls klozban a rezolvalhato
+% literal(ok) elorehozasaval kapjuk OCls-t
+cls_to_ocls([_,[]],[5,[]]) :- !.
+cls_to_ocls([T,[Cls]],[T,[Cls]]):- !.
+cls_to_ocls([1,Cls],[1,[Selected|Rest]]):- !,
 	select(Selected,Cls,Rest),
-	contains_struct(Selected,not(arole(_,_,_))),
-	!.
-
-cls_to_ocls(Cls,[Selected|Rest]):-
+	Selected = not(arole(_,_,_)), !.
+cls_to_ocls([3,Cls],[3,[Selected|Rest]]):- !,
 	select(Selected,Cls,Rest),
-	contains_struct(Selected,(arole(_,_,_))),
-	!.
+	Selected = atleast(_,_,_), !.
+cls_to_ocls([30,Cls],[30,[Selected|Rest]]):- !,
+	select(Selected,Cls,Rest),
+	Selected = atleast(_,_,_), !.
+cls_to_ocls([4,Cls],[4,[Selected|Rest]]):- !,
+	select(Selected,Cls,Rest),
+	Selected = atleast(_,_,_), !.
+cls_to_ocls([7,Cls],[7-N,Ordered]):- !,
+	selectNegBin(Cls,NegBin,Rest),
+	append(NegBin,Rest,Ordered),
+	length(NegBin,N).
+
+cls_to_ocls([5,Cls],[5,[Selected|Rest]]):-
+	contains_struct(Cls,fun(_,_)), !,
+	selectNegBin(Cls,NegBin,Others),
+	getGreatest(Others,Selected),
+	select_precisely(Selected,Others,OthersRest),
+	append(NegBin,OthersRest,Rest).
+cls_to_ocls([5,Cls],[5-N,Ordered]):-
+	contains_struct(Cls,arole(_,_,_)), !,
+	selectNegBin(Cls,NegBin,Rest),
+	append(NegBin,Rest,Ordered),
+	length(NegBin,N).
+
+cls_to_ocls([T,Cls],[T,[Selected|Rest]]):- !,
+	getGreatest(Cls,Selected),
+	select_precisely(Selected,Cls,Rest), !.
+
+% selectNegBin(+Cls,-Bin,-Rest): Cls literallistabol kivalogatva a negalt binarisokat
+% kapjuk Bin-t, a maradek pedig Rest
+selectNegBin([],[],[]).
+selectNegBin([not(arole(A,B,C))|Cls],[not(arole(A,B,C))|Bin],Rest):- !,
+	selectNegBin(Cls,Bin,Rest).
+selectNegBin([C|Cls],Bin,[C|Rest]):- !,
+	selectNegBin(Cls,Bin,Rest).
 
 
-cls_to_ocls(Cls,[Maximal|Rest]):-
-	getGreatest(Cls,Maximal),	
-	select_precisely(Maximal,Cls,Rest).
-	
-	
-%	select_precisely(+Element,+List,+Rest)
+% select_precisely(+Element,+List,+Rest)
 % ugyanaz, mint a konyvtari select, csak
 % nincs egyesites
 select_precisely(A,L,R):-
@@ -51,8 +77,8 @@ select_precisely(A,[L|Ls],T,R):-
 % lehetnek egyenlosegek is
 getGreatest([D],D).
 getGreatest([D1,D2|Ds],Maximal):-
-	(	greater(D1,D2) ->	getGreatest([D1|Ds],Maximal)
-	;				getGreatest([D2|Ds],Maximal)
+	( greater(D1,D2) -> getGreatest([D1|Ds],Maximal)
+	; getGreatest([D2|Ds],Maximal)
 	).
 	
 	
@@ -61,32 +87,32 @@ getGreatest([D1,D2|Ds],Maximal):-
 % lehet egyenloseg is
 greater(A,B):-
 	greatness(A,GA),
-	greatness(B,GB),	
-	GA @> GB.
+	greatness(B,GB),
+	GA @> GB, !.
 
 	
 % greatness(+L,-G)
 % L egy literal vagy term, melyhez hozzarendelunk egy G
 % atomot, hogy tudjuk a literalokat illetve termeket rendezni
 % ketargumentumu predikatumok kozul csak az egyenloseget kezeli
-greatness(X,'0'):-
+greatness(X,'0'):- % X
 	var(X), !.
-greatness(marked(X),G):-
-	greatness(X,G).
-greatness(fun(F,X),G):-
+greatness(fun(F,X),G):- % f(X)
 	var(X), !,
-	atom_concat('1',F,G).	
-greatness(fun(F,X),G):-
-	greatness(X,GX),
-	atom_concat('2',F,G1),
-	atom_concat(G1,GX,G).
-greatness(not(X),G):-
+	atom_concat('1',F,G).
+greatness(fun(F1,fun(F2,_)),G):- % f(g(X))
+	atom_concat('2',F1,G1),
+	atom_concat(G1,F2,G).
+greatness(not(X),G):- % not(X)
 	greatness(X,GX),
 	atom_concat(GX,'1',G).
+greatness(eq(X,_),0):-
+	var(X), !.
 greatness(eq(X,Y),G):-
 	greatness(X,GX),
 	greatness(Y,GY),
-	atom_concat(GX,GY,G).
+	atom_concat(GX,'3',G1),
+	atom_concat(G1,GY,G).
 greatness(aconcept(C,X),G):-
 	greatness(X,GX),
 	atom_concat(GX,'2',G1),

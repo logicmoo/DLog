@@ -1,199 +1,84 @@
-:- module(translator,[axioms_to_clauses/2,axioms_to_clauses/4]).
+:- module(translator,[axioms_to_clauses/5]).
 
 :- use_module(show).
 :- use_module(struct).
 :- use_module(dl_to_fol).
 :- use_module(transitive).
-:- use_module(saturate, [saturate/2, remove_redundant/2, remove_temp/2]).
+:- use_module(saturate, [saturate/2, saturate_partially/3, remove_redundant/2, remove_temp/2]).
 :- use_module(saturate_without_binary).
 :- use_module(library(lists), [append/3,select/3, member/2]).
 
-% axioms_to_clauses(+Axioms,-Clauses): Clauses az Axioms SHIQ terminologiai axiomak
+% axioms_to_clauses(+Axioms,-Clauses,-Ibox,-Hbox,-Trbox): Clauses az Axioms SHIQ terminologiai axiomak
 % forditasabol kapott klozhalmaz
-axioms_to_clauses(SHIQAxioms,Clauses):-
-	collectInverses(SHIQAxioms,Ibox),
+% Ibox az inverzeket tartalmazza
+% Hbox a szerephierarchiat
+% Trbox a tranzitiv szerepeket
+axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
+	% nl,print('Eredeti KB'),nl,
+	% nl,nl, show(SHIQAxioms),nl,nl,
 	
+	collectInverses(SHIQAxioms,Ibox),
+
 	separateBoxes(SHIQAxioms,Tbox,Hbox,Trbox),
 	addTransitiveInverses(Trbox,Ibox,Trbox2),
-	
+
 	% nl,print('Eredeti Tbox'),nl,
 	% nl,nl, show(Tbox),nl,nl,
 
-	
-	removeTransitive(Tbox,Hbox,Trbox2,ALCHIQTbox),
-	
-	% nl,print('ALCHIQ Tbox'),nl,
-	% nl,nl, show(ALCHIQTbox),nl,nl,
-	
-	% nl,print('Hbox'),nl,
-	% nl,nl, show(Hbox),nl,nl,
-	
-	% nl,print('Ibox'),nl,
-	% nl,nl, show(Ibox),nl,nl,
+	removeTransitive(Tbox,Hbox,Trbox2,TransTbox),
 	
 	% belsosites es negacios normalformara hozas
-	axiomsToNNFConcepts(ALCHIQTbox,NNF),				
+	axiomsToNNFConcepts(Tbox,NNF),
+	axiomsToNNFConcepts(TransTbox,TransNNF),	
 	
-	% nl,print('NNF'),nl,
-	% nl,nl, show(NNF),nl,nl,
-	
+	nl,print('Negacios normalformara hozas utan'),nl,	
+	nl,nl, show(NNF),nl, show(TransNNF), nl,nl,
+
 	% strukturalis transzformacio
-	defNormForms(NNF,Defs),
+	def_list(NNF,'n_',Defs),
+	def_list(TransNNF,'trans_',TransDefs),
+
+	append(Defs,TransDefs,AllDefs),
 	
-	% nl,print('Strukturalis transzformacio'),nl,
-	% nl,nl, show(Defs),nl,nl,		
+	nl,print('Strukturalis transzformacio utan'),nl,
+	nl,nl, show(AllDefs),nl,nl,
 	
 	% elsorendu, skolemizalt formulak kepzese
-	toFOLList(Defs,_,FOLT),
-	toFOLList(Hbox,_,FOLH),
-	toFOLList(Ibox,_,FOLI),
+	toClauseList(AllDefs,FOLT),
+	toClauseList(Hbox,FOLH),
+	toClauseList(Ibox,FOLI),
 		
 	append(FOLT,FOLH,FOL2),
 	append(FOL2,FOLI,FOL),			
-	
-	% clozformara hozas
-	list_cls(FOL,FOLClauses),
-	
-	% nl,print('FOL forma'),nl,
-	% nl,nl, show(FOLClauses),nl,nl,
 
-	
-	% nl,print('Klozok telitese'),nl,
+	nl,print('FOL klozok kepzese'),nl,
+	nl,nl, show(FOL),nl,nl,
 
-	
+	% nl,print('Klozok telitese'),nl,	
 	% klozhalmaz telitese alap-szuperpozicioval
-	saturate(FOLClauses,Saturated),	
+	saturate(FOL,Saturated),
 	
-	% nl,print('Telites utan'),nl,
-	% nl,nl, show(Saturated),nl,nl,
-	
-	% kettos fuggvenyjelet tartalmazo klozok elhagyasa
-	omit_structs(Saturated,fun(_,marked(fun(_,_))),Reduced1),
+	nl,print('Telites utan'),nl,
+	nl,nl, show(Saturated),nl,nl,	
 
-	% fuggveny egyenloseg/egyenlotlensegek elhagyasa
-	omit_structs(Reduced1,eq(marked(fun(_,_)),_),Reduced2),
-	omit_structs(Reduced2,not(eq(_,_)),Reduced3),
-	
-	% fuggvenyjeles szerepek elhagyasa
-	omit_structs(Reduced3,arole(_,marked(fun(_,_)),_),Reduced4),
-	omit_structs(Reduced4,arole(_,X,fun(_,X)),Reduced5),
-	omit_structs(Reduced5,arole(_,X,marked(fun(_,X))),Reduced),
-	
-	% nl,print('Mindenfele elhagyas utan'),nl,
-	% nl,nl, show(Reduced),nl,nl,
-	
-	% fuggvenyek kikuszobolese
-	saturate_without_binary(Reduced,FunFree1),
-	omit_structs(FunFree1, fun(_,_),FunFree),
-	
-	% nl,print('Fuggvenyjelek kikuszobolese utan'),nl,
-	% nl,nl, show(FunFree),nl,nl,
-	
-	remove_temp(FunFree,Removed1),
+	omit_structs(Saturated,fun(_,_),FunFree1),
+	omit_structs(FunFree1,[1,_],FunFree),
+
+        nl,print('Fuggvenyjelek kikuszobolesevel'),nl,
+	nl,nl, show(FunFree),nl,nl,
+
+	remove_temp(FunFree,Removed),
 	
 	% nl,print('Bevezetett fogalmak kikuszobolese utan'),nl,
-	% nl,nl, show(Removed1),nl,nl,
+	% nl,nl, show(Removed),nl,nl,
 
-	remove_double_proof_list(Removed1,Removed),
-	% remove_redundant(Removed2,Removed),
-
-	% nl,print('Kettos bizonyitasok kikuszobolese utan'),nl,
-	% nl,nl, show(Removed),nl,nl,	
-	Clauses = Removed.
-	
-
-axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox):-
-	collectInverses(SHIQAxioms,Ibox),
-	
-	separateBoxes(SHIQAxioms,Tbox,Hbox,Trbox),
-	addTransitiveInverses(Trbox,Ibox,Trbox2),
-	
-	% nl,print('Eredeti Tbox'),nl,
-	% nl,nl, show(Tbox),nl,nl,
-	
-	removeTransitive(Tbox,Hbox,Trbox2,ALCHIQTbox),
-	
-	% nl,print('ALCHIQ Tbox'),nl,
-	% nl,nl, show(ALCHIQTbox),nl,nl,
-	
-	% nl,print('Hbox'),nl,
-	% nl,nl, show(Hbox),nl,nl,
-	
-	% nl,print('Ibox'),nl,
-	% nl,nl, show(Ibox),nl,nl,
-	
-	% belsosites es negacios normalformara hozas
-	axiomsToNNFConcepts(ALCHIQTbox,NNF),				
-	
-	% nl,print('NNF'),nl,
-	% nl,nl, show(NNF),nl,nl,
-	
-	% strukturalis transzformacio
-	defNormForms(NNF,Defs),
-	
-	% nl,print('Strukturalis transzformacio'),nl,
-	% nl,nl, show(Defs),nl,nl,		
-	
-	% elsorendu, skolemizalt formulak kepzese
-	toFOLList(Defs,_,FOL),
-		
-	% clozformara hozas
-	list_cls(FOL,FOLClauses),
-	
-	% nl,print('FOL forma'),nl,
-	% nl,nl, show(FOLClauses),nl,nl,
-
-	
-	% nl,print('Klozok telitese'),nl,
-
-	
-	% klozhalmaz telitese alap-szuperpozicioval
-	saturate(FOLClauses,Saturated),	
-	
-	% nl,print('Telites utan'),nl,
-	% nl,nl, show(Saturated),nl,nl,
-	
-	% kettos fuggvenyjelet tartalmazo klozok elhagyasa
-	omit_structs(Saturated,fun(_,marked(fun(_,_))),Reduced1),
-
-	% fuggveny egyenloseg/egyenlotlensegek elhagyasa
-	omit_structs(Reduced1,eq(marked(fun(_,_)),_),Reduced2),
-	omit_structs(Reduced2,not(eq(_,_)),Reduced3),
-	
-	% fuggvenyjeles szerepek elhagyasa
-	omit_structs(Reduced3,arole(_,marked(fun(_,_)),_),Reduced4),
-	omit_structs(Reduced4,arole(_,X,fun(_,X)),Reduced5),
-	omit_structs(Reduced5,arole(_,X,marked(fun(_,X))),Reduced),
-	
-	% nl,print('Mindenfele elhagyas utan'),nl,
-	% nl,nl, show(Reduced),nl,nl,
-	
-	% fuggvenyek kikuszobolese
-	saturate_without_binary(Reduced,FunFree1),
-	omit_structs(FunFree1, fun(_,_),FunFree),
-	
-	% nl,print('Fuggvenyjelek kikuszobolese utan'),nl,
-	% nl,nl, show(FunFree),nl,nl,
-	
-	remove_temp(FunFree,Removed1),
-	
-	% nl,print('Bevezetett fogalmak kikuszobolese utan'),nl,
-	% nl,nl, show(Removed1),nl,nl,
-
-	remove_double_proof_list(Removed1,Removed),
-	% remove_redundant(Removed2,Removed),
+	remove_double_proof_list(Removed,Removed2),
+	remove_redundant(Removed2,Clauses),
 
 	% nl,print('Kettos bizonyitasok kikuszobolese utan'),nl,
-	% nl,nl, show(Removed),nl,nl,	
-	Clauses = Removed.
+	% nl,nl, show(Clauses),nl,nl,
+	true.
 	
-
-
-	
-
-
-
-
 
 /**************************************************************************/
 /******************* Ketszeres bizonyitas elkerulese **********************/
@@ -237,6 +122,14 @@ remove_double_proof(L,S):-
 	sort(L,LReduced),
 	remove_double_proof(LReduced,S).
 remove_double_proof(L,L).
+
+% separate5(+L,-Fiveless,-Five): L klozokbol az 5 tipusuak Five-ban
+% vannak, a tobbi pedig Fiveless-ben
+separate5([],[],[]).
+separate5([[5,C]|L],Fiveless,[[5,C]|Five]):-
+	!, separate5(L,Fiveless,Five).
+separate5([C|L],[C|Fiveless],Five):-
+	separate5(L,Fiveless,Five).
 
 	
 	

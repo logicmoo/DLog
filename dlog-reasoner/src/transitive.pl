@@ -3,6 +3,7 @@
 :- use_module(library(lists)).
 :- use_module(dl_to_fol).
 :- use_module(struct).
+:- use_module(show).
 
 /***************************************************/
 /********* KB szetbontasa **************************/
@@ -60,17 +61,14 @@ addTransitiveInverses([R|Trbox],Ibox,[R|Trbox2]):-
 	
 
 
-% removeTransitive(+Tbox,+Hbox,+Trbox,-ALCHIQTbox)
-%	Tbox-hoz hozzaadva azon axiomakat, melyek mellett
-% Trbox-ban levo tranzitiv axiomak elhagyhatoak
-% kapjuk ALCHIQTbox-ot
-removeTransitive(Tbox,_,[],Tbox):- !.
+% removeTransitive(+Tbox,+Hbox,+Trbox,-TransTbox)
+% TransTbox tartalmazza azon axiomakat, melyeket hozzaadva Tbox-hoz
+% a Trbox-ban levo tranzitiv axiomak elhagyhatoak
+removeTransitive(_,_,[],[]):- !.
 
-removeTransitive(Tbox,Hbox,Trbox,ALCHIQTbox):-
-	getClosure(Tbox,Closure),		
-	getNewAxioms(Closure,Hbox,Trbox,NewAxioms),		
-	append(Tbox,NewAxioms,ALCHIQTbox).	
-
+removeTransitive(Tbox,Hbox,Trbox,TransTbox):-
+	getClosure(Tbox,Closure),
+	getNewAxioms(Closure,Hbox,Trbox,TransTbox).
 
 % getClosure(+Tbox,-Closure)
 %	Closure tartalmazza azon fogalmakat, melyekre
@@ -119,13 +117,13 @@ universalSubConceptsList([C|Cs],SubCon):-
 % NewAxioms azon all(S,C) -> all(S,all(S,C)) axiomak listaja, melyre
 %	S reszszerepe R-nek es S tranzitiv
 getNewAxioms([all(arole(R),C)|Closure],Hbox,Trbox,NewAxioms):-
-	findall(S,(		
-			member(S,Trbox),			
-			someSubRole(S,arole(R),Hbox)			
-			),Ss),			
-			newAxiomList(arole(R),C,Ss,NewAxioms1),
-			append(NewAxioms1,Rest,NewAxioms),
-			getNewAxioms(Closure,Hbox,Trbox,Rest).
+	findall(S,(
+		   member(S,Trbox),			
+		   someSubRole(S,arole(R),Hbox)			
+		  ),Ss),			
+	newAxiomList(arole(R),C,Ss,NewAxioms1),
+	append(NewAxioms1,Rest,NewAxioms),
+	getNewAxioms(Closure,Hbox,Trbox,Rest).
 
 getNewAxioms([],_,_,[]).
 
