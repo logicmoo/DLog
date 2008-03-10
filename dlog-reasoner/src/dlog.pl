@@ -67,7 +67,7 @@ load_KB_interpreter(KBFile):-
 	read_tell(KBFile,TBox,ABox,_),
 	statistics(runtime, [T1,_]),T is T1-T0,
 	format(' DIG KB read in ~t~20|~t~3d sec ~n', [T]),
-	axioms_to_clauses(TBox,TBox_Clauses,_,_,_),
+	axioms_to_clauses(TBox,TBox_Clauses),
 	statistics(runtime, [T2,_]),TA is T2-T1,
 	format(' Axioms translated in ~t~20|~t~3d sec ~n', [TA]),
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail

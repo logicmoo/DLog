@@ -70,6 +70,8 @@ saturate(W1,[C|W2],S):-
 % klozhalmazban
 % nincs behelyettesites
 % a klozoknak meg van adva a tipusuk is
+redundant(_,Cs):-
+	member([],Cs), !.
 redundant([_,C],_):-
 	member(true,C), !.
 redundant([1,C],Cs):- !,
@@ -92,6 +94,8 @@ includes(_,[_,[]]):- !.
 includes([TypeC,C],[TypeD,[LD|D]]):-
 	(
 	  TypeD = 5
+	; TypeC = 10
+	; TypeD = 10
 	; TypeC = 3, TypeD = 3
 	; TypeC = 4, TypeD = 4
 	; TypeC = 6, TypeD = 6
@@ -165,13 +169,13 @@ resolve_list([7-N,Cls],W,Res):- !,
 	  Size > 0,
 	  Res = [5,Res1]
 	; Size is N-1,
- 	  D = [4,[atleast(_,arole(R,X,Y),_)|_]],
+ 	  D = [4,[atleast(_,arole(R,X,Y),_)|Res2]],
 	  member(D,W),
-	  hyperresolve(Cls1,SomeThree,Res1),
-	  binary_resolve(Res1,1,arole(R,X,Y),Res2),
+	  binary_resolve(Res1,1,arole(R,X,Y),Res3),
+	  append(Res2,Res3,Res4),
 	  (
-	    contains_struct(Res2,fun(_,fun(_,_))) -> Res = [6,Res2]
-	  ; Res = [5,Res2]
+	    contains_struct(Res4,fun(_,fun(_,_))) -> Res = [6,Res4]
+	  ; Res = [5,Res4]
 	  )
 	).
 	  
@@ -449,7 +453,7 @@ resolve_specific([_,C1],[_,C2],PredName,[10,R]):-
 
 % remove_redundant(+L,-R),
 % L klozlistabol kikuszobolve a redundansakat kapjuk R klozlistat
-% a klozok tipussal nelkul szerepelnek
+% a klozok tipussal szerepelnek
 remove_redundant(L,R):-
 	remove_redundant(L,[],R).
 

@@ -1,25 +1,25 @@
 :- use_module('dlog').
 :- use_module('dl_interp').
-:- use_module('show').
+% :- use_module('show').
 :- use_module('translator').
 :- set_prolog_flag(unknown, fail).
 
 translate(TBox):-
 	statistics(runtime, [T0,_]),
-	axioms_to_clauses(TBox,TBox_Clauses,IBox,HBox,Transitives),
+	axioms_to_clauses(TBox,TBox_Clauses),
 	statistics(runtime, [T1,_]),TA is T1-T0,
 	format(' Axioms translated in ~t~20|~t~3d sec ~n', [TA]),
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail
 	; true
 	),
 	nl, print('Eredeti TBox'), nl, show(TBox),
-	nl, print('Eredo TBox'), nl, show(TBox_Clauses), show(IBox), show(HBox), show(Transitives).
+	nl, print('Eredo TBox'), nl, show(TBox_Clauses).
 
 
 lubm(N,Q):-
-	( N == 1 -> load_KB_interpreter('/home/stilgar/BME/Doktori/dlog/LUBM/lubm1.dig')
-	; N == 2 -> load_KB_interpreter('/home/stilgar/BME/Doktori/dlog/LUBM/lubm2.dig')
-	; N == 3 -> load_KB_interpreter('/home/stilgar/BME/Doktori/dlog/LUBM/lubm3.dig')
+	( N == 1 -> load_KB_interpreter('d:/Logic/ontology/lubm1.dig')
+	; N == 2 -> load_KB_interpreter('d:/Logic/ontology/lubm2.dig')
+	; N == 3 -> load_KB_interpreter('d:/Logic/ontology/lubm3.dig')
 	),
 	( Q == 1 -> solve('a:Chair')
 	; Q == 2 -> solve_n((X,Y), ('a:Chair'(X),'a:worksFor'(X,Y),'a:Department'(Y), 'a:subOrganizationOf'(Y,'p25:www.University0.edu')))
@@ -28,9 +28,9 @@ lubm(N,Q):-
 
 lubm_ford(N,Q):-
 	abolish(abox:_),
-	( N==1 -> dlkb2prolog('/home/stilgar/BME/Doktori/dlog/LUBM/lubm1.dig', './lubm1',[allinone(yes),statistics(yes)]), compile('./lubm1_tbox.pl')
-	; N==2 -> dlkb2prolog('/home/stilgar/BME/Doktori/dlog/LUBM/lubm2.dig', './lubm2',[allinone(yes),statistics(yes)]), compile('./lubm2_tbox.pl')	    
-	; N==3 -> dlkb2prolog('/home/stilgar/BME/Doktori/dlog/LUBM/lubm_3.dig', './lubm3',[allinone(yes),statistics(yes),filter_duplicates(yes)]), compile('./lubm3_tbox.pl')
+	( N==1 -> dlkb2prolog('d:/Logic/ontology/lubm1.dig', './lubm1',[allinone(yes),statistics(yes)]), compile('./lubm1_tbox.pl')
+	; N==2 -> dlkb2prolog('d:/Logic/ontology/lubm2.dig', './lubm2',[allinone(yes),statistics(yes)]), compile('./lubm2_tbox.pl')	    
+	; N==3 -> dlkb2prolog('d:/Logic/ontology/lubm3.dig', './lubm3',[allinone(yes),statistics(yes),filter_duplicates(yes)]), compile('./lubm3_tbox.pl')
 	), !,
 	( Q == 1 -> statistics_call('a:Chair'(_),B)
 	; Q == 2 -> statistics_call(('a:subOrganizationOf'(Y,'p25:www.University0.edu'),'a:worksFor'(X,Y),'a:Chair'(X),'a:Department'(Y)),B)
@@ -40,14 +40,14 @@ lubm_ford(N,Q):-
 
 
 vicodi(Q):-
-	load_KB_interpreter('/home/stilgar/BME/Doktori/dlog/vicodi/vicodi.dig'),
+	load_KB_interpreter('d:/Logic/ontology/vicodi.dig'),
 	( Q == 1 -> solve('Individual')
  	; Q == 2 -> solve_n((X,Y,Z),('Military-Person'(X), 'hasRole'(Y,X),'related'(X,Z)))
 	).
 
 vicodi_ford(Q):-
 	abolish(abox:_),	
-	dlkb2prolog('/home/stilgar/BME/Doktori/dlog/vicodi/vicodi.dig', './vicodi',[allinone(yes),statistics(yes),filter_duplicates(yes)]),
+	dlkb2prolog('d:/Logic/ontology/vicodi.dig', './vicodi',[allinone(yes),statistics(yes),filter_duplicates(yes)]),
 	compile('./vicodi_tbox.pl'), !,
 	( Q == 1 -> statistics_call('Individual'(_),B)
  	; Q == 2 -> statistics_call(('hasRole'(_,X),'related'(X,_),'Military-Person'(X)),B)
@@ -70,9 +70,15 @@ semintec_ford(Q):-
 	print(B).
 
 wine:-
-	load_KB_interpreter('d:/Logic/ontology/wine2.dig'),
+	load_KB_interpreter('d:/Logic/ontology/wine_0.dig'),
 	solve('AmericanWine').
 
+wine_ford:-
+	abolish(abox:_),	
+	dlkb2prolog('d:/Logic/ontology/wine_0.dig', './wine',[allinone(yes),statistics(yes)]),
+	compile('./wine_tbox.pl'), !,
+	statistics_call(('AmericanWine'(_)),B),
+	print(B).
 
 /***************************************************/
 /********************* peldak **********************/

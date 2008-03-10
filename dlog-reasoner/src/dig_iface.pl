@@ -160,7 +160,7 @@ envs_to_axioms([],FunRoles,TAxioms,[]):-
 % env_to_role(+Node -Role)
 % Role a Node XML nodenak megfelelo fogalom
 env_to_role(env(ratom,[name=R],[]),arole(R)).
-env_to_role(env(inverse,[env(ratom,[name=R],[])]),arole(InvRole)):-	
+env_to_role(env(inverse,[env(ratom,[name=R],[])]),arole(InvRole)):- !,
 	atom_concat('inv_',R,InvRole).
 env_to_role(env(inverse,[env(inverse,[Role])]),R):-
 	env_to_role(Role,R).
@@ -186,7 +186,7 @@ env_to_concept(env(all,[ER,EC]),all(R,C)):-
 env_to_concept(env(atleast,[num=N],[ER,EC]),atleast(N1,R,C)):-
 	!, env_to_role(ER,R), env_to_concept(EC,C), atom_codes(N,NC), number_codes(N1,NC).
 env_to_concept(env(atmost,[num=N],[ER,EC]),atmost(N1,R,C)):-
-	env_to_role(ER,R), env_to_concept(EC,C), atom_codes(N,NC), number_codes(N1,NC).
+	!, env_to_role(ER,R), env_to_concept(EC,C), atom_codes(N,NC), number_codes(N1,NC).
 
 
 
@@ -241,8 +241,9 @@ reset_counters.
 % FunRoles azon szerepek listaja, melyekrol ki van jelentve,
 % hogy funkcionalisak
 find_functional([],[]).
-find_functional([env(functional,[ER])|Es],[R|FunRoles]):-
+find_functional([env(functional,[ER])|Es],[R|FunRoles]):-	
 	env_to_role(ER,R),
+	!,
 	find_functional(Es,FunRoles).
 find_functional([_|Es],FunRoles):-
 	find_functional(Es,FunRoles).

@@ -1,4 +1,4 @@
-:- module(translator,[axioms_to_clauses/5]).
+:- module(translator,[axioms_to_clauses/5, axioms_to_clauses/2]).
 
 :- use_module(show).
 :- use_module(struct).
@@ -13,7 +13,32 @@
 % Ibox az inverzeket tartalmazza
 % Hbox a szerephierarchiat
 % Trbox a tranzitiv szerepeket
-axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
+axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox):-
+	axioms_to_clauses2(SHIQAxioms,Clauses1,Ibox,Hbox,Trbox),
+	% tipusmegjelolesek elhagyasa
+	% inverzek es szerephierarchiak elhagyasa
+	% tranzitivitashoz kotodo szabalyok elhagyasa
+	findall(C,(
+		   member([Type,C],Clauses1),		   
+		   \+ Type = 1,
+%		   \+ (
+%			contains_struct2(C,nconcept(Pred,_)),
+%			atom_concat('trans',_,Pred)
+%		      ),
+		   true
+		  ), Clauses	       
+	       ).
+
+axioms_to_clauses(SHIQAxioms,Clauses):-
+	axioms_to_clauses2(SHIQAxioms,Clauses1,_,_,_),
+	% tipusmegjelolesek elhagyasa
+	findall(C,(
+		   member([_,C],Clauses1)
+		  ), Clauses
+	       ).
+
+
+axioms_to_clauses2(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	% nl,print('Eredeti KB'),nl,
 	% nl,nl, show(SHIQAxioms),nl,nl,
 	
@@ -49,7 +74,7 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	toClauseList(Ibox,FOLI),
 		
 	append(FOLT,FOLH,FOL2),
-	append(FOL2,FOLI,FOL),			
+	append(FOL2,FOLI,FOL),
 
 	% nl,print('FOL klozok kepzese'),nl,
 	% nl,nl, show(FOL),nl,nl,
@@ -61,8 +86,7 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	% nl,print('Telites utan'),nl,
 	% nl,nl, show(Saturated),nl,nl,	
 
-	omit_structs(Saturated,fun(_,_),FunFree1),
-	omit_structs(FunFree1,[1,_],FunFree),
+	omit_structs(Saturated,fun(_,_),FunFree),
 
         % nl,print('Fuggvenyjelek kikuszobolesevel'),nl,
 	% nl,nl, show(FunFree),nl,nl,
@@ -73,24 +97,14 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 	% nl,nl, show(Removed),nl,nl,
 
 	remove_double_proof_list(Removed,Removed2),
-	remove_redundant(Removed2,Removed3),
 
 	% nl,print('Kettos bizonyitasok kikuszobolese utan'),nl,
-	% nl,nl, show(Removed3),nl,nl,
+	% nl,nl, show(Removed2),nl,nl,
 
-	% tranzitivitashoz kotodo axiomak es a tipusmegjelolesek elhagyasa
-	findall(C,(
-		   member([_,C],Removed3),		   
-%		   \+ (
-%			contains_struct2(C,nconcept(Pred,_)),
-%			atom_concat('trans',_,Pred)
-%		      )
-		   true
-		  ), Clauses
-	       ),
+	remove_redundant(Removed2,Clauses),
 
-	
-	% nl,nl, show(Clauses),nl,nl,
+	nl,print('Vegso redundanciavizsgalat utan'),nl,
+	nl,nl, show(Clauses),nl,nl,
 	true.
 	
 
@@ -103,7 +117,7 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 % a bizonyitasnak az ismetleset jelentene, akkor kiszurjuk az egyiket
 % a keletkezo klozlista S
 remove_double_proof_list([],[]).
-remove_double_proof_list([L|Ls],[R|Rs]):-
+remove_double_proof_list([[T,L]|Ls],[[T,R]|Rs]):-
 	remove_double_proof(L,R),
 	remove_double_proof_list(Ls,Rs).
 
@@ -137,6 +151,8 @@ remove_double_proof(L,S):-
 	remove_double_proof(LReduced,S).
 remove_double_proof(L,L).
 
+
+
 % separate5(+L,-Fiveless,-Five): L klozokbol az 5 tipusuak Five-ban
 % vannak, a tobbi pedig Fiveless-ben
 separate5([],[],[]).
@@ -150,6 +166,31 @@ separate5([C|L],[C|Fiveless],Five):-
 /**************************************************************************/
 /************************* Teszteles **************************************/
 /**************************************************************************/
+
+
+filter(L,R):-
+	append(F1,F2,L),
+	length(F1,108),
+	append(F21,F22,F2),
+	length(F22,11),
+
+
+	findall(C, (
+		     member(C,F21),
+		     (
+		       contains_struct(C,arole('IsLoanOf',_,_))
+		     ; contains_struct(C,arole('inv_IsLoanOf',_,_))		     
+		     ; contains_struct(C,fun(k,_))
+		     ; contains_struct(C,fun(j,_))
+		     ; contains_struct(C,fun(i,_))
+		     ; \+ contains_struct(C,fun(_,_))
+		     ),
+		     \+ contains_struct(C,aconcept('Region',_)),
+		     \+ contains_struct(C,arole('livesIn',_,_))
+		   ), R
+	       ).
+	
+	
 
 test_redundant1:-		% redundant
 	redundant([f(_X)],[[f(_Y)]]).
