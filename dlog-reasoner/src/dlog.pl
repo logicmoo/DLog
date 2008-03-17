@@ -4,9 +4,12 @@
 :- use_module('dig_iface').
 :- use_module('translator').
 :- use_module('show').
-:- use_module('dl_interp',[neg/2, assert_clauses/1, solve/1, solve_n/2]).
+:- use_module('dl_interp',[assert_clauses/1, solve/1, solve_n/2]).
 :- use_module(library(lists)).
-:- use_module('prolog_translator',[dl2prolog/3]).
+:- use_module('tbox_translator',[tbox2prolog/4]).
+:- use_module('abox_translator',[abox2prolog/3]).
+:- use_module('abox_signature',[abox_signature/3]).
+:- use_module(transforming_tools, [neg/2]).
 
 user:runtime_entry(start) :-
 	start_dlog.
@@ -24,7 +27,10 @@ user:runtime_entry(start) :-
 dlkb2prolog(KBFile, PFile, Options) :-
 	load_KB0(KBFile, _Statistics, TBox, ABox, IBox, HBox),
 	statistics(runtime, [T0,_]),
-	dl2prolog(PFile, kb(TBox, ABox, IBox, HBox), Options),
+	abox_signature(ABox, ABoxStr, Signature),
+	abox2prolog(PFile, abox(ABoxStr), Options),
+	tbox2prolog(PFile, tbox(TBox, IBox, HBox), abox(Signature), Options),
+
 	statistics(runtime, [T1,_]),Tt is T1-T0,
 	format(' Prolog clauses have been generated in ~t~20|~t~3d sec ~n', [Tt]).
 

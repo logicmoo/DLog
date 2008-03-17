@@ -1,4 +1,4 @@
-:- module(dl_interp, [solve/3, solve/2, solve/1, solve_n/2, load_dl/1, itrace/1, assert_clauses/1, assert_clause/1,neg/2, contra/2]).
+:- module(dl_interp, [solve/3, solve/2, solve/1, solve_n/2, load_dl/1, itrace/1, assert_clauses/1, assert_clause/1]).
 
 trace_count_pred(trace(_,_,_)).
 trace_count_pred(count(_)).
@@ -10,6 +10,7 @@ trace_count_pred(count_failure(_)).
 
 :- use_module(library(lists)).
 :- use_module(library(terms)).
+:- use_module(transforming_tools, [contra/2, neg/2, add_key/2, unzip_second/2, list_to_open_list/2]).
 
 user:goal_expansion(Goal, dl_interp, G) :-
 	bb_get(itrace, none),
@@ -164,17 +165,6 @@ trace0(D, F, DL) :-
 	tab(Indent),
 	format(F, DL).
 
-neg(Term, NegTerm) :-
-	Term =.. [Name|Args],
-	negname(Name, NegName),
-	NegTerm =.. [NegName|Args].
-
-negname(Name, NegName) :-
-	atom_concat('not_', X, Name), !,
-	NegName = X.
-negname(Name, NegName) :-
-	atom_concat('not_', Name, NegName).
-
 solve(Q, X, T) :-
 	statistics(runtime, [T0,_]),
 	solve_base(Q, X),
@@ -261,12 +251,6 @@ assert_clause(LitList0):-
 	contra(LitList0, Contras),
 	assert_contrapositives(Contras).
 
-contra(LitList0, Contras) :-
-	add_key(LitList0, ALitList0),
-	keysort(ALitList0, ALitList),
-	unzip_second(ALitList, LitList),
-	contrapositives(LitList,Contras).
-
 assert_contrapositives([]).
 assert_contrapositives([Cl|Cls]):-
 	( retract(dl:Cl), fail
@@ -275,44 +259,11 @@ assert_contrapositives([Cl|Cls]):-
 	assert(dl:Cl),
 	assert_contrapositives(Cls).
 
-unzip_second([], []).
-unzip_second([_-Y|XYs], [Y|Ys]) :-
-	unzip_second(XYs, Ys).
-
-add_key([], []).
-add_key([L|Ls], [K-L|KLs]) :-
-	functor(L, _, N),
-	K is -N,
-	add_key(Ls, KLs).
-
-contrapositives(L,Contras):-
-	findall(C, (
-		     contrapositive_of(L,C)
-		   ), Contras
-	       ).
-
-contrapositive_of(L, (Head:-Body)) :-
-	select(NH, L, BL),
-	\+ ponalt_binary(NH),
-	neg(NH, Head),
-	list_to_open_list(BL, Body).
-
-ponalt_binary(T) :-
-	functor(T, N, 2),
-	\+ atom_concat('not_', _X, N).
 
 clause_to_litlist(Head, Body, [NH|BL]) :-
 	neg(Head, NH),
 	open_list_to_list(Body, BL).
 
-
-list_to_open_list([], true).
-list_to_open_list([G],X):- !, X=G.
-list_to_open_list([G0|L], G) :-
-	(   L = [] -> G = G0
-	;   G = (G0,G1),
-	    list_to_open_list(L, G1)
-	).
 
 open_list_to_list(true, L) :- !, L = [].
 open_list_to_list((G0,G1), L) :-

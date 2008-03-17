@@ -2,20 +2,20 @@
 % BME
 % v0.1
 % todo: symmetric
-:- module(prolog_translator,[dl2prolog/3]).
+:- module(prolog_translator,[tbox2prolog/4]).
 
 :- use_module(library(lists), [append/3,member/2, memberchk/2,last/2,is_list/1,select/3]).
 :- use_module(library(terms), [term_variables_bag/2]).
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3, reduce/2]).
 :- use_module(library(system), [datime/1]).
-:- use_module('dl_interp',[neg/2, contra/2]).
+:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2]).
 
 counter(loop).
 counter(ancres).
 counter(orphancres).
 
 	
-% dlkb2prolog(+PFile, +Options)
+% tbox2prolog(+PFile, +KB, + Signature, +Options)
 % PFile is a filename where the transformed
 % Prolog clauses are written
 %
@@ -28,16 +28,9 @@ counter(orphancres).
 % projection(yes): [no, yes] whether to generate projection goals
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
-% generate_abox(no): [yes, no] whether to generate an ABox Prolog file
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
-dl2prolog(PFile, kb(TBox, ABox, _IBox, HBox), Options) :-
+tbox2prolog(PFile, tbox(TBox, _IBox, HBox), abox(Signature), Options) :-
 	init(Options),
-	(
-	  abox_preds(ABox, ABoxStr)->
-	  abox_signature(ABoxStr, Signature)
-	;
-	  ABoxStr = [], Signature = []
-	),
 	dl_preds(TBox, Preds),
 	preprocessing(Preds, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
@@ -47,8 +40,8 @@ dl2prolog(PFile, kb(TBox, ABox, _IBox, HBox), Options) :-
 	set_output(Handle),
 	tbox_headers(Options),
 	headwrite('Transformed TBox clauses'),
-	call_cleanup(transformed_kb(DepGraph, Signature), (close(Handle),set_output(COutput))),
-	generate_abox(ABoxStr, PFile, Options).
+	call_cleanup(transformed_kb(DepGraph, Signature), (close(Handle),set_output(COutput))).
+
 
 transformed_kb(DepGraph, Signature) :-
 	transform(DepGraph, DepGraph, Signature),
@@ -81,44 +74,6 @@ write_atomic_predicate(Pred) :-
 	portray_clause((Head :- abox:Head)),
 	nl.
 
-generate_abox(ABoxStr, PFile, Options) :-
-	(
-	  env_parameter(indexing, yes) ->
-	  Indexing = yes
-	;
-	  Indexing = no
-	),
-	(
-	  env_parameter(generate_abox, yes) ->
-	  ABox = yes
-	;
-	  ABox = no
-	),
-	
-	generate_abox0(ABoxStr, PFile, Options, Indexing, ABox).	
-	
-generate_abox0(ABoxStr, PFile, Options, Indexing, ABox) :-
-	env_parameter(generate_abox, yes), !, 
-	atom_concat(PFile, '_abox.pl', PABoxFile),
-	open(PABoxFile, write, Handle),
-	current_output(COutput),
-	set_output(Handle),
-	abox_headers(Options),
-	headwrite('Transformed ABox clauses'),
-	call_cleanup(transformed_abox(ABoxStr, Indexing, ABox), (close(Handle),set_output(COutput))).
-generate_abox0(ABoxStr, _, _, Indexing, ABox) :-
-	transformed_abox(ABoxStr, Indexing, ABox).
-
-abox_signature([], []).
-abox_signature([P-L|As], [S|Ss]) :-
-	(
-	  L = [_-[*]|_] ->
-	  S = P/1
-	;
-	  S = P/2
-	),
-	abox_signature(As, Ss).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % Init
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -126,14 +81,15 @@ init(Options) :-
 	retractall(env_user:statistics(_)),
 	retractall(env_user:orphan(_)),
 	retractall(env_user:decompose(_)),
-	retractall(env_user:generate_abox(_)),
 	retractall(env_user:allinone(_)),
 	retractall(env_user:indexing(_)),
 	retractall(env_user:projection(_)),
 	retractall(env_user:preprocessing(_)),
 	retractall(env_user:ground_optim(_)),
 	retractall(env_user:filter_duplicates(_)),
-	abolish(env_default:_),
+	retract_list([statistics(_), orphan(_), decompose(_), allinone(_), indexing(_), projection(_), preprocessing(_),
+		      ground_optim(_),filter_duplicates(_)],env_default),
+%	abolish(env_default:_),
 	retractall(predicate(_,_)),
 	retractall(goal(_,_)),
 	retractall(orphan(_,_)),
@@ -146,10 +102,13 @@ init(Options) :-
 	retractall(symmetric(_)), % szimmetrikus komponensek
 	assert_options(Options).
 
-
+retract_list([], _).
+retract_list([T|Ts], Module) :-
+	retractall(Module:T),
+	retract_list(Ts, Module).
 
 assert_options(Options) :-
-	assert_options0([statistics(no), orphan(priority), decompose(yes), generate_abox(no), allinone(no), indexing(yes), projection(yes), preprocessing(yes), ground_optim(yes),filter_duplicates(no)], env_default),
+	assert_options0([statistics(no), orphan(priority), decompose(yes), allinone(no), indexing(yes), projection(yes), preprocessing(yes), ground_optim(yes),filter_duplicates(no)], env_default),
 	assert_options0(Options, env_user).
 
 assert_options0([], _).
@@ -157,9 +116,6 @@ assert_options0([O|Os], Module) :-
 	assert(Module:O),
 	assert_options0(Os, Module).
 
-abox_headers(Options) :-
-	headers(Options),
-	write(':- module(abox,[]).\n').
 
 tbox_headers(Options) :-
 	headers(Options).
@@ -200,20 +156,6 @@ tunnel(TBox, Name, Arity, Head, Body) :-
 	functor(Head, Name, Arity),
 	Arity \== 2.
 
-% SzP: Ha az abox_axiom(ABox, P, A, B) nem adhat vissza ket azonso <P,A,B>
-% harmast, akkor itt egy kicsit gyorsitani lehet azzal, hogy setof helyett
-% bagof-ot irunk itt; felteve persze hogy a dolgok abc-rendezese nem fontos...
-abox_preds(ABox, ABoxStr) :-
-	bagof(P-AhBss, setof(A-Bs, setof(B, abox_axiom(ABox, P, A, B), Bs), AhBss), ABoxStr).
-
-abox_axiom(ABox, Name, Value1, Value2) :-
-	member(C, ABox),
-	abox_axiom0(C, Name, Value1, Value2).
-
-abox_axiom0(aconcept(Name, Value), Name, Value, *).
-abox_axiom0(arole(Name, Value1, Value2), Name, Value1, Value2).
-abox_axiom0(not(aconcept(Name0, Value)), Name, Value, *) :-
-	atom_concat('not_', Name0, Name).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % HBox feldolgozása
@@ -772,120 +714,6 @@ loop_path([_C|Cs]) :-
 dummy_categorisation([], []).
 dummy_categorisation([_Body-_Head|Cs], [[query]|Bs]) :-
 	dummy_categorisation(Cs, Bs).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Transformations: atomic
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-transformed_abox([], _Indexing, _ABox).
-transformed_abox([P-L|Ps], Indexing, ABox) :-
-	(
-	  L = [_-[*]|_] ->
-	  transformed_abox_concept(L, P, ABox)
-	;
-	  Indexing == yes ->
-	  inverses(L, IL),
-	  atom_concat('idx_', P, IP),
-	  transformed_abox_idx_role(L, P, ABox),
-	  transformed_abox_idx_role(IL, IP, ABox)
-	;
-	  transformed_abox_noidx_role(L, P, ABox)
-	),
-	transformed_abox(Ps, Indexing, ABox).
-
-transformed_abox_concept([], _, _).
-transformed_abox_concept([Value-_|Vs], P, ABox) :-
-	functor(Term, P, 1),
-	arg(1, Term, Value),
-	portray_abox_clause(ABox, Term),
-	transformed_abox_concept(Vs, P, ABox).
-
-transformed_abox_noidx_role([], _, _).
-transformed_abox_noidx_role([A-Bs|Xs], P, ABox) :-
-	transformed_abox_noidx_role0(Bs, A, P, ABox),
-	transformed_abox_noidx_role(Xs, P, ABox).
-
-transformed_abox_noidx_role0([], _, _, _).
-transformed_abox_noidx_role0([B|Bs], A, P, ABox) :-
-	functor(Term, P, 2),
-	arg(1, Term, A),
-	arg(2, Term, B),
-	portray_abox_clause(ABox, Term),
-	transformed_abox_noidx_role0(Bs, A, P, ABox).
-
-transformed_abox_idx_role([], _, _).
-transformed_abox_idx_role([X-[Y|Ys]|Xs], P, ABox) :-
-	portray_index(Ys, Y, P, X, ABox),
-	transformed_abox_idx_role(Xs, P, ABox).
-
-portray_index([], B, Name, A, ABox) :-
-	!, Head =.. [Name, A, B],
-	portray_abox_clause(ABox, Head).
-portray_index([B2|Bs], B, Name, A, ABox) :-
-	atom_concat(Name, '_', AName),
-	atom_concat(AName, A, IdxName),
-	Head =.. [Name, A, X],
-	functor(Body, IdxName, 1),
-	arg(1, Body, X),
-	portray_abox_clause(ABox, (Head :- Body)),
-	idx_clauses([B,B2|Bs], IdxName, IdxClauses),
-	(
-	  ABox == yes ->
-	  indented_clauses(IdxClauses, ABox)
-	;
-	  not_indented_clauses(IdxClauses, ABox)
-	).
-
-idx_clauses([], _IdxName, []).
-idx_clauses([B|Bs], IdxName, [Fact|Clauses]) :-
-	functor(Fact, IdxName, 1),
-	arg(1, Fact, B),
-	idx_clauses(Bs, IdxName, Clauses).
-
-indented_clauses([], _).
-indented_clauses([C|Cs], ABox) :-
-	write('                                  '),
-	portray_clause(C),
-	indented_clauses(Cs, ABox).
-
-not_indented_clauses([], _).
-not_indented_clauses([C|Cs], ABox) :-
-	portray_abox_clause(ABox, C),
-	not_indented_clauses(Cs, ABox).
-
-old_inverses(L, TL) :-
-	bagof(B-As,
-	      bagof(A, edge_in_graph(L, A, B), As),
-	      TL).
-
-edge_in_graph(L, A, B) :-
-	member(A-Bs, L),
-	member(B, Bs).
-
-inverses(L, IL) :-
-	transpose(L, [], T),
-	sort(T, Ts),
-	group_inverses(Ts, IL).
-
-transpose([], Gy, Gy).
-transpose([A-Bs|Xs], Gy, T) :-
-	transpose0(Bs, A, Gy, NGy),
-	transpose(Xs, NGy, T).
-
-transpose0([], _, Gy, Gy).
-transpose0([B|Bs], A, Gy, O) :-
-	transpose0(Bs, A, [B-A|Gy], O).
-	
-group_inverses([A-B|As], O) :-
-	group_inverses0(As, A, [B], [], O).
-
-group_inverses0([], N, Gy1, Gy2, [N-Gy1|Gy2]).
-group_inverses0([A-B|As], N, Gy1, Gy2, O) :-
-	(
-	  N == A ->
-	  group_inverses0(As, A, [B|Gy1], Gy2, O)
-	;
-	  group_inverses0(As, A, [B], [N-Gy1|Gy2], O)
-	).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1896,26 +1724,6 @@ safe_assert(G) :-
 	  assert(G)
 	).
 
-headwrite(Atom) :-
-	atom_codes(Atom, Cs),
-	length(Cs, Length),
-	write_n(Length, '*'),
-	format('\% ~p~n',[Atom]),
-	write_n(Length, '*'),
-	nl.
-
-write_n(L, C) :-
-	write('\% '),
-	write_n0(L, C),
-	nl.
-
-write_n0(0, _) :- !.
-write_n0(N, C) :-
-	N > 0,
-	N1 is N-1,
-	write(C),
-	write_n0(N1, C).
-
 unkey([], []).
 unkey([_-A|As],[A|Bs]):-
 	unkey(As, Bs).
@@ -1962,9 +1770,4 @@ query_predicate(Name, Arity) :-
 	atomic_predicate(Name, Arity), !.
 query_predicate(Name, Arity) :-
 	once(atomic_like_predicate(Name, Arity)).
-
-portray_abox_clause(yes, C) :-
-	portray_clause(C).
-portray_abox_clause(no, C) :-
-	assert(abox:C).
 
