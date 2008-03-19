@@ -103,8 +103,8 @@ axioms_to_clauses2(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
 
 	remove_redundant(Removed2,Clauses),
 
-	nl,print('Vegso redundanciavizsgalat utan'),nl,
-	nl,nl, show(Clauses),nl,nl,
+	% nl,print('Vegso redundanciavizsgalat utan'),nl,
+	% nl,nl, show(Clauses),nl,nl,
 	true.
 	
 
