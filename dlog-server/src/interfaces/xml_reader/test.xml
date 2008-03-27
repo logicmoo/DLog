@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<nodes>
+  <node id="1">
+   <name>Jelentes</name>
+   <type>Word</type>
+   <bin>xyz</bin>
+   <comment>done by zed</comment>
+  </node>
+  <node id="2">
+   <name>Kimutatas</name>
+   <type>Excel</type>
+  </node>
+</nodes>

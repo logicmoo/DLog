@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tells uri="" xmlns="http://dl.kr.org/dig/2003/02/lang">
+    <defconcept name="Patricide"/>
+    <defconcept name="Good"/>
+    <equalc>
+        <catom name="Good"/>
+        <and>
+            <some>
+                <ratom name="hasChild"/>
+                <and>
+                    <catom name="Patricide"/>
+                    <some>
+                        <ratom name="hasChild"/>
+                        <not>
+                          <catom name="Patricide"/>
+                        </not>
+                    </some>
+                </and>
+            </some>
+        </and>
+    </equalc>
+	
+	<defconcept name="Halottapa"/>
+	<equalc>
+        <catom name="Halottapa"/>
+        <some>
+			<ratom name="hasChild"/>
+			<catom name="Patricide"/>
+		</some>
+    </equalc>
+
+    <defrole name="hasChild"/>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i2"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i3"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i4"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i5"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i6"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i7"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i8"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i9"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i10"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i11"/>
+</related>
+<related>
+<individual name="i2"/>
+<ratom name="hasChild"/>
+<individual name="i3"/>
+</related>
+<related>
+<individual name="i3"/>
+<ratom name="hasChild"/>
+<individual name="i4"/>
+</related>
+<related>
+<individual name="i4"/>
+<ratom name="hasChild"/>
+<individual name="i5"/>
+</related>
+<related>
+<individual name="i5"/>
+<ratom name="hasChild"/>
+<individual name="i6"/>
+</related>
+<related>
+<individual name="i6"/>
+<ratom name="hasChild"/>
+<individual name="i7"/>
+</related>
+<related>
+<individual name="i7"/>
+<ratom name="hasChild"/>
+<individual name="i8"/>
+</related>
+<related>
+<individual name="i8"/>
+<ratom name="hasChild"/>
+<individual name="i9"/>
+</related>
+<related>
+<individual name="i9"/>
+<ratom name="hasChild"/>
+<individual name="i10"/>
+</related>
+<related>
+<individual name="i10"/>
+<ratom name="hasChild"/>
+<individual name="i11"/>
+</related>
+<related>
+<individual name="i11"/>
+<ratom name="hasChild"/>
+<individual name="i12"/>
+</related>
+<instanceof>
+  <individual name="i2"/>
+  <catom name="Patricide"/>
+</instanceof>
+<instanceof>
+  <individual name="i12"/>
+  <not>
+    <catom name="Patricide"/>
+  </not>
+</instanceof>
+</tells>

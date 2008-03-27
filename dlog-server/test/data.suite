@@ -1,0 +1,11 @@
+suite_name('standard').
+timeout(600000).
+parameters([[]-[]]).
+
+statistics([loop, ancres, orphancres]).
+competition(['KAON2', 'RacerPro', 'Pellet']).
+
+testcase('iokaszte','Good','../iokaszte/', ['c10','c20','c100','c1000','c10000','n12', 'n200','n1200','n8000']).
+%testcase('lubm','a:Chair','../../lubm/dig/',['lubm_1']).
+
+graph('iokaszte', 'iokaszte.eps').

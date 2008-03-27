@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- adatbazis bevitele -->
+<tells uri="dig://1" xmlns="http://dl.kr.org/dig/2003/02/lang">
+	<!--value> 
+		<individual name='asdf' />
+		<attribute name='qwer' />
+		<ival>
+			123
+		</ival>
+	</value-->
+	
+</tells>

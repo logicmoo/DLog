@@ -1,0 +1,10 @@
+suite_name('minimum').
+timeout(300000).
+parameters([[indexing(no)]-[indexing(no)]]).
+statistics([loop, ancres, orphancres]).
+competition(['KAON2', 'Pellet', 'RacerPro']).
+
+testcase('iokaszte','Individual','../vicodi/', ['vicodi']).
+%testcase('lubm','a:Chair','../../lubm/dig/',['lubm_1']).
+
+graph('iokaszte', 'iokaszte.eps').

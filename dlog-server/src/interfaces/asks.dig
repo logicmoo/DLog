@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<asks
+  xmlns="http://dl.kr.org/dig/2003/02/lang"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://dl.kr.org/dig/2003/02/lang http://dl-web.man.ac.uk/dig/2003/02/dig.xsd"
+  uri="urn:uuid:abcdefgh-1234-1234-12345689ab">
+	
+	<allConceptNames id="1" />
+	<allRoleNames id="2" />
+	<allIndividuals id="3" />
+</asks>

@@ -1,0 +1,18 @@
+suite_name('minimum').
+timeout(300000).
+parameters([[]-[],
+	    [ground(no)]-g(n),	
+            [projection(no)]-p(n), 
+            [preprocessing(no)]-r(n), 
+            [indexing(no)]-i(n), 
+            [orphan(normal)]-o(n),
+            [decompose(no)]-d(n),
+            [projection(no),decompose(no)]-(p(n)+d(n)),
+            [orphan(normal),decompose(no)]-(o(n)+d(n))]). 
+statistics([loop, ancres, orphancres]).
+competition(['KAON2', 'Pellet', 'RacerPro']).
+
+testcase('iokaszte','Good','../iokaszte/', ['n12']).
+%testcase('lubm','a:Chair','../../lubm/dig/',['lubm_1']).
+
+graph('iokaszte', 'iokaszte.eps').

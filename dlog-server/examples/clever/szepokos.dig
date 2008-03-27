@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tells
+     xmlns="http://dl.kr.org/dig/2003/02/lang"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://dl.kr.org/dig/2003/02/lang
+     http://dl-web.man.ac.uk/dig/2003/02/dig.xsd">
+     <impliesc>
+         <all>
+	     <ratom name="gyereke" />
+	     <catom name="Okos" />
+	 </all>
+	 <catom name="Okos" />
+     </impliesc>
+     <impliesc>
+         <catom name="Szep" />
+	 <all>
+	     <ratom name="gyereke" />
+	     <all>
+	         <ratom name="gyereke" />
+		 <catom name="Okos" />
+	     </all>
+	 </all>
+     </impliesc>
+     
+     <instanceof>
+        <individual name="betty" />
+	<catom name="Szep" />
+     </instanceof>
+     <related>
+        <individual name="betty" />
+	<ratom name="gyereke" />
+	<individual name="susan" />
+     </related>
+</tells>
