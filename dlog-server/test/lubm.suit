@@ -1,0 +1,11 @@
+suite_name('standard').
+timeout(600000).
+parameters([[]-[]]).
+
+statistics([loop, ancres, orphancres]).
+competition(['KAON2', 'RacerPro', 'Pellet']).
+
+%testcase('lubmq1',('a:Person'(X),'a:hasAlumnus'('p23:www.University0.edu', X)),'../LUBM/', ['lubm1','lubm2','lubm3','lubm4']).
+testcase('lubmq2',('a:Chair'(X), ('a:worksFor'(X, Y), 'a:Department'(Y), 'a:subOrganizationOf'(Y, 'p23:www.University0.edu')->true)),'../LUBM/', ['lubm1','lubm2']).
+
+graph('iokaszte', 'iokaszte.eps').

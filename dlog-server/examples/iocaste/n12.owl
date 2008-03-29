@@ -1,0 +1,378 @@
+<?xml version="1.0"?>
+<rdf:RDF
+  xml:base = "http://www.cs.bme.hu/vima9000"
+  xmlns = "http://www.cs.bme.hu/vima9000#"
+  xmlns:rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+  xmlns:owl = "http://www.w3.org/2002/07/owl#">
+
+<owl:Ontology rdf:about=""/>
+<owl:ObjectProperty rdf:ID="role_a" />
+<owl:ObjectProperty rdf:ID="role_b" />
+<owl:ObjectProperty rdf:ID="role_c" />
+<owl:ObjectProperty rdf:ID="role_d" />
+<owl:ObjectProperty rdf:ID="role_e" />
+<owl:ObjectProperty rdf:ID="role_f" />
+<owl:ObjectProperty rdf:ID="role_g" />
+<owl:ObjectProperty rdf:ID="role_h" />
+<owl:ObjectProperty rdf:ID="role_i" />
+<owl:ObjectProperty rdf:ID="role_j" />
+<owl:Class rdf:ID="a" />
+
+<owl:Class rdf:ID="nota">
+  <owl:complementOf>
+     <owl:Class rdf:about="#a"/>
+  </owl:complementOf>
+</owl:Class>
+
+<owl:Class rdf:ID="Jo">
+  <owl:equivalentClass>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#role_a" />
+      <owl:someValuesFrom>
+      <owl:Class>
+        <owl:intersectionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="#a" />
+          <owl:Restriction>
+            <owl:onProperty rdf:resource="#role_a" />
+            <owl:someValuesFrom rdf:resource="#nota"/>
+          </owl:Restriction>
+        </owl:intersectionOf>
+      </owl:Class>
+      </owl:someValuesFrom>
+    </owl:Restriction>
+  </owl:equivalentClass>
+</owl:Class>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i2" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i3" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i4" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i5" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i6" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i7" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i8" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i9" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i10" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_a rdf:resource="#i11" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_e rdf:resource="#i25" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_b rdf:resource="#i29" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i1">
+  <role_b rdf:resource="#i17" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i2">
+  <role_d rdf:resource="#i18" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i2">
+  <role_a rdf:resource="#i31" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i2">
+  <role_a rdf:resource="#i32" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i2">
+  <role_a rdf:resource="#i3" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i3">
+  <role_c rdf:resource="#i3" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i3">
+  <role_d rdf:resource="#i28" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i3">
+  <role_a rdf:resource="#i4" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i4">
+  <role_a rdf:resource="#i5" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i5">
+  <role_b rdf:resource="#i35" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i5">
+  <role_e rdf:resource="#i14" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i5">
+  <role_a rdf:resource="#i6" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i6">
+  <role_e rdf:resource="#i22" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i6">
+  <role_e rdf:resource="#i32" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i6">
+  <role_a rdf:resource="#i34" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i6">
+  <role_a rdf:resource="#i7" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i7">
+  <role_b rdf:resource="#i30" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i7">
+  <role_a rdf:resource="#i8" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i8">
+  <role_a rdf:resource="#i9" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i8">
+  <role_a rdf:resource="#i29" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i9">
+  <role_e rdf:resource="#i34" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i9">
+  <role_a rdf:resource="#i10" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i10">
+  <role_c rdf:resource="#i8" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i10">
+  <role_c rdf:resource="#i5" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i10">
+  <role_a rdf:resource="#i11" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i11">
+  <role_b rdf:resource="#i31" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i11">
+  <role_a rdf:resource="#i12" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i14">
+  <role_c rdf:resource="#i25" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i14">
+  <role_c rdf:resource="#i33" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i14">
+  <role_c rdf:resource="#i21" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i15">
+  <role_d rdf:resource="#i8" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i16">
+  <role_c rdf:resource="#i12" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i16">
+  <role_d rdf:resource="#i14" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i16">
+  <role_d rdf:resource="#i21" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i17">
+  <role_b rdf:resource="#i4" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i19">
+  <role_e rdf:resource="#i33" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i19">
+  <role_e rdf:resource="#i13" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i20">
+  <role_b rdf:resource="#i3" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i21">
+  <role_d rdf:resource="#i16" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i21">
+  <role_c rdf:resource="#i23" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i21">
+  <role_a rdf:resource="#i15" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i22">
+  <role_e rdf:resource="#i15" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i23">
+  <role_d rdf:resource="#i26" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i23">
+  <role_a rdf:resource="#i36" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i23">
+  <role_c rdf:resource="#i20" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i25">
+  <role_e rdf:resource="#i12" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i25">
+  <role_a rdf:resource="#i26" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i26">
+  <role_d rdf:resource="#i23" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i26">
+  <role_b rdf:resource="#i28" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i26">
+  <role_b rdf:resource="#i31" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i27">
+  <role_d rdf:resource="#i30" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i28">
+  <role_a rdf:resource="#i36" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i28">
+  <role_d rdf:resource="#i20" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i29">
+  <role_e rdf:resource="#i23" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i30">
+  <role_b rdf:resource="#i24" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i30">
+  <role_e rdf:resource="#i8" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i30">
+  <role_d rdf:resource="#i17" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i31">
+  <role_e rdf:resource="#i22" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i31">
+  <role_b rdf:resource="#i18" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i33">
+  <role_a rdf:resource="#i15" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i33">
+  <role_b rdf:resource="#i30" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i33">
+  <role_d rdf:resource="#i2" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i34">
+  <role_a rdf:resource="#i15" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i36">
+  <role_d rdf:resource="#i13" />
+</owl:Thing>
+
+<owl:Thing rdf:ID="i36">
+  <role_b rdf:resource="#i25" />
+</owl:Thing>
+
+<a rdf:ID="i2" />
+<e rdf:ID="i4" />
+<notd rdf:ID="i8"/>
+<notc rdf:ID="i11"/>
+<nota rdf:ID="i12"/>
+<nota rdf:ID="i13"/>
+<a rdf:ID="i14" />
+<b rdf:ID="i15" />
+<notc rdf:ID="i17"/>
+<note rdf:ID="i19"/>
+<d rdf:ID="i20" />
+<notb rdf:ID="i21"/>
+<d rdf:ID="i22" />
+<d rdf:ID="i23" />
+<notd rdf:ID="i24"/>
+<notc rdf:ID="i27"/>
+<d rdf:ID="i29" />
+<c rdf:ID="i31" />
+<notc rdf:ID="i32"/>
+<notd rdf:ID="i33"/>
+<notd rdf:ID="i34"/>
+<notb rdf:ID="i35"/>
+<a rdf:ID="i36" />
+</rdf:RDF>
