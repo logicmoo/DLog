@@ -85,7 +85,7 @@ swi_dig_server(Request) :-
 			close(DIGFile)
 		),
 		free_memory_file(MemFile)
-	),	
+	),
 	format('Content-type: text/xml~n~n', []),
 	(nonvar(DIG) -> execute(DIG)
 	;	true).
@@ -94,7 +94,7 @@ swi_dig_server(Request) :-
 
 
 send_error(Code, Expl, Msg) :-
-	term_to_atom(Msg, MsgA),
+	(atom(Msg) -> MsgA = Msg ; term_to_atom(Msg, MsgA)),
 	send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'], %TODO dig 1.0 ns
 				[element(error, [code=Code, message=Expl],[MsgA])])).
 
@@ -121,7 +121,7 @@ execute(tells(URI, Axioms)) :-
 	catch(
 		(add_axioms(URI, Axioms) ->
 			send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],	[element(ok, [],[])]))
-		;	send_error(300, 'General Tell Error', '')
+		;	send_error(300, 'General Tell Error', 'add_axioms failed.')
 		),
 		no_such_kb,  
 		send_error(203, 'Unknown or stale KB URI', '')

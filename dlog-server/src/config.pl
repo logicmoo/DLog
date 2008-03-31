@@ -1,7 +1,11 @@
 :- module(config, [target/1, 
 					get_dlog_option/2, get_dlog_option/3, 
 					set_dlog_option/2, set_dlog_option/3, 
-					set_dlog_options/1, set_dlog_options/2]).
+					set_dlog_options/1, set_dlog_options/2,
+					remove_dlog_options/1,
+					default_kb/1, kb_uri/2,
+					abox_module_name/2, tbox_module_name/2,
+					abox_file_name/2, tbox_file_name/2]).
 
 % target(sicstus).
 target(swi).
@@ -13,14 +17,18 @@ target(swi).
 default_option(statistics, no). %[yes, no] 
 default_option(orphan, priority). %[normal, priority]
 default_option(decompose, yes). %[yes, no]
-default_option(allinone, no). %[yes, no]
 default_option(indexing, yes). %[yes, no]
 default_option(projection, yes). %[yes, no]
 default_option(preprocessing, yes). %[yes, no]
 default_option(ground_optim, yes). %[yes, no]
-default_option(generate_abox, no). %[yes, no]
 default_option(filter_duplicates, no). %[yes, no]
 
+%assert: assert to module
+%tempfile: create to temporary memory/disk file, compile to module --> TODO: delete after compile/destroying KB
+%allinonefile: create standalone prolog file, ?compile to module? --> don't delete
+%default_option(allinone, no). %[yes, no]	%TODO
+default_option(abox_target, assert). %[assert, tempfile, allinonefile]
+default_option(tbox_target, tempfile). %[assert, tempfile, allinonefile]
 
 %%%%%%%%%%%% DIG Server Options %%%%%%%%%%%%
 default_option(dig_server_port, 8080). %TODO HTTP server port? (közös server?)
@@ -73,3 +81,35 @@ set_dlog_options([Opt | Opts], URI) :-
 	Opt =.. [Name, Value],
 	set_dlog_option(Name, URI, Value),
 	set_dlog_options(Opts, URI).
+
+remove_dlog_options(URI) :-
+	atom_concat('option_', URI, OptURI),
+	%Pred =.. [OptURI, _Name, _Value],
+	%retractall(Pred).
+	abolish(OptURI/2).
+
+
+uri_prefix('dlog://'). %{http://|dlog://}[<server>:<port>/]
+kb_uri(ID, URI) :- 
+	uri_prefix(Prefix),
+	atom_concat(Prefix, ID, URI).
+default_kb(URI) :- %dig 1.0 URI
+	kb_uri('0', URI).
+
+
+%abox_module_name(+URI, -Module): URI-hoz tartozó ABox modul neve
+abox_module_name(URI, Module) :-
+	atom_concat(URI, '_abox', Module).
+
+tbox_module_name(URI, Module) :-
+	atom_concat(URI, '_tbox', Module).
+
+abox_file_name(URI, File) :- %TODO: custom file name/KB
+	kb_uri(ID, URI),
+	atom_concat('output/abox_', ID, F),
+	atom_concat(F, '.pl', File).
+
+tbox_file_name(URI, File) :-
+	kb_uri(ID, URI),
+	atom_concat('output/tbox_', ID, F),
+	atom_concat(F, '.pl', File).
