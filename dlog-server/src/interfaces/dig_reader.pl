@@ -25,7 +25,7 @@
 %	newKB
 %	releaseKB(ID)
 %	getIdentifier
-read_dig(DIG_Input,Answer) :-
+read_dig(DIG_Input, Answer) :-
 	%print(user_error, 'read dig\n'),
 	load_structure(DIG_Input, [element(dig:Root,Atts,Elems)], 
 	[
@@ -36,6 +36,10 @@ read_dig(DIG_Input,Answer) :-
 		call(urlns, dig_reader:xmlns), 
 		call(error, dig_reader:xmlerror)
 	]), %TODO: még elfogad 2 gyökér elemet, és idézöjel nélküli attribútumot
+	
+	% print(user_error, 'XML:\n'),
+	% print(user_error, element(dig:Root,Atts,Elems)),
+	% print(user_error, '\n'),
 	
 	% DIG_Input=stream(S),
 		% read_pending_input(S, Codes, _Tail),

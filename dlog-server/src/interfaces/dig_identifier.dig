@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<identifier xmlns="http://dl.kr.org/dig/2003/02/lang" name="DLog" version="0.1" message="">
+<identifier xmlns="http://dl.kr.org/dig/2003/02/lang" name="DLog" version="0.2" message="Up 'n' runnin'">
 	<supports>
 		<language>
 			<top/>

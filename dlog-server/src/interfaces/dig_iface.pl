@@ -56,11 +56,14 @@ stop_dig_server(Port) :-
 	).
 
 stop_dig_server_swi(Port) :-
-	http_stop_server(Port, _Options), %TODO: itt?
+	http_stop_server(Port, _Options), !, %TODO: itt? TODO cut?!?
 	http_current_handler(Path, swi_dig_server),
 	http_delete_handler(Path).
 
 swi_dig_server(Request) :-
+	% print(user_error, 'Req:\n'),
+	% print(user_error, Request),
+	% print(user_error, '\n'),
 	(
 		memberchk(method(Method), Request),
 		Method \== post 
@@ -70,6 +73,7 @@ swi_dig_server(Request) :-
 		%format('Allow: POST~n~n') %405 Method Not Allowed
 	;	true
 	),
+	format('Content-type: text/xml~n~n', []),
 	new_memory_file(MemFile),
 	call_cleanup(
 		(
@@ -86,7 +90,9 @@ swi_dig_server(Request) :-
 		),
 		free_memory_file(MemFile)
 	),
-	format('Content-type: text/xml~n~n', []),
+	% print(user_error, 'DIG:\n'),
+	% print(user_error, DIG),
+	% print(user_error, '\n'),
 	(nonvar(DIG) -> execute(DIG)
 	;	true).
 
@@ -116,7 +122,7 @@ execute(releaseKB(URI)) :-
 		send_error(203, 'Unknown or stale KB URI', '')
 	).
 execute(getIdentifier) :-
-	throw(http_reply(file('text/xml', 'dig_identifier.dig'))). %resource?
+	throw(http_reply(file('text/xml', 'interfaces/dig_identifier.dig'))). %resource?
 execute(tells(URI, Axioms)) :-
 	catch(
 		(add_axioms(URI, Axioms) ->

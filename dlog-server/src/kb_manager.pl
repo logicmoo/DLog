@@ -8,8 +8,8 @@
 
 :- use_module('dl_translator/translator', [axioms_to_clauses/5]). %TODO
 :- use_module('prolog_translator/abox_signature', [abox_signature/3]).
-:- use_module('prolog_translator/abox_translator', [abox2prolog/3]). %TODO
-:- use_module('prolog_translator/tbox_translator', [tbox2prolog/4]).
+:- use_module('prolog_translator/abox_translator', [abox2prolog/2]). %TODO
+:- use_module('prolog_translator/tbox_translator', [tbox2prolog/3]).
 :- use_module(query, [query/4]).
 :- use_module(config, [target/1, get_dlog_option/3, default_kb/1, kb_uri/2, abox_module_name/2, tbox_module_name/2, abox_file_name/2, tbox_file_name/2]).
 :- target(swi) -> use_module(library(memfile)) ; true.
@@ -85,7 +85,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 					open_memory_file(AMemFile, write, AStream),
 					set_output(AStream),
 					call_cleanup(
-						abox2prolog(ABoxStr), %TODO 
+						abox2prolog(URI, ABoxStr), %TODO 
 						(set_output(Out), close(AStream))
 					),
 					open_memory_file(AMemFile, read, AStream2),
@@ -103,14 +103,14 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 				open(AFile, write, AStream),
 				set_output(AStream),
 				call_cleanup(
-					abox2prolog(ABoxStr), %TODO 
+					abox2prolog(URI, ABoxStr), %TODO 
 					(set_output(Out), close(AStream))
 				),
 				load_files(AFile, []) %TODO				
 			)
 		;
 		ATarget = assert -> %compile predicates/1
-			abox2prolog(ABoxStr)
+			abox2prolog(URI, ABoxStr)
 		),
 		(
 		TTarget = tempfile ->
@@ -120,7 +120,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 					open_memory_file(TMemFile, write, TStream),
 					set_output(TStream),
 					call_cleanup(
-						tbox2prolog(tbox(TBox_Clauses, IBox, HBox), abox(Signature)), %TODO
+						tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)), %TODO
 						(set_output(Out), close(TStream))
 					),
 					open_memory_file(TMemFile, read, TStream2),
@@ -138,14 +138,14 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 				open(TFile, write, TStream),
 				set_output(TStream),
 				call_cleanup(
-					tbox2prolog(tbox(TBox_Clauses, IBox, HBox), abox(Signature)), %TODO
+					tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)), %TODO
 					(set_output(Out), close(TStream))
 				),
 				load_files(TFile, []) %TODO				
 			)
 		;
 		ATarget = assert -> %compile predicates/1
-			tbox2prolog(tbox(TBox_Clauses, IBox, HBox), abox(Signature)) %TODO
+			tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)) %TODO
 		)
 	)).
 
