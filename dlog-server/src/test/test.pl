@@ -1,7 +1,7 @@
-:- use_module('dlog').
-:- use_module('dl_interp').
-% :- use_module('show').
-:- use_module('translator').
+:- use_module('../dlog').
+:- use_module('../prolog_translator/dl_interp').
+:- use_module('../dl_translator/show').
+:- use_module('../dl_translator/translator').
 :- set_prolog_flag(unknown, fail).
 
 translate(TBox):-
@@ -12,8 +12,9 @@ translate(TBox):-
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail
 	; true
 	),
-	nl, print('Eredeti TBox'), nl, show(TBox),
-	nl, print('Eredo TBox'), nl, show(TBox_Clauses).
+	% nl, print('Eredeti TBox'), nl, show(TBox),
+	% nl, print('Eredo TBox'), nl, show(TBox_Clauses),
+	true.
 
 
 lubm(N,Q):-
@@ -85,18 +86,18 @@ wine_ford:-
 /***************************************************/
 
 sample1:-
-	TBox = [	implies(top,atmost(1,arole(gyereke),top)),
+	CInclusion = [	implies(top,atmost(1,arole(gyereke),top)),
 			implies(top,some(arole(gyereke),aconcept(gazdag))),
 			implies(top,some(arole(gyereke),aconcept(boldog))),
 			implies(some(arole(gyereke),and([aconcept(gazdag),aconcept(boldog)])),aconcept(query))						
 	       ],
-	translate(TBox).
+	translate([CInclusion,[],[]]).
 
 sample2:-
 	TBox = [	subrole(arole(rr),arole(tt)),
 			subrole(arole(ss),arole(tt)),
 			implies(aconcept(cc),some(arole(rr),top)),
-			implies(top,some(arole(inv_ss),top)),						
+			implies(top,some(inv(arole(ss)),top)),						
 			implies(top,atmost(1,arole(tt),top)),												
 			implies(some(arole(ss),top),aconcept(dd)),
 			implies(some(arole(rr),top),not(aconcept(dd))),
@@ -107,7 +108,7 @@ sample2:-
 sample22:-
 	TBox = [
 		implies(top,some(arole(gyereke),aconcept(okos))),
-		implies(top,some(arole(inv_gyereke),aconcept(szep))),
+		implies(top,some(inv(arole(gyereke)),aconcept(szep))),
 		implies(top,atmost(1,arole(gyereke),aconcept(magas))),
 		implies(top,atmost(1,arole(gyereke),aconcept(kover))),
 		implies(top,or([aconcept(magas),aconcept(kover)]))
@@ -116,14 +117,18 @@ sample22:-
 
 		
 sample3:-
-	TBox	= [
-		   implies(top, atmost(2,arole(hasChild),top)),
-		   implies(and([atmost(1,arole(hasChild), not(aconcept(rich))), some(arole(hasChild),aconcept(rich))]),aconcept(satisfied)),
-		   implies(some(arole(inv_hasDescendant), aconcept(rich)),aconcept(rich)),
-		   subrole(arole(hasChild),arole(hasDescendant)),
-		   trans(arole(hasDescendant))		   
-		  ],	
-	translate(TBox).
+	CInclusion = [
+		      implies(top, atmost(2,arole(hasChild),top)),
+		      implies(and([atmost(1,arole(hasChild), not(aconcept(rich))), some(arole(hasChild),aconcept(rich))]),aconcept(satisfied)),
+		      implies(some(inv(arole(hasDescendant)), aconcept(rich)),aconcept(rich))
+		      ],
+	RInclusion = [
+		      subrole(arole(hasChild),arole(hasDescendant))
+		     ],
+	Transitive = [
+		      arole(hasDescendant)
+		     ],
+	translate([CInclusion, RInclusion, Transitive]).
 	
 sample4:-
 	TBox  = [
@@ -147,7 +152,7 @@ sample6:-
 	translate(TBox).
 	
 sample7:-
-	TBox  = [
+	CInclusion  = [
 		 implies(top,all(arole(hasAdpt),aconcept(adpt))),
 		 implies(top,all(arole(hasAcc3D),aconcept(acc3D))),
 		 implies(and([aconcept(adpt),aconcept(acc3D)]), aconcept(adptAcc3D)),
@@ -155,13 +160,6 @@ sample7:-
 		 implies(aconcept(acc3D),aconcept(vd)),
 		 implies(aconcept(grws),aconcept(pc)),
 		 implies(aconcept(gapc),and([aconcept(grws), aconcept(pc)])),
-		 
-		 subrole(arole(hasAdpt),arole(hasVD)),
-		 subrole(arole(hasAcc3D),arole(hasVD)),
-		 subrole(arole(hasVD),arole(contains)),
-		 
-		 trans(arole(contains)),
-		 
 		 implies(aconcept(pc),some(arole(hasAdpt),top)),
 		 implies(aconcept(grws),some(arole(hasAcc3D),top)),
 
@@ -169,8 +167,16 @@ sample7:-
 		 implies(aconcept(pci),all(arole(contains),aconcept(pci))),
 		 
 		 implies(some(arole(hasVD),aconcept(adptAcc3D)),aconcept(correct))
-		],
-	translate(TBox).
+		      ],
+	RInclusion = [
+		 subrole(arole(hasAdpt),arole(hasVD)),
+		 subrole(arole(hasAcc3D),arole(hasVD)),
+		 subrole(arole(hasVD),arole(contains))
+		     ],
+	Transitive = [
+		      arole(contains)		 
+		     ],
+	translate([CInclusion,RInclusion,Transitive]).
 	
 sample8:-
 	TBox  = [
@@ -199,7 +205,7 @@ sample10:-
 		% implies(aconcept(gazdag),aconcept(sikeres)),
 		% implies(aconcept(boldog),aconcept(sikeres)),
 		
-		% implies(and([some(arole(inv_testvere),top),not(aconcept(no))]),aconcept(ferfi)),
+		% implies(and([some(inv(arole(testvere)),top),not(aconcept(no))]),aconcept(ferfi)),
 		% implies(all(arole(gyereke),aconcept(boldog)),aconcept(joszulo)),
 		% implies(some(arole(gyereke),top),aconcept(szep)),
 		% implies(aconcept(buszke),some(arole(testvere),aconcept(gazdag)))

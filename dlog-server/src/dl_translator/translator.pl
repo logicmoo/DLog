@@ -38,22 +38,23 @@ axioms_to_clauses(SHIQAxioms,Clauses):-
 	       ).
 
 
-axioms_to_clauses2(SHIQAxioms,Clauses,Ibox,Hbox,Trbox2):-
+axioms_to_clauses2([Tbox,Hbox,Trbox],Clauses,Ibox,Hbox,Trbox2):-
 	% nl,print('Eredeti KB'),nl,
-	% nl,nl, show(SHIQAxioms),nl,nl,
-	
-	collectInverses(SHIQAxioms,Ibox),
+	% nl,nl, show(Tbox),nl,nl,
 
-	separateBoxes(SHIQAxioms,Tbox,Hbox,Trbox),
+	replace_inv_list(Tbox,Tbox2),
+
+	collectInverses(Tbox2,Ibox),
+
 	addTransitiveInverses(Trbox,Ibox,Trbox2),
 
 	% nl,print('Eredeti Tbox'),nl,
-	% nl,nl, show(Tbox),nl,nl,
+	% nl,nl, show(Tbox2),nl,nl,
 
-	removeTransitive(Tbox,Hbox,Trbox2,TransTbox),
+	removeTransitive(Tbox2,Hbox,Trbox2,TransTbox),
 	
 	% belsosites es negacios normalformara hozas
-	axiomsToNNFConcepts(Tbox,NNF),
+	axiomsToNNFConcepts(Tbox2,NNF),
 	axiomsToNNFConcepts(TransTbox,TransNNF),	
 	
 	% nl,print('Negacios normalformara hozas utan'),nl,	
@@ -166,6 +167,21 @@ separate5([C|L],[C|Fiveless],Five):-
 /**************************************************************************/
 /************************* Teszteles **************************************/
 /**************************************************************************/
+
+replace_inv(X,X):-
+	atom(X), !.
+replace_inv(inv(arole(R)),arole(R2)):- !,
+	atom_concat('inv_',R,R2).
+replace_inv(X,Y):-
+	X =.. [Head|Tail],
+	replace_inv_list(Tail,Tail2),
+	Y =.. [Head|Tail2].
+
+replace_inv_list([],[]).
+replace_inv_list([L|Ls],[R|Rs]):-
+	replace_inv(L,R),
+	replace_inv_list(Ls,Rs).
+
 
 
 filter(L,R):-
