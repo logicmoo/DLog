@@ -1,4 +1,4 @@
-:- module(abox_translator,[abox2prolog/1]).
+:- module(abox_translator,[abox2prolog/2]).
 
 :- use_module(library(lists)).
 :- use_module('../config').
@@ -14,23 +14,23 @@
 % Available options:
 % indexing(yes) : [yes, no] whether to generate inverses for roles for efficient indexes
 % generate_abox(no): [yes, no] whether to generate an ABox Prolog file
-abox2prolog(abox(ABoxStr)) :-
-	generate_abox(ABoxStr).
+abox2prolog(URI, abox(ABoxStr)) :-
+	generate_abox(URI, ABoxStr).
 
-generate_abox(ABoxStr) :-
+generate_abox(URI, ABoxStr) :-
 	(
-	  get_dlog_option(indexing, no) ->
+	  get_dlog_option(indexing, URI, no) ->
 	  Indexing = no
 	;
 	  Indexing = yes
 	),
 	(
-	  get_dlog_option(generate_abox, yes) ->
-	  ABox = yes
+	  %get_dlog_option(generate_abox, URI, yes) ->
+	  get_dlog_option(abox_target, URI, assert) ->
+	  abox_module_name(URI, Module),
+	  ABox = Module
 	;
-	 default_kb(Uri),
-	 abox_module_name(Uri, Module),
-	 ABox = Module
+	  ABox = yes
 	),
 	generate_abox0(ABoxStr, Indexing, ABox).
 

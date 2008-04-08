@@ -67,7 +67,8 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 	exists_kb(URI),
 	% append(ImpliesCL, ImpliesRL, TBox0), 
 	% append(TBox0, TransL, TBox), %TODO
-	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], TBox_Clauses, IBox,HBox,_), %TODO
+	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], TBox_Clauses, IBox, HBox, _), %TODO
+	
 	abox_signature(ABox, ABoxStr, Signature),
 	
 	tbox_module_name(URI, TB),
@@ -103,7 +104,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 				open(AFile, write, AStream),
 				set_output(AStream),
 				call_cleanup(
-					abox2prolog(URI, ABoxStr), %TODO 
+					abox2prolog(URI, abox(ABoxStr)), %TODO 
 					(set_output(Out), close(AStream))
 				),
 				load_files(AFile, []) %TODO				
@@ -132,7 +133,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 				free_memory_file(TMemFile)
 			)
 		;
-		ATarget = allinonefile ->
+		TTarget = allinonefile ->
 			(
 				tbox_file_name(URI, TFile),
 				open(TFile, write, TStream),
@@ -144,7 +145,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 				load_files(TFile, []) %TODO				
 			)
 		;
-		ATarget = assert -> %compile predicates/1
+		TTarget = assert -> %compile predicates/1
 			tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)) %TODO
 		)
 	)).

@@ -2,7 +2,7 @@
 % BME
 % v0.1
 % todo: symmetric
-:- module(prolog_translator,[tbox2prolog/2]).
+:- module(prolog_translator,[tbox2prolog/3]).
 
 :- use_module(library(lists), [append/3, member/2, last/2, select/3]).
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3]).
@@ -52,7 +52,8 @@ counter(orphancres).
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
-tbox2prolog(tbox(TBox, _IBox, HBox), abox(Signature)) :-
+tbox2prolog(URI, tbox(TBox, _IBox, HBox), abox(Signature)) :-
+	bb_put(uri, URI),
 	init,
 	dl_preds(TBox, Preds),
 	preprocessing(Preds, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
@@ -1746,7 +1747,8 @@ flat_goals([G|Gs], (G, Gs0)) :-
 % 	).
 
 env_parameter(Name, Value) :-
-	get_dlog_option(Name, Value).
+	bb_get(uri, URI),
+	get_dlog_option(Name, URI, Value).
 
 flat_list(L1, L2) :-
 	flat_list(L1, [], L2).

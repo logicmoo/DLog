@@ -27,8 +27,8 @@ default_option(filter_duplicates, no). %[yes, no]
 %tempfile: create to temporary memory/disk file, compile to module --> TODO: delete after compile/destroying KB
 %allinonefile: create standalone prolog file, ?compile to module? --> don't delete
 %default_option(allinone, no). %[yes, no]	%TODO
-default_option(abox_target, assert). %[assert, tempfile, allinonefile]
-default_option(tbox_target, tempfile). %[assert, tempfile, allinonefile]
+default_option(abox_target, allinonefile). %[assert, tempfile, allinonefile]
+default_option(tbox_target, allinonefile). %[assert, tempfile, allinonefile]
 
 %%%%%%%%%%%% DIG Server Options %%%%%%%%%%%%
 default_option(dig_server_port, 8080). %TODO HTTP server port? (közös server?)
@@ -106,10 +106,10 @@ tbox_module_name(URI, Module) :-
 
 abox_file_name(URI, File) :- %TODO: custom file name/KB
 	kb_uri(ID, URI),
-	atom_concat('output/abox_', ID, F),
+	atom_concat('../output/abox_', ID, F),
 	atom_concat(F, '.pl', File).
 
 tbox_file_name(URI, File) :-
 	kb_uri(ID, URI),
-	atom_concat('output/tbox_', ID, F),
+	atom_concat('../output/tbox_', ID, F),
 	atom_concat(F, '.pl', File).
