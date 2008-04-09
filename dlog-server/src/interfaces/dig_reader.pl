@@ -409,16 +409,16 @@ parse_role(ratom, Atts, _Elems, arole(Role)) :-
 parse_role(feature, Atts, _Elems, arole(Feature)) :- 
 	memberchk((dig:name=Feature), Atts), !.
 parse_role(inverse, _Atts, [element(dig:RoleType, Atts, Elems)], Role) :- 
-	Role = inv(Role1), %TODO attribute, chain?
-	parse_role(RoleType, Atts, Elems, Role1), !.
-	% (
-		% RoleType = inverse -> 
-		% Elems = [element(dig:RoleType1, Atts1, Elems1)], %TODO: inv(inv()) eliminálása?
-		% parse_role(RoleType1, Atts1, Elems1, Role)
-	% ;
-		% Role = inv(Role1),
-		% parse_role(RoleType, Atts, Elems, Role1)
-	% ).
+	% Role = inv(Role1), %TODO attribute, chain?
+	% parse_role(RoleType, Atts, Elems, Role1), !.
+	(
+		RoleType = inverse -> 
+		Elems = [element(dig:RoleType1, Atts1, Elems1)], %TODO: inv(inv()) eliminálása?
+		parse_role(RoleType1, Atts1, Elems1, Role)
+	;
+		Role = inv(Role1),
+		parse_role(RoleType, Atts, Elems, Role1)
+	), !.
 parse_role(AttributeType, Atts, Elems, Attribute) :- 
 	parse_attribute(AttributeType, Atts, Elems, Attribute), !, 
 	throw_concept_error(element(dig:AttributeType, Atts, Elems)).
@@ -448,9 +448,15 @@ parse_concept(and, _Atts, Elems, and(Concepts)) :-
 parse_concept(or, _Atts, Elems, or(Concepts)) :- 
 	parse_concepts(Elems, Concepts).
 parse_concept(not, _Atts, 
-			[element(dig:ConceptType, Atts, Elems)], 
-			not(Concept)) :- %TODO: not(not()) eliminálása?
-	parse_concept(ConceptType, Atts, Elems, Concept).
+			[element(dig:ConceptType, Atts, Elems)], Concept) :- 
+	(
+		ConceptType = not -> 
+		Elems = [element(dig:ConceptType1, Atts1, Elems1)], %TODO: not(not()) eliminálása?
+		parse_concept(ConceptType1, Atts1, Elems1, Concept)
+	;
+		Concept = not(Concept1),
+		parse_concept(ConceptType, Atts, Elems, Concept1)
+	).
 
 parse_concept(some, _Atts, 
 			[element(dig:RoleType, AttsR, ElemsR), element(dig:ConceptType, AttsC, ElemsC)], 
