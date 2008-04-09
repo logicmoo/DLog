@@ -135,7 +135,7 @@ headers(URI) :-
 
 tbox_module(URI) :-
 	tbox_module_name(URI, MName),
-	format(':- module(~w,[]).\n',[MName]).
+	format(':- module(\'~w\',[]).\n',[MName]).
 
 used_modules :-
 	env_parameter(allinone, yes), !,

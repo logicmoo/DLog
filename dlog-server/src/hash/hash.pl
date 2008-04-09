@@ -2,7 +2,8 @@
 		     new_state/3,new_anc/3,new_loop/3,
 		     check_anc/2,check_loop/2]).
 
-:- use_module(library(terms)).
+:- use_module('../config', [target/1]).
+:- target(sicstus) -> use_module(library(terms)) ; true.
 :- use_module(library(lists)).
 
 init_state(LoopHash-AncList) :-

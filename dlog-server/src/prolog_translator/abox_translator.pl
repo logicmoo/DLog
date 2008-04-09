@@ -166,7 +166,7 @@ portray_abox_clause(Module, C) :-
 abox_headers(URI) :-
 	headers,
 	abox_module_name(URI, MName),
-	format(':- module(~w,[]).\n',[MName]).
+	format(':- module(\'~w\',[]).\n',[MName]).
 
 headers:-
 	datime(datime(Year, Month, Day, Hour, Min, Sec)),
