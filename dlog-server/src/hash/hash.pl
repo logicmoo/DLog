@@ -4,6 +4,7 @@
 
 :- use_module('../config', [target/1]).
 :- target(sicstus) -> use_module(library(terms)) ; true.
+:- target(swi) -> use_module(hash_swi) ; true.
 :- use_module(library(lists)).
 
 init_state(LoopHash-AncList) :-
