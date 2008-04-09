@@ -1,5 +1,5 @@
 
-:- module(dig_iface, [start_dig_server/1, start_dig_server/0, stop_dig_server/1, stop_dig_server/0, execute/1]).
+:- module(dig_iface, [start_dig_server/1, start_dig_server/0, stop_dig_server/1, stop_dig_server/0]).
 
 :- use_module('../config', [target/1, get_dlog_option/2]).
 :- use_module('../kb_manager').
