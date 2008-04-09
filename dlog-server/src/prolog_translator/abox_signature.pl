@@ -20,9 +20,12 @@ abox_axiom(ABox, Name, Value1, Value2) :-
 	member(C, ABox),
 	abox_axiom0(C, Name, Value1, Value2).
 
-abox_axiom0(aconcept(Name, Value), Name, Value, *).
-abox_axiom0(arole(Name, Value1, Value2), Name, Value1, Value2).
-abox_axiom0(not(aconcept(Name0, Value)), Name, Value, *) :-
+abox_axiom0(aconcept(N, V), Name, Value, *) :-
+	abox_axiom00(N, V, Name, Value).
+abox_axiom0(arole(arole(Name), Value1, Value2), Name, Value1, Value2).
+
+abox_axiom00(aconcept(Name), Value, Name, Value).
+abox_axiom00(not(aconcept(Name0)), Value, Name, Value) :-
 	atom_concat('not_', Name0, Name).
 
 
