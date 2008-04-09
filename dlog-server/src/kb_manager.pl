@@ -1,6 +1,6 @@
 :- module(kb_manager, [
 					new_kb/1, release_kb/1, add_axioms/2, run_query/3, %addTAxioms/2, addAAxioms/2 ?
-					default_kb/1, clean_default_kb/0,
+					default_kb/1, clear_kb/1,
 					with_read_lock/2, with_write_lock/2
 					]).
 
@@ -11,7 +11,8 @@
 :- use_module('prolog_translator/abox_translator', [abox2prolog/2]). %TODO
 :- use_module('prolog_translator/tbox_translator', [tbox2prolog/3]).
 :- use_module(query, [query/4]).
-:- use_module(config, [target/1, get_dlog_option/3, default_kb/1, kb_uri/2, abox_module_name/2, tbox_module_name/2, abox_file_name/2, tbox_file_name/2]).
+:- use_module(config, [target/1, get_dlog_option/3, default_kb/1, kb_uri/2, remove_dlog_options/1, 
+						abox_module_name/2, tbox_module_name/2, abox_file_name/2, tbox_file_name/2]).
 :- target(swi) -> use_module(library(memfile)) ; true.
 
 :- dynamic current_kb/1,
@@ -39,116 +40,107 @@ new_kb(URI) :-
 
 release_kb(URI) :-
 	exists_kb(URI),
-	tbox_module_name(URI, TB),
-	abox_module_name(URI, AB),
 	with_write_lock(URI,
 	(
-		retract(current_kb(URI)),
-		retractall(AB:_), 
-		retractall(TB:_),
-		remove_dlog_options(URI) %beállítások törlése
+		clear_kb(URI),
+		remove_dlog_options(URI), %beállítások törlése
+		retract(current_kb(URI))
 	))
 	%,mutex_destroy(URI) %TODO
-	. 
+	.
 
-clean_default_kb :- 
-	default_kb(URI),
+clear_kb(URI) :- 
 	tbox_module_name(URI, TB),
 	abox_module_name(URI, AB),
 	with_write_lock(URI,
 	(
-		retract_all(AB:_), 
-		retract_all(TB:_),	
-		remove_dlog_options(URI) %TODO: beállítások törlése?
+		retractall(AB:_), 
+		retractall(TB:_) %TODO file-ok törlése?
+		%, remove_dlog_options(URI) %TODO: beállítások törlése?
 	)).
 
 
 add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni, hozzáadni
 	exists_kb(URI),
-	% append(ImpliesCL, ImpliesRL, TBox0), 
-	% append(TBox0, TransL, TBox), %TODO
-	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], TBox_Clauses, IBox, HBox, _), %TODO
 	
+	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], TBox_Clauses, IBox, HBox, _), %TODO
 	abox_signature(ABox, ABoxStr, Signature),
 	
-	tbox_module_name(URI, TB),
-	abox_module_name(URI, AB),
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
-	current_output(Out),
-	with_write_lock(URI,
+	with_write_lock(URI, 
 	(	
-		(
-		ATarget = tempfile ->
-			new_memory_file(AMemFile),
-			call_cleanup(
-				(
-					open_memory_file(AMemFile, write, AStream),
-					set_output(AStream),
-					call_cleanup(
-						abox2prolog(URI, ABoxStr), %TODO 
-						(set_output(Out), close(AStream))
-					),
-					open_memory_file(AMemFile, read, AStream2),
-					call_cleanup(
-						load_files(AB, [stream(AStream2)]), %TODO
-						close(AStream2)
-					)
-				),
-				free_memory_file(AMemFile)
-			)
-		;
-		ATarget = allinonefile ->
-			(
-				abox_file_name(URI, AFile),
-				open(AFile, write, AStream),
-				set_output(AStream),
-				call_cleanup(
-					abox2prolog(URI, abox(ABoxStr)), %TODO 
-					(set_output(Out), close(AStream))
-				),
-				load_files(AFile, []) %TODO				
-			)
-		;
-		ATarget = assert -> %compile predicates/1
-			abox2prolog(URI, ABoxStr)
-		),
-		(
-		TTarget = tempfile ->
-			new_memory_file(TMemFile),
-			call_cleanup(
-				(
-					open_memory_file(TMemFile, write, TStream),
-					set_output(TStream),
-					call_cleanup(
-						tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)), %TODO
-						(set_output(Out), close(TStream))
-					),
-					open_memory_file(TMemFile, read, TStream2),
-					call_cleanup(
-						load_files(TB, [stream(TStream2)]), %TODO
-						close(TStream2)
-					)
-				),
-				free_memory_file(TMemFile)
-			)
-		;
-		TTarget = allinonefile ->
-			(
-				tbox_file_name(URI, TFile),
-				open(TFile, write, TStream),
-				set_output(TStream),
-				call_cleanup(
-					tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)), %TODO
-					(set_output(Out), close(TStream))
-				),
-				load_files(TFile, []) %TODO				
-			)
-		;
-		TTarget = assert -> %compile predicates/1
-			tbox2prolog(URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature)) %TODO
-		)
+		add_abox(ATarget, URI, abox(ABoxStr)),
+		add_tbox(TTarget, URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature))
 	)).
+
+add_abox(tempfile, URI, ABox) :-
+	new_memory_file(AMemFile),
+	current_output(Out),
+	call_cleanup(
+		(
+			open_memory_file(AMemFile, write, AStream),
+			set_output(AStream),
+			call_cleanup(
+				abox2prolog(URI, ABox), %TODO 
+				(set_output(Out), close(AStream))
+			),
+			open_memory_file(AMemFile, read, AStream2),
+			abox_module_name(URI, AB),
+			call_cleanup(
+				load_files(AB, [stream(AStream2)]), %TODO
+				close(AStream2)
+			)
+		),
+		free_memory_file(AMemFile)
+	).
+add_abox(allinonefile, URI, ABox) :-
+	abox_file_name(URI, AFile),
+	open(AFile, write, AStream),
+	current_output(Out),
+	set_output(AStream),
+	call_cleanup(
+		abox2prolog(URI, ABox), %TODO 
+		(set_output(Out), close(AStream))
+	),
+	load_files(AFile, []). %TODO
+add_abox(assert, URI, ABox) :-
+	abox2prolog(URI, ABox).
+
+
+add_tbox(tempfile, URI, TBox, ABox) :-
+	new_memory_file(TMemFile),
+	current_output(Out),
+	call_cleanup(
+		(
+			open_memory_file(TMemFile, write, TStream),
+			set_output(TStream),
+			call_cleanup(
+				tbox2prolog(URI, TBox, ABox), %TODO
+				(set_output(Out), close(TStream))
+			),
+			open_memory_file(TMemFile, read, TStream2),
+			tbox_module_name(URI, TB),
+			call_cleanup(
+				load_files(TB, [stream(TStream2)]), %TODO
+				close(TStream2)
+			)
+		),
+		free_memory_file(TMemFile)
+	).
+add_tbox(allinonefile, URI, TBox, ABox) :-
+	tbox_file_name(URI, TFile),
+	open(TFile, write, TStream),
+	current_output(Out),
+	set_output(TStream),
+	call_cleanup(
+		tbox2prolog(URI, TBox, ABox), %TODO
+		(set_output(Out), close(TStream))
+	),
+	load_files(TFile, []). %TODO
+add_tbox(assert, URI, TBox, ABox) :-
+	tbox2prolog(URI, TBox, ABox).
+
 
 run_query(Query, URI, Answer) :- 
 	exists_kb(URI),

@@ -112,7 +112,26 @@ execute(newKB) :-
 	new_kb(URI),
 	send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
 				[element(kb, [uri=URI],[])])).
-execute(cleanKB) :- clean_default_kb.
+execute(clearKB(URI)) :- 
+	catch(
+		(clear_kb(URI), 
+		send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
+				[element(ok, [],[])]))),
+		no_such_kb,  
+		send_error(203, 'Unknown or stale KB URI', '')
+	).
+execute(clearKBW(URI)) :- 
+	catch(
+		(clear_kb(URI), 
+		send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
+				[element(ok, [],[
+						element(warning, [message='KB cleared'], ['Cleared KB in tells request.'])
+						])
+				]))
+		),
+		no_such_kb,  
+		send_error(203, 'Unknown or stale KB URI', '')
+	).
 execute(releaseKB(URI)) :-
 	catch(
 		(release_kb(URI), 

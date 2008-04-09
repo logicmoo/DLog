@@ -60,16 +60,23 @@ xmlerror(_Severity, Message, _Parser) :-
 
 %parse(+Root, +Atts, +Elems, -Answer).
 parse(newKB, _Atts, _Elems, newKB).
-parse(cleanKB, _Atts, _Elems, cleanKB). %dig1.0
+parse(clearKB, Atts, _Elems, clearKB(URI)) :-
+	(memberchk((dig:uri=URI),Atts) -> true
+	; default_kb(URI)). %dig1.0
 parse(releaseKB, Atts, _Elems, releaseKB(URI)) :-
 	memberchk(dig:uri=URI,Atts).
 parse(getIdentifier, _Atts, _Elems, getIdentifier).
-parse(tells, Atts, Elems, tells(URI, Axioms)) :-
+parse(tells, Atts, Elems, Req) :-
 	(memberchk((dig:uri=URI),Atts) -> true
 	; default_kb(URI)), %dig 1.0
-	phrase(parse_tells(Elems), axioms([], [], [], []), Axioms).
+	catch(
+		(phrase(parse_tells(Elems), axioms([], [], [], []), Axioms), Req = tells(URI, Axioms)),
+		clearKB,
+		Req = clearKBW(URI)
+	).
 parse(asks, Atts, Elems, asks(URI, Asks)) :-
-	memberchk((dig:uri=URI),Atts),
+	(memberchk((dig:uri=URI),Atts) -> true
+	; default_kb(URI)), %dig 1.0
 	phrase(parse_asks(Elems), Asks).
 
 
@@ -222,6 +229,8 @@ parse_tell(deffeature, Atts, _Elems) -->
 parse_tell(defattribute , Atts, Elems) --> %=?= int/string functional role
 	{throw_tell_error(element(dig:defattribute , Atts, Elems))}.
 parse_tell(defindividual , _Atts, _Elems) --> [].
+
+parse_tell(clearKB , _Atts, _Elems) --> {throw(clearKB)}.
 
 
 throw_tell_error(Elem) :- throw(digerror(301, 'Unsupported Tell Operation', Elem)).

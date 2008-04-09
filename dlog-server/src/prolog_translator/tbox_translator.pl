@@ -20,7 +20,7 @@
 		use_module(prolog_translator_swi_tools, [term_variables_bag/2, reduce/2, datime/1, bb_put/2, bb_get/2])
 		; true.
 
-:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2]).
+:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2, cls_to_neglist/2]).
 
 :- dynamic 
 	predicate/2,
@@ -97,6 +97,18 @@ write_atomic_predicate(Pred) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % Init
 %%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- dynamic predicate/2, %TODO: ide ne assert...
+	goal/2,
+	orphan/2,
+	atomic_predicate/2,
+	atomic_like_predicate/2,
+	inverse/2,
+	hierarchy/2, % ket fo szinonima kozti hierarchia
+	roleeq/2, % egy szerep fo szinonimaja
+	role_component/1, % a szerepek kozti ekvivalenciaosztalyok
+	symmetric/1. % szimmetrikus komponensek
+
 init :-
 	retractall(predicate(_,_)),
 	retractall(goal(_,_)),
@@ -142,7 +154,7 @@ dl_preds(TBox, Preds) :-
 % current_predicate(Name, dl:Head), clause(dl:Head, Body),
 tunnel(TBox, Name, Arity, Head, Body) :-
 	member(C, TBox),
-	dlog:cls_to_neglist(C, P),
+	cls_to_neglist(C, P),
 	contra(P, Contras),
 	member((Head :- Body), Contras),
 	functor(Head, Name, Arity),

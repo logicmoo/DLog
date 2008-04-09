@@ -1,4 +1,4 @@
-:- module(transforming_tools,[headwrite/1, neg/2, add_key/2, unzip_second/2, list_to_open_list/2, contra/2]).
+:- module(transforming_tools,[headwrite/1, neg/2, add_key/2, unzip_second/2, list_to_open_list/2, contra/2, cls_to_neglist/2]).
 
 :- use_module(library(lists)).
 
@@ -72,3 +72,28 @@ list_to_open_list([G0|L], G) :-
 	;   G = (G0,G1),
 	    list_to_open_list(L, G1)
 	).
+	
+/***************************** Klozok atalakitasa *********************************/
+
+% cls_to_neglist(+Cls,-NL): Cls klozt alakitja at a fordito modul formatumarol
+% az interpreter altal ertelmezett formatumra
+cls_to_neglist([not(L)|Ls],[FL|FLs]):-
+   !,trans(L,FL),
+   cls_to_neglist(Ls,FLs).
+cls_to_neglist([L|Ls],[FL|FLs]):-
+   !,trans(not(L),FL),
+   cls_to_neglist(Ls,FLs).
+cls_to_neglist([],[]).
+
+% trans(+L,-H): H az L literal struktura alakban
+trans(not(L),NTL):-
+   !,
+   trans(L,TL),
+   neg(TL, NTL).
+trans(eq(X,Y),eq(X,Y)):- !.
+trans(L,C):-
+   L=..[T,N|P],
+   ( T=nconcept-> atom_concat('NC_',N,NN),
+       C=..[NN|P]
+   ; C=..[N|P]
+   ).
