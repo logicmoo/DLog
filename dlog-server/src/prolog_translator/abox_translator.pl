@@ -32,15 +32,15 @@ generate_abox(URI, ABoxStr) :-
 	;
 	  ABox = yes
 	),
-	generate_abox0(ABoxStr, Indexing, ABox).
+	generate_abox0(URI, ABoxStr, Indexing, ABox).
 
 
-generate_abox0(ABoxStr, Indexing, ABox) :-
+generate_abox0(URI, ABoxStr, Indexing, ABox) :-
 	ABox == yes, !, 
-	abox_headers,
+	abox_headers(URI),
 	headwrite('Transformed ABox clauses'),
 	transformed_abox(ABoxStr, Indexing, ABox).
-generate_abox0(ABoxStr, Indexing, ABox) :-
+generate_abox0(_URI, ABoxStr, Indexing, ABox) :-
 	transformed_abox(ABoxStr, Indexing, ABox).
 
 
@@ -163,9 +163,10 @@ portray_abox_clause(yes, C) :-
 portray_abox_clause(Module, C) :-
 	assert(Module:C).
 
-abox_headers :-
+abox_headers(URI) :-
 	headers,
-	write(':- module(abox,[]).\n').
+	abox_module_name(URI, MName),
+	format(':- module(~w,[]).\n',[MName]).
 
 headers:-
 	datime(datime(Year, Month, Day, Hour, Min, Sec)),
