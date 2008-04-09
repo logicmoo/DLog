@@ -152,7 +152,7 @@ execute(tells(URI, Axioms)) :-
 		send_error(203, 'Unknown or stale KB URI', '')
 	).
 execute(asks(URI, Asks)) :- 
-		with_read_lock(URI, ask(Asks, URI, Responses)),
+		with_read_lock(URI, dig_iface:ask(Asks, URI, Responses)),
 		send_xml(element(responses, [xmlns='http://dl.kr.org/dig/2003/02/lang'], Responses)).
 
 ask([], _, []).
