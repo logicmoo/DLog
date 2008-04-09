@@ -7,8 +7,9 @@
 %DIGF : file name or stream(Stream)
 tell_dig(DIGF) :-
 	read_dig(DIGF, DIG),
+	DIG = tells(_, Axioms),
 	new_kb(URI),
 	call_cleanup(
-		execute(DIG),
+		execute(tells(URI, Axioms)),
 		release_kb(URI)
 	).
