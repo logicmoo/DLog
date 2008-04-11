@@ -4,6 +4,7 @@
 :- use_module('interfaces/dig_reader', [read_dig/2]).
 
 %DIGF : file name or stream(Stream)
+% tell_dig('../examples/iocaste/c10.dig').
 tell_dig(DIGF) :-
 	read_dig(DIGF, tells(_, Axioms)),
 	new_kb(URI),
