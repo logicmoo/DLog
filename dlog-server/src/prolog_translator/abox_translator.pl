@@ -166,7 +166,13 @@ portray_abox_clause(Module, C) :-
 abox_headers(URI) :-
 	headers,
 	abox_module_name(URI, MName),
-	format(':- module(\'~w\',[]).\n',[MName]).
+	format(':- module(\'~w\',[]).\n',[MName]),
+	(
+	 target(swi)->
+	 format(':- style_check(-discontiguous).~n',[])
+	;
+	 format(':- set_prolog_flag(discontiguous_warnings, off).~n',[])
+	).
 
 headers:-
 	datime(datime(Year, Month, Day, Hour, Min, Sec)),
