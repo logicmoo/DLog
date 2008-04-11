@@ -53,8 +53,7 @@ counter(orphancres).
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
 tbox2prolog(URI, tbox(TBox, _IBox, HBox), abox(Signature)) :-
-	bb_put(uri, URI),
-	init,
+	init(URI),
 	dl_preds(TBox, Preds),
 	preprocessing(Preds, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
@@ -91,7 +90,8 @@ generated_atomic0.
 write_atomic_predicate(Pred) :-
 	functor(Head, Pred, 1),
 	arg(1, Head, _A),
-	portray_clause((Head :- abox:Head)),
+	bb_get(aboxmodule, Module),
+	portray_clause((Head :- Module:Head)),
 	nl.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -109,7 +109,10 @@ write_atomic_predicate(Pred) :-
 	role_component/1, % a szerepek kozti ekvivalenciaosztalyok
 	symmetric/1. % szimmetrikus komponensek
 
-init :-
+init(URI) :-
+	bb_put(uri, URI),
+	abox_module_name(URI, ABoxModule),
+	bb_put(aboxmodule, ABoxModule),
 	retractall(predicate(_,_)),
 	retractall(goal(_,_)),
 	retractall(orphan(_,_)),
@@ -790,15 +793,16 @@ aboxed_role(R1, R2, Signature, Clauses) :-
 	aboxed_role0(R2, IR2, HeadR1, HeadR2, IHeadR2, Signature, Clauses).
 
 aboxed_role0(R1, R2, HeadR1, HeadR2, IHeadR2, Signature, Clauses) :-
+	bb_get(aboxmodule, Module),
 	(
 	  memberchk(R1/2, Signature) ->
-	  Clauses = [(HeadR1 :- abox:HeadR2)|Clauses0]
+	  Clauses = [(HeadR1 :- Module:HeadR2)|Clauses0]
 	;
 	  Clauses = Clauses0
 	),
 	(
 	  memberchk(R2/2, Signature) ->
-	  Clauses0 = [(HeadR1 :- abox:IHeadR2)]
+	  Clauses0 = [(HeadR1 :- Module:IHeadR2)]
 	;
 	  Clauses0 = []
 	).	
@@ -887,8 +891,9 @@ transformed_nonatomic_predicate(Clauses, Name, NClauses, [GClause1,GClause2|OGCl
 	  OGClauses = OGClauses0,
 	  GClauses = GClauses0
 	;
-	  ABoxCall =.. [Name, HeadVar],	  
-	  ABoxGoal = (TransformedHead :- abox:ABoxCall),
+  	  ABoxCall =.. [Name, HeadVar],
+	  bb_get(aboxmodule, Module),
+	  ABoxGoal = (TransformedHead :- Module:ABoxCall),
 	  OGClauses = [ABoxGoal|OGClauses0],
 	  GClauses = [ABoxGoal|GClauses0]
 	),
@@ -1452,7 +1457,8 @@ collect_binaries(Name, Path, Orphans, HeadVar, Predicates, Signature, Binaries) 
 	(
 	  memberchk(Name/1, Signature) -> % we have abox clauses
 	  ABoxGoal0 =.. [Name, HeadVar],
-	  ABoxGoal = abox:ABoxGoal0,
+	  bb_get(aboxmodule, Module),
+	  ABoxGoal = Module:ABoxGoal0,
 	  (
 	    % small optimization: if we have the same abox call
 	    % at any branch we do not need it once more
@@ -1596,12 +1602,14 @@ setofgoal0([B|Bs], HeadVar, Gy, SetofGoal) :-
 	    atomic_like_predicate(Name, 1)->
 	    SetofGoal = [B|SG0]
 	  ;
-	    SetofGoal = [abox:B|SG0]
+	    bb_get(aboxmodule, Module),
+	    SetofGoal = [Module:B|SG0]
 	  ),
 	  setofgoal0(Bs, HeadVar, [Name/0|Gy], SG0)
 	).
 setofgoal0([B|Bs], HeadVar, Gy, SetofGoal) :-
-	B = abox:_G,
+	bb_get(aboxmodule, Module),
+	B = Module:_G,
 	SetofGoal = [B|SG0],
 	setofgoal0(Bs, HeadVar, Gy, SG0).
 	
