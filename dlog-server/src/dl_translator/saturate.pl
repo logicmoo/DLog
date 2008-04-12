@@ -1,152 +1,140 @@
-:- module(saturate,[saturate/2, saturate_partially/3, resolve/3, redundant/2, remove_redundant/2, elim_reds/3, simplifyClauses/2, simplifyClause/2,  remove_temp/2]).
+:- module(saturate,[saturate/3,simplifyConcept/2]).
 
 :- use_module('../config').
-:- use_module(show).
-:- use_module(struct).
-:- use_module(selectResolvable).
+:- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).
+:- use_module('transitive', [inv/2]).
+% :- use_module(show).
+% :- use_module(struct).
+:- use_module(selectResolvable, [selectResolvableList/2, selectResolvable/2]).
 :- use_module(library(lists),[append/3,member/2,select/3,delete/3]).
 :- target(sicstus) -> 
         use_module(library(terms),[subsumes/2, term_variables/2])
         ; true.
 :- use_module(library(ordsets),[list_to_ord_set/2,ord_subset/2]).
 
-/***************************** Klozhalmaz telitese **********************************/
+/*********************** Fogalomhalmaz telitese **************************/
 
-% saturate(+W,-S):-
-% W klozok listaja, melyek telitesevel kapjuk S-et
-saturate(W,S):-
-	simplifyClauses(W,W2),
-	selectResolvable(W2,Selected),
+% saturate(+W,+RInclusion,-S):-
+% W SHIQ fogalmak listaja, melyek telitesevel kapjuk S-et
+% RInclusion szerephierarchia mellett
+saturate(W,RInclusion,S):-
+	simplifyConcepts(W,W2),
 
-	% 7-es tipusu klozok a vegere
-	seven_to_end(Selected,Ordered),
+	% nl, print('Egyszerusites utan'), nl,nl, show(W2), nl,
+	
+	selectResolvableList(W2,Selected),
 
-	saturate([],Ordered,S).
+	% nl, print('Rendezes utan'), nl,nl, show(Selected), nl,
+	
+	saturate([],Selected,RInclusion,S).
+/*
 % saturate(+W1, +W2, -S):- W1 rendezett es telitett klozok listaja
 % W1 es W2 egyuttes telitesevel kapjuk S klozlistat
 saturate_partially(W1,W2,S):-
-	simplifyClauses(W2,W21),
+	simplifyConcepts(W2,W21),
 	selectResolvable(W21,W22),
 	saturate(W1,W22,S).
 
-% seven_to_end(+Cls,-Ordered):- Ordered ugyanaz a klozhalmaz, mint
-% Cls, csak a 7-es tipusu klozok a legvegere vannak hozva.
-seven_to_end(Cls,Ordered):-
-	separate_seven(Cls,Seven,Rest),
-	append(Rest,Seven,Ordered).
-
-% separate_seven(+Cls,-Seven,-Rest):- Cls klozokbol a 7-es tipusuak pont
-% a seven-beli klozok, mig a tobbi Rest-ben van.
-separate_seven([],[],[]).
-separate_seven([C|Cls],[C|Seven],Rest):-
-	C = [7-_,_], !,
-	separate_seven(Cls,Seven,Rest).
-separate_seven([C|Cls],Seven,[C|Rest]):-
-	separate_seven(Cls,Seven,Rest).	
+*/
 
 /********************************saturation*****************************/
 
-% saturate(+W1,+W2,-S): W1 es W2 "rendezett klozok" listaja, S-t W1 es W2
-% telitesevel nyerjuk ugy hogy W1 es W2-beli klozokat, valamint W2-W2-beli
-% klozokat rezolvalunk egymassal
-saturate(W1,[],W1).
-saturate(W1,[C|W2],S):-
+% saturate(+W1,+W2,+RInclusion,-S): W1 es W2 "rendezett fogalmak" listaja,
+% es RInclusion tartalmazza a szerephierarchiat. S-t W1 es W2
+% telitesevel nyerjuk ugy hogy W1 es W2-beli fogalmakat, valamint W2-W2-beli
+% fogalmakat rezolvalunk egymassal
+saturate(W1,[],_,W1).
+saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
 	% nl, print('---- ') ,print(C), print('---- redundans'),
-	saturate(W1,W2,S).
-saturate(W1,[C|W2],S):-
+	saturate(W1,W2,RInclusion,S).
+saturate(W1,[C|W2],RInclusion,S):-
 	% nl, print(C),
 	findall(R,(
-		   resolve_list(C,W1,Res),
-		   simplifyClause(Res,Res1),
-		   cls_to_ocls(Res1,R),
+		   (
+		     member(A,W1),
+		     resolve(A,C,R1),
+		     % nl, print('  + '), print(A),
+		     true
+		   ; resolve2(C,RInclusion,R1)
+		   ),		     
+		   simplifyConcept(R1,R2),
+		   selectResolvable(R2,R),
 		   % nl, print('  = '), print(R),
 		   true
 		  ), Rs),
+% 	read(_),
 	elim_reds(W1,C,EW1),
 	append(Rs,W2,EW2),
-	saturate([C|EW1],EW2,S).
+	saturate([C|EW1],EW2,RInclusion,S).
 
 
-/*********************** Redundans klozok elhagyasa *******************************/
+/******************** Redundans klozok elhagyasa ***********************/
 
-% redundant(+C, +Clauses): igaz, ha van C-nel szukebb kloz a Clauses
-% klozhalmazban
-% nincs behelyettesites
-% a klozoknak meg van adva a tipusuk is
-redundant(_,Cs):-
-	member([],Cs), !.
-redundant([_,C],_):-
-	member(true,C), !.
-redundant([1,C],Cs):- !,
-	member([1,C],Cs).
-
-redundant([TypeC,C],Clauses):-
-	member([TypeD,D],Clauses),
-	length(D,LD),
-	length(C,LC),
-	LC >= LD,
-	copy_term(D,D2),
-	copy_term(C,C2),
-	term_variables(C2,Vars),
-	includes([TypeC,C2],[TypeD,D2]),
-	none_related(Vars), !.
-
-% includes(+C,+D): C kloz tartalmazza D-t
-% !!! behelyettesites tortenik !!!		  
-includes(_,[_,[]]):- !.
-includes([TypeC,C],[TypeD,[LD|D]]):-
+% redundant(+C, +Concepts): igaz, ha van C-nel szukebb fogalom a Concepts
+% fogalomhalmazban
+redundant(C,[D|Ds]):-
 	(
-	  TypeD = 5
-	; TypeC = 10
-	; TypeD = 10
-	; TypeC = 3, TypeD = 3
-	; TypeC = 4, TypeD = 4
-	; TypeC = 6, TypeD = 6
-	; TypeD = 7-_, TypeD = 7-_
-	), !,
-	select(LC,C,RestC),
-	subsumes(LD,LC),
-	includes([TypeC,RestC],[TypeD,D]).
+	  includes(C,D), !
+	; redundant(C,Ds)
+	).
+
+% includes(+C,+D): C fogalom tartalmazza D-t
+includes(_,bottom):- !.
+includes(top,_):- !.
+includes(X,X):- !.
+includes(aconcept(C), and(D)):- !,
+	member(aconcept(C),D).
+includes(not(aconcept(C)), and(D)):- !,
+	member(not(aconcept(C)),D).
+includes(nconcept(C), and(D)):- !,
+	member(nconcept(C),D).
+includes(not(nconcept(C)), and(D)):- !,
+	member(not(nconcept(C)),D).
+
+includes(and(C),and(D)):- !,
+	list_to_ord_set(C,OC),
+	list_to_ord_set(D,OD),
+	ord_subset(OC,OD).
+includes(atmost(N,R,C),atmost(K,R,D)):-
+	K =< N,
+	includes(D,C).
+includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):-
+% 	sameSelector(Sel1,Sel2),
+	(
+	  append(Sel2,_,Sel1)
+	; list_to_ord_set(Sel1,OrdSet),
+	  list_to_ord_set(Sel2,OrdSet)
+	),
+	N =< K,
+	includes(C,D),
+	nl, print('erdekes'), nl, print(atleast(N,R,C,Sel1)), nl, print(atleast(K,R,D,Sel2)).
 	
 
-% none_related(+L)
-% L lista semelyik eleme sincs kapcsolatban egymassal
-% tehat nem tartalmazhatja az egyik a masikat
-none_related([]).
-none_related([A|Rest]):-
-	none_related2(A,Rest),
-	none_related(Rest).
+includes(or(C),or(D)):- !,
+	includes_list_list(C,D).
+includes(or(C),D):- !,
+	includes_list(C,D,_).
 
-% none_related2(+A,+L)
-% L lista semelyik eleme sincs kapcsolatban A-val
-none_related2(_,[]).
-none_related2(A,[R|Rs]):-
-	not_related(A,R),
-	none_related2(A,Rs).
+% includes_list_list(+Cs,+Ds): Ds lista minden eleme megfeleltetheto
+% Cs lista valamelyik elemenek
+includes_list_list(_,[]):- !.
+includes_list_list(C,[D|Ds]):-
+	includes_list(C,D,DRed),
+	select(DRed,C,Rest),
+	includes_list_list(Rest,Ds).
 
-% not_related(+A,+B)
-% A es B egyike sem tartalmazza a masikat
-not_related(A,B):-
-	(	var(A), var(B)	->	\+ A == B
-	;	nonvar(A)	->	term_variables(A,As),
-	                                distinct_variable(B,As)
-	;	nonvar(B)	->	term_variables(B,Bs),
-					distinct_variable(A,Bs)
-	).
-
-% distinct_variable(+A,+Vars)
-% A kulonbozik Vars valtozolista minden elemetol
-distinct_variable(_,[]).
-distinct_variable(A,[B|Bs]):-
+% includes_list(+List,+C,-CRed): List lista CRed eleme redundans a
+% C fogalom jelenleteben
+includes_list([L|Ls],C,CRed):-
 	(
-	  A == B -> fail
-	; distinct_variable(A,Bs)
+	  includes(L,C), CRed = L
+	; includes_list(Ls,C,CRed)
 	).
 
 
-% elim_reds(+Clauses,+C,-Reduced): Clauses klozhalmazbol a C miatt redundans
-% klozokat elhagyva kapjuk a Reduced klozhalmazt
+% elim_reds(+Concepts,+C,-Reduced): Concepts fogalomhalmazbol
+% C miatt redundans fogalmakat elhagyva kapjuk a Reduced halmazt
 elim_reds([],_,[]).
 elim_reds([A|Rest],C,Reduced):-
 	redundant(A,[C]), !,
@@ -155,277 +143,242 @@ elim_reds([A|Rest],C,[A|Reduced]):-
 	elim_reds(Rest,C,Reduced).
 
 /******************* Alap szuperpozicios kovetkeztetesi lepes *********************/
+% resolve2(+C,+RInclusion,-R1):- C fogalom rezolvalhato az egyik RInclusion-beli
+% szereptartalmazasi axiomaval
+resolve2(atleast(N,R,C,Sel),RInclusion,atleast(N,S,C,Sel)):-
+	member(subrole(R,S),RInclusion).
+resolve2(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or([atleast(N,S,C,Sel)|Rest])):-
+	member(subrole(R,S),RInclusion).
 
-% resolve_list(+C,+W,-R):- C klozt rezolvalva 1 vagy tobb W beli klozzal kapjuk R-et
-resolve_list([7-N,Cls],W,Res):- !,
-	Cls = [not(arole(R,_,_))|_],
-	findall(C, (
-		     C1 = [3,C2],
-		     C2 = [atleast(_,arole(R,_,_),_)|_],
-		     member(C1,W),
-		   copy_term(C2,C)
-		   ), Three
-	       ),
-	sublist_max(Three,N,Size,SomeThree),
-	copy_term(Cls,Cls1),
-	hyperresolve(Cls1,SomeThree,Res1),
+% resolve(+C1,+C2,-R):- C1 es C2 fogalmak rezolvense R
+% 1. szabaly
+resolve(C,not(C),bottom):- !.
+resolve(not(C),C,bottom):- !.
+resolve(and(Cs),and(Ds),bottom):- !,
+	member(C,Cs),
+	member(D,Ds),
+	boolneg(C,D), !.
+resolve(and(Cs),D,bottom):-
+	member(C,Cs),
+	boolneg(C,D), !.
+resolve(D,and(Cs),bottom):-
+	member(C,Cs),
+	boolneg(C,D), !.
+
+% 5. szabaly
+resolve(atleast(N,R,C,Sel),atleast(K,S,D,Sel2),atleast(M,R,CD,Sel)):- !,
+	R = S,
+	sameSelector(Sel,Sel2),
+	resolve(C,D,CD),
+	M is min(N,K).
+
+% atleast mindig elolre kerul
+resolve(D,atleast(N,R,C,Sel),Res):- !,
+	resolve(atleast(N,R,C,Sel),D,Res).
+
+% 2. szabaly
+resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel)):-
+	\+ (
+	     D = atleast(_,_,_,_)
+	   ; D = atmost(_,_,_)
+	   ; D = or([atleast(_,_,_,_)|_])
+	   ; D = or([atmost(_,_,_)|_])
+	   ), !,
+	resolve(C,D,CD), !.
+
+% 3., 4. szabaly
+resolve(atleast(K,R,D,Sel),atmost(N,R,C),Res):- !,
+	Sel = [Original],
+	boolneg(C,NotC),
+	boolneg(D,NotD),
+
+	\+ includes(NotC,Original),
+	
+	boolinter([C,NotD],CNotD),
+	boolinter([D,NotC],DNotC),
 	(
-	  Size > 0,
-	  Res = [5,Res1]
-	; Size is N-1,
- 	  D = [4,[atleast(_,arole(R,X,Y),_)|Res2]],
-	  member(D,W),
-	  binary_resolve(Res1,1,arole(R,X,Y),Res3),
-	  append(Res2,Res3,Res4),
+	  K = 1 -> Sel2 = [Original, marked]
+	; Sel2 = [Original,NotC]
+	),
+	(
+	  N >= K ->
+	  N1 is N - K,
+	  Res = or([atmost(N1,R,CNotD),atleast(1,R,DNotC,Sel2)])
+	; N1 is K - N,
+	  Res = atleast(N1,R,DNotC,Sel2)
+	).
+
+
+% 7. szabaly
+resolve(atleast(_,S,_,_),atmost(0,R,C),Res):- !,
+	inv(R,S),
+	boolneg(C,Res).
+
+resolve(atleast(K,S,_,Sel),or(Cs),Res):-
+	Cs = [atmost(0,R,_)|_], inv(R,S), !,
+	findall( C, (
+		      member(atmost(0,R,C1),Cs),
+		      boolneg(C1,C)
+		    ), Ci
+	       ),
+	findall( D, (
+		      member(D,Cs),
+		      \+ D = atmost(_,_,_)
+		    ), Ds
+	       ),
+	boolunion(Ds,D2),
+	boolunion([atleast(K,S,D2,Sel)|Ci],Res).
+
+
+resolve(or(Cs),or([atleast(K,S,D,Sel)|Ds]),or(Res)):- !,
+	resolve(atleast(K,S,D,Sel),or(Cs),R),
+	(
+	  R = or(R1) ->
+	  append(R1,Ds,Res)
+	; Res = [R|Ds]
+	).
+
+/*	
+resolve(or([C|Cs]),or([D|Ds]),or(R)):- !,
+	resolve(C,D,CDRES),
+	append(Cs,Ds,R1),
+	(
+	  CDRES = or(CDRES1) ->
+	  append(CDRES1,R1,R)
+	; R = [CDRES|R1]
+	).
+*/
+
+resolve(or([C|Cs]),D,or(R)):- !,
+	resolve(C,D,CDRES),
+	(
+	  CDRES = or(CDRES1) ->
+	  append(CDRES1,Cs,R)
+	; R = [CDRES|Cs]
+	).
+resolve(D,or([C|Cs]),or(R)):- !,
+	resolve(C,D,CDRES),
+	(
+	  CDRES = or(CDRES1) ->
+	  append(CDRES1,Cs,R)
+	; R = [CDRES|Cs]
+	).
+	
+simplifyConcepts([],[]).
+simplifyConcepts([C|Cs],[R|Rs]):-
+	simplifyConcept(C,R),
+	simplifyConcepts(Cs,Rs).
+
+simplifyConcept(not(top), bottom):- !.
+simplifyConcept(not(bottom), top):- !.
+
+simplifyConcept(atmost(N,R,C),Simplified):-
+	!,
+	simplifyConcept(C,C2),
+	(
+	  C2 == bottom -> Simplified = top
+	; Simplified = atmost(N,R,C2)
+	).
+simplifyConcept(atleast(N,R,C,Sel),Simplified):-
+	!,
+	simplifyConcept(C,C2),
+	(
+	  N < 1 -> Simplified = top
+	; C2 == bottom -> Simplified = bottom
+	; Simplified = atleast(N,R,C2,Sel)
+	).
+
+simplifyConcept(or(C),Simplified):-
+	!,
+	simplifyConcepts(C,C2),
+	(
+	  member(top,C2) -> Simplified = top
+	; member(A,C2), member(not(A),C2) -> Simplified = top
+	; sort(C2,C3),
+	  simplifyDisjunction(C3,C4),
+	  % delete(C3,bottom,C4),
 	  (
-	    contains_struct(Res4,fun(_,fun(_,_))) -> Res = [6,Res4]
-	  ; Res = [5,Res4]
+	    C4 = [] -> Simplified = bottom
+	  ; C4 = [X] -> Simplified = X
+	  ; Simplified = or(C4)
 	  )
 	).
-	  
-	
-resolve_list([5-_,_],_,_):- !, fail.
 
-resolve_list(C,W,R):-
-	member(D,W),
-	copy_term(C,C1),
-	copy_term(D,D1),
-	resolve(C1,D1,R),
-	% nl, print('  + '), print(D),
-	% nl, print('  = '), print(R),
-	true.
-
-% sublist_max(+Ls,+Max,-N,-Rs):- Rs 3-as tipusu reszlistaja Ls-nek es
-% az elemekben a szamossagkorlatozasok osszege N, mely nem nagyobb Max-nal
-sublist_max([],_,0,[]):- !.
-sublist_max(_,Max,0,[]):-
-	Max =< 0, !.
-sublist_max([L|Ls],Max,N,[L|Rs]):-
-	L = [atleast(N2,_,_)|_],
-	Max1 is Max - N2,
-	sublist_max(Ls,Max1,N1,Rs),
-	N is N1 + N2.
-sublist_max([_|Ls],Max,N,Rs):-
-	sublist_max(Ls,Max,N,Rs).
-
-% hyperresolve(+C,+W,-Res):-
-% W-ben 3-as tipusu klozok vannak, melyeket hyperrezolvaljuk C negalt binaris literaljaival,
-% melyek C elejen vannak. Az eredo kloz Res.
-% A klozok itt nem tartalmazzak a tipusukat
-hyperresolve(Seven,[],Seven).
-hyperresolve(Seven,[[atleast(N,arole(R,X,Y),C)|Rest]|W],Res):-
-	binary_resolve(Seven,N,arole(R,X,Y),SevenRest),
-	equality_superpose(SevenRest,Y,C,SevenRest2),
-	append(SevenRest2,Rest,SevenRest3),
-	hyperresolve(SevenRest3,W,Res).
-
-
-binary_resolve([not(arole(R,X,Y))|Rest1],N,arole(R,X,Y),Rest2):-
-	N > 0, !,
-	N1 is N - 1,
-	binary_resolve(Rest1,N1,arole(R,X,Y),Rest2).
-binary_resolve(C,_,_,C).
-
-		      
-
-equality_superpose([],_,_,[]).
-equality_superpose([eq(A,B)|Ls],Y,C,Rs):-
-	A == Y,
-	B == Y,
+simplifyConcept(and(C),Simplified):-
 	!,
-	equality_superpose(Ls,Y,C,Rs).
-equality_superpose([eq(A,B)|Ls],Y,C,[R|Rs]):-
+	simplifyConcepts(C,C2),
 	(
-	  A == Y -> To = B
-	; B == Y -> To = A
-	), !,
-	(
-	  C = aconcept(CName,_) -> R = aconcept(CName,To)
-	; C = not(aconcept(CName,_)) -> R = not(aconcept(CName,To))
-	; C = nconcept(CName,_) -> R = nconcept(CName,To)
-	; C = not(nconcept(CName,_)) -> R = not(nconcept(CName,To))
-	),
-	equality_superpose(Ls,Y,C,Rs).
-equality_superpose([L|Ls],Y,C,[L|Rs]):-
-	equality_superpose(Ls,Y,C,Rs).
-
-
-
-% resolve(+C1,+C2,-Res): Res a C1 ‚és C2 klozok rezolvense
-resolve([1,[not(R),S]],[T,[atleast(N,R,C)|Rest]],[Type,[atleast(N,S,C)|Rest]]):-
-	( T = 3; T=4), !,
-	
-	(
-	  contains_struct(S,arole(_,fun(_,_),_)) -> Type = 4
-	; Type = 3
-	).
-resolve([T,C1],[1,C2],Res):- !,
-	( T = 3; T=4), !,
-	resolve([1,C2],[T,C1],Res).
-
-resolve([3,[atleast(_,_,C)|Rest1]],[5,[NC|Rest2]],[5,Res]):-
-	( C = not(NC), !; NC = not(C), !),
-	append(Rest1,Rest2,Res).
-resolve([5,C1],[3,C2],Res):-
-	resolve([3,C2],[5,C1],Res).
-
-resolve([5,[Atom|Rest1]],[5,[not(Atom)|Rest2]],[5,Res]):- !,
-	append(Rest1,Rest2,Res).
-resolve([5,[not(Atom)|Rest1]],[5,[Atom|Rest2]],[5,Res]):- !,
-	append(Rest1,Rest2,Res).
-
-resolve([T1,[C1|Rest1]],[T2,[C2|Rest2]],[N,Res]):-
-	( T1 = 5; T1 = 6), !,
-	( T2 = 5; T2 = 6), !,
-	(
-	  C1 = not(C2)
-	; C2 = not(C1)
-	), !,
-	append(Rest1,Rest2,Res),
-	(
-	  contains_struct(Res,fun(_,fun(_,_))) -> N = 6
-	; N = 5
+	  member(bottom,C2) -> Simplified = bottom
+	; member(A,C2), member(not(A),C2) -> Simplified = bottom
+	; sort(C2,C3),
+	  delete(C3,top,C4),
+	  (
+	    C4 = [] -> Simplified = top
+	  ; C4 = [X] -> Simplified = X
+	  ; Simplified = and(C4)
+	  )
 	).
 
-/*
-% decomposeClause(+Cls,-Decomposed)
-% Cls kloz esetleges dekompoziciojabol kapott klozlista Decomposed
-decomposeClause(Cls,Decomposed):-
-	select(arole(R,Arg1,Arg2),Cls,Rest),
-	nonvar(Arg2),
-	Arg2 = marked(fun(F,Arg1)), !,
-	( contains_struct(Rest,fun(_,_)) -> atom_concat('d_',R,Name1),
-	                                    atom_concat(Name1,F,Name),
-	                                    sort([nconcept(Name,Arg1)|Rest],D1),
-	                                    cls_to_ocls(D1,D11),
-	                                    D2 = [not(nconcept(Name,X)),arole(R,X,marked(fun(F,X)))],
-	                                    cls_to_ocls(D2,D22),
-	                                    Decomposed = [D11,D22]
-	; Decomposed = [Cls]
-	).
-decomposeClause(Cls,Decomposed):-
-	select(arole(R,Y,X),Cls,Rest),
-	var(X), nonvar(Y), Y = marked(fun(F,X)), !,
-	( contains_struct(Rest,fun(_,_)) -> atom_concat('dinv_',R,Name1),
-	                                    atom_concat(Name1,F,Name),
-	                                    sort([nconcept(Name,X)|Rest],D1),
-	                                    cls_to_ocls(D1,D11),	    
-	                                    D2 = [not(nconcept(Name,X)),arole(R,marked(fun(F,X)),X)],
-	                                    cls_to_ocls(D2,D22),	    
-	                                    Decomposed = [D11,D22]
-	; Decomposed = [Cls]
-	).
-decomposeClause(Cls,[Cls]).
-*/
-	
-	
-simplifyClauses([],[]).
-simplifyClauses([Cls|Clauses],[R|Rs]):-
-	simplifyClause(Cls,R),
-	simplifyClauses(Clauses,Rs).
+simplifyConcept(C,C).
 
-simplifyClause([T,Cls],[T,Simplified]):-
-	arrangeEquality(Cls,Arranged),
-	( member(eq(X,Y),Arranged), X == Y, !, Simplified = [true]
-	; member(true,Arranged), !, Simplified = [true]
-	; member(eq(X1,Y1),Arranged), member(not(eq(X2,Y2)),Arranged), identical_terms(X1,X2), identical_terms(Y1,Y2), !, Simplified = [true]
-	; member(aconcept(Q,B1),Arranged), member(not(aconcept(Q,B2)),Arranged), identical_terms(B1,B2), !, Simplified = [true]
-	; member(nconcept(Q,B1),Arranged), member(not(nconcept(Q,B2)),Arranged), identical_terms(B1,B2), !, Simplified = [true]
-	; member(arole(R,X1,Y1),Arranged), member(not(arole(R,X2,Y2)),Arranged), identical_terms(X1,X2), identical_terms(Y1,Y2), !, Simplified = [true]
-	; sort(Arranged,S1),
-	  delete(S1, not(true),S2),
-	  delete_trivial_equals(S2,Simplified)
+
+% simplifyDisjunction(+Cs,-Rs):- or(Cs) egyszerusitese or(Rs)
+simplifyDisjunction(Cs,Rs):-
+	simplifyDisjunction(Cs,[],Rs).
+
+simplifyDisjunction([],Rs,Rs).
+simplifyDisjunction([C|Cs],L,Rs):-
+	(
+	  member(X,L), includes(X,C) -> simplifyDisjunction(Cs,L,Rs)
+	; member(X,Cs), includes(X,C) -> simplifyDisjunction(Cs,L,Rs)
+	; simplifyDisjunction(Cs,[C|L],Rs)
 	).
 
-% identical_terms(+T1,+T2)
-% T1 es T2 azonos termek, legfeljebb megjeloltsegben kulonboznek
-identical_terms(T1,T2):-
-	T1 == T2, !.
-identical_terms(T1,T2):-
-	var(T1), !, T1 == T2.
-identical_terms(T1,T2):-
-	var(T2), !, T1 == T2.
-identical_terms(T1,marked(T2)):-
-	!, identical_terms(T1,T2).
-identical_terms(marked(T1),T2):-
-	!, identical_terms(T1,T2).
-identical_terms(fun(F1,T1),fun(F2,T2)):-
-	F1 == F2,
-	identical_terms(T1,T2).
+% sameSelector(+Sel1,+Sel2): Sel1 es Sel2 azonos szelektorok
+sameSelector(X,X):- !.
+sameSelector([X],[X,marked]):- !.
+sameSelector([X,marked],[X]).
 
-	
-% delete_trivial_equals(+Ls,-Rs)
-%	Ls klozbol elhagyva az X=X alaku trivialitasokat kapjuk Rs -et
-delete_trivial_equals([],[]).
-delete_trivial_equals([not(eq(X,Y))],[true]):-
-	(	X == Y
-	;	X == marked(Y)
-	; Y == marked(X)
-	), !.	
-delete_trivial_equals([not(eq(X,Y))|Ls],Rs):-
-	(	X == Y
-	;	X == marked(Y)
-	; Y == marked(X)
-	),
-	!,
-	delete_trivial_equals(Ls,Rs).
-delete_trivial_equals([L|Ls],[L|Rs]):-
-	delete_trivial_equals(Ls,Rs).
-	
-	
-	
-arrangeEquality([],[]).
-arrangeEquality([eq(X,Y)|L],[A|R]):-
-	!,
-	(	greater(X,Y) -> A = eq(X,Y)
-	;	                A = eq(Y,X)
-	),
-	arrangeEquality(L,R).
-arrangeEquality([not(eq(X,Y))|L],[A|R]):-
-	!,
-	( greater(X,Y) -> A = not(eq(X,Y))
-	;                 A = not(eq(Y,X))
-	),
-	arrangeEquality(L,R).
-arrangeEquality([A|L],[A|R]):-
-	arrangeEquality(L,R).
-	
-	
-	
-	
 /****************************************************************************************/
 /*************** Az ujonnan bevezetett fogalmak eliminalasa *****************************/
 /****************************************************************************************/
-
+/*
 % remove_temp(+L,-R)
-% L klozok listaja, melyeket telitve a bevezetett fogalmak szerint
+% L fogalmak listaja, melyeket telitve a bevezetett fogalmak szerint
 % es elhagyva ezen fogalmakat tartalmazo klozokat kapjuk R klozlistat
 % ha vegtelen ciklusba esnenk, akkor meghagyjuk az adott bevezetett fogalmat
-% L-ben a klozok tipusukkal egyutt szerepelnek, mig R-ben tipus nelkul vannak
 remove_temp(L,R):-
-	contains_struct2(L,nconcept(Pred,_)),
+	contains_struct2(L,nconcept(Pred)),
 	\+ (
-	     member([_,Cls],L),
-	     member(nconcept(Pred,_),Cls),
-	     member(not(nconcept(Pred,_)),Cls)
+	     member(or(Cs),L),
+	     (
+	       member(nconcept(Pred),Cs)
+	     ; member(and(Ds1),Cs),
+	       member(nconcept(Pred),Ds1)
+	     ),
+	     (
+	       member(not(nconcept(Pred)),Cs)
+	     ; member(and(Ds2),Cs),
+	       member(not(nconcept(Pred)),Ds2)
+	     )
 	   ),
 	!,
 	saturate_specific(L,Pred,L2),
-	omit_structs(L2,nconcept(Pred,_),L3),	
+	omit_structs(L2,nconcept(Pred),L3),	
 	remove_temp(L3,R).
 remove_temp(L,L).
 
 
 % saturate_specific(+L,+PredName,-R)
-% L klozok listaja, melyeket telitve a PredName nevu bevezetett fogalom szerint
-% kapjuk R klozlistat
+% L fogalmak listaja, melyeket telitve a PredName nevu bevezetett fogalom szerint
+% kapjuk R fogalomlistat
 saturate_specific(L,PredName,R):-
 	saturate_specific([],L,PredName,R).
 	
 	
-% saturate_specific(+W1,+W2, +PredName, -R): W1 es W2 klozok listaja, R-t W1 es W2
+% saturate_specific(+W1,+W2, +PredName, -R): W1 es W2 fogalmak listaja, R-t W1 es W2
 % telitesevel nyerjuk a PredName nevu bevezetett fogalom szerint
-% ugy hogy W1 es W2-beli klozokat, valamint W2-W2-beli klozokat rezolvalunk egymassal
+% ugy hogy W1 es W2-beli fogalmakat, valamint W2-W2-beli fogalmakat rezolvalunk egymassal
 saturate_specific(W1,[],_,W1).
 saturate_specific(W1,[C|W2],PredName,R):-
 	redundant(C,W1), !, 
@@ -433,25 +386,24 @@ saturate_specific(W1,[C|W2],PredName,R):-
 saturate_specific(W1,[C|W2],PredName,S):-	
 	findall(R,(
 		   member(R1,W1),
-		   resolve_specific(R1,C,PredName,R)
+		   resolve_specific(R1,C,PredName,R1),
+		   simplifyConcept(R1,R)
 		  ),Rs),
 	elim_reds(W1,C,EW1),
 	append(Rs,W2,EW2),
 	saturate_specific([C|EW1],EW2,PredName,S).		
 
 
-% resolve_specific(+Clause1,Clause2,PredName,Resolvant): Resolvant Clause1 es Clause2 kloz PredName uj
+% resolve_specific(+C1,C2,PredName,Resolvent): Resolvent C1 es C2 fogalmak PredName uj
 % fogalom szerinti rezolvense
-resolve_specific([_,C1],[_,C2],PredName,[10,R]):-
-	copy_term(C1,Res1),
-	copy_term(C2,Res2),
+resolve_specific(C1,C2,PredName,Res):-
 	(	select(nconcept(PredName,X),Res1,M1),		
 		select(not(nconcept(PredName,X)),Res2,M2)		
 	;	select(not(nconcept(PredName,X)),Res1,M1),		
 		select(nconcept(PredName,X),Res2,M2)
 	),
 	append(M1,M2,L),sort(L,L1),
-	simplifyClause([_,L1],[_,R]).
+	simplifyConcept([_,L1],[_,R]).
 
 
 
@@ -469,3 +421,5 @@ remove_redundant([L|Ls],Acc,R):-
 remove_redundant([L|Ls],Acc,R):-
 	elim_reds(Acc,L,Acc2),
 	remove_redundant(Ls,[L|Acc2],R).
+
+*/

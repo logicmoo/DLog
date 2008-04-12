@@ -1,26 +1,25 @@
 :- module(translator,[axioms_to_clauses/5, axioms_to_clauses/2]).
 
+:- use_module(library(lists), [append/3,select/3, member/2]).
+:- use_module(transitive).
+:- use_module(dl_to_fol).
+:- use_module(saturate, [saturate/3]).
+:- use_module(toFOL, [toClause_list/2]).
 :- use_module(show).
 :- use_module(struct).
-:- use_module(dl_to_fol).
-:- use_module(transitive).
-:- use_module(saturate, [saturate/2, saturate_partially/3, remove_redundant/2, remove_temp/2]).
-:- use_module(saturate_without_binary).
-:- use_module(library(lists), [append/3,select/3, member/2]).
+
+% :- use_module(saturate_without_binary).
 
 % axioms_to_clauses(+Axioms,-Clauses,-Ibox,-Hbox,-Trbox): Clauses az Axioms SHIQ terminologiai axiomak
 % forditasabol kapott klozhalmaz
 % Ibox az inverzeket tartalmazza
 % Hbox a szerephierarchiat
 % Trbox a tranzitiv szerepeket
-axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox):-
-	axioms_to_clauses2(SHIQAxioms,Clauses1,Ibox,Hbox,Trbox),
-	% tipusmegjelolesek elhagyasa
-	% inverzek es szerephierarchiak elhagyasa
-	% tranzitivitashoz kotodo szabalyok elhagyasa
+axioms_to_clauses(SHIQAxioms,Clauses,_Ibox,Hbox,Transitive):-
+	axioms_to_clauses2(SHIQAxioms,Clauses1,Hbox,Transitive),
+	% elhagyjuk a tranzitivitashoz tartozo klozokat
 	findall(C,(
-		   member([Type,C],Clauses1),		   
-		   \+ Type = 1,
+		   member(C,Clauses1),
 %		   \+ (
 %			contains_struct2(C,nconcept(Pred,_)),
 %			atom_concat('trans',_,Pred)
@@ -30,83 +29,53 @@ axioms_to_clauses(SHIQAxioms,Clauses,Ibox,Hbox,Trbox):-
 	       ).
 
 axioms_to_clauses(SHIQAxioms,Clauses):-
-	axioms_to_clauses2(SHIQAxioms,Clauses1,_,_,_),
-	% tipusmegjelolesek elhagyasa
-	findall(C,(
-		   member([_,C],Clauses1)
-		  ), Clauses
-	       ).
+	axioms_to_clauses2(SHIQAxioms,Clauses,_,_).
 
 
-axioms_to_clauses2([Tbox,Hbox,Trbox],Clauses,Ibox,Hbox,Trbox2):-
-	% nl,print('Eredeti KB'),nl,
-	% nl,nl, show(Tbox),nl,nl,
+% elso argumentum egy harmas lista: [CInclusion, RInclusion, Transitive]
+axioms_to_clauses2([CInclusion, RInclusion, Transitive],Clauses,RInclusion,Transitive):-
 
-	replace_inv_list(Tbox,Tbox2),
-
-	collectInverses(Tbox2,Ibox),
-
-	addTransitiveInverses(Trbox,Ibox,Trbox2),
-
-	% nl,print('Eredeti Tbox'),nl,
-	% nl,nl, show(Tbox2),nl,nl,
-
-	removeTransitive(Tbox2,Hbox,Trbox2,TransTbox),
-	
 	% belsosites es negacios normalformara hozas
-	axiomsToNNFConcepts(Tbox2,NNF),
-	axiomsToNNFConcepts(TransTbox,TransNNF),	
+	axiomsToNNFConcepts(CInclusion,NNF),
 	
-	% nl,print('Negacios normalformara hozas utan'),nl,	
-	% nl,nl, show(NNF),nl, show(TransNNF), nl,nl,
+	removeTransitive(NNF,RInclusion,Transitive,TransNNF),
+	
+	% nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
 
 	% strukturalis transzformacio
-	def_list(NNF,'n_',Defs),
+	def_list(NNF,'n_',Defs),		
 	def_list(TransNNF,'trans_',TransDefs),
 
 	append(Defs,TransDefs,AllDefs),
 	
-	% nl,print('Strukturalis transzformacio utan'),nl,
-	% nl,nl, show(AllDefs),nl,nl,
-	
-	% elsorendu, skolemizalt formulak kepzese
-	toClauseList(AllDefs,FOLT),
-	toClauseList(Hbox,FOLH),
-	toClauseList(Ibox,FOLI),
-		
-	append(FOLT,FOLH,FOL2),
-	append(FOL2,FOLI,FOL),
-
-	% nl,print('FOL klozok kepzese'),nl,
-	% nl,nl, show(FOL),nl,nl,
+	% nl,print('Strukturalis transzformacio utan'),nl, show(AllDefs),nl,
 
 	% nl,print('Klozok telitese'),nl,	
 	% klozhalmaz telitese alap-szuperpozicioval
-	saturate(FOL,Saturated),
+	saturate(AllDefs,RInclusion,Saturated),
 	
-	% nl,print('Telites utan'),nl,
-	% nl,nl, show(Saturated),nl,nl,	
+	% nl,print('Telites utan'),nl, show(Saturated),nl,
 
-	omit_structs(Saturated,fun(_,_),FunFree),
+	omit_structs(Saturated,atleast(_,_,_,_),FunFree),
 
-        % nl,print('Fuggvenyjelek kikuszobolesevel'),nl,
-	% nl,nl, show(FunFree),nl,nl,
+        % nl,print('Fuggvenyjelek kikuszobolesevel'),nl, show(FunFree),nl,
 
-	remove_temp(FunFree,Removed),
+	toClause_list(FunFree,FOL),
+
+	% remove_temp(FunFree,Removed),
 	
-	% nl,print('Bevezetett fogalmak kikuszobolese utan'),nl,
-	% nl,nl, show(Removed),nl,nl,
+	% nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
 
-	remove_double_proof_list(Removed,Removed2),
+	% remove_double_proof_list(Removed,Removed2),
 
 	% nl,print('Kettos bizonyitasok kikuszobolese utan'),nl,
 	% nl,nl, show(Removed2),nl,nl,
 
-	remove_redundant(Removed2,Clauses),
+	% remove_redundant(Removed2,Clauses),
 
 	% nl,print('Vegso redundanciavizsgalat utan'),nl,
 	% nl,nl, show(Clauses),nl,nl,
-	true.
+	Clauses = FOL.
 	
 
 /**************************************************************************/
@@ -167,21 +136,6 @@ separate5([C|L],[C|Fiveless],Five):-
 /**************************************************************************/
 /************************* Teszteles **************************************/
 /**************************************************************************/
-
-replace_inv(X,X):-
-	atom(X), !.
-replace_inv(inv(arole(R)),arole(R2)):- !,
-	atom_concat('inv_',R,R2).
-replace_inv(X,Y):-
-	X =.. [Head|Tail],
-	replace_inv_list(Tail,Tail2),
-	Y =.. [Head|Tail2].
-
-replace_inv_list([],[]).
-replace_inv_list([L|Ls],[R|Rs]):-
-	replace_inv(L,R),
-	replace_inv_list(Ls,Rs).
-
 
 
 filter(L,R):-
