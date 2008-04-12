@@ -107,9 +107,7 @@ includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):-
 	  list_to_ord_set(Sel2,OrdSet)
 	),
 	N =< K,
-	includes(C,D),
-	nl, print('erdekes'), nl, print(atleast(N,R,C,Sel1)), nl, print(atleast(K,R,D,Sel2)).
-	
+	includes(C,D).	
 
 includes(or(C),or(D)):- !,
 	includes_list_list(C,D).
