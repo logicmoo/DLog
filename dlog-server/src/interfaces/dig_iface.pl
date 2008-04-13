@@ -156,7 +156,11 @@ execute(asks(URI, Asks)) :-
 		send_xml(element(responses, [xmlns='http://dl.kr.org/dig/2003/02/lang'], Responses)).
 
 ask([], _, []).
-ask([ID-Type|Asks], URI, [Response|Responses]) :- 
+ask([IDT-Type|Asks], URI, [Response|Responses]) :- 
+	(
+		IDT = id(ID) -> true
+		; IDT = noid, ID = noid %TODO
+	),
 	catch(
 		(
 			Type = unknown(Elem) %unknown ask

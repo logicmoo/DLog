@@ -143,7 +143,7 @@ tbox_module(URI) :-
 used_modules :-
 	env_parameter(allinone, yes), !,
 	write(':- use_module(library(lists)).\n'),
-	write(':- use_module(dlog_hash).\n').
+	write(':- use_module(hash).\n').
 used_modules.
 
 

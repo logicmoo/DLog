@@ -26,7 +26,7 @@ default_option(filter_duplicates, no). %[yes, no]
 %assert: assert to module
 %tempfile: create to temporary memory/disk file, compile to module --> TODO: delete after compile/destroying KB
 %allinonefile: create standalone prolog file, ?compile to module? --> don't delete
-%default_option(allinone, no). %[yes, no]	%TODO
+default_option(allinone, yes). %[yes, no]	%TODO
 default_option(abox_target, allinonefile). %[assert, tempfile, allinonefile]
 default_option(tbox_target, allinonefile). %[assert, tempfile, allinonefile]
 

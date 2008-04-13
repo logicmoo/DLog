@@ -6,7 +6,8 @@ query(allConceptNames, _TBox, _ABox, conceptSet(_Answer)). %TODO feldolgozás so
 query(allRoleNames, _TBox, _ABox, roleSet(_Answer)). %[[Role, ...], ...]
 query(allIndividuals, _TBox, _ABox, individualSet(_Answer)).
 
-query(instances(Concept), TBox, _ABox, individualSet(Answer)) :-
+query(instances(ConceptTerm), TBox, _ABox, individualSet(Answer)) :-
+	ConceptTerm = aconcept(Concept),
 	catch(
 		(setof(
 			I,

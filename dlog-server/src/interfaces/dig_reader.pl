@@ -275,7 +275,7 @@ parse_asks([A|Asks]) -->
 	{( 
 		A = element(dig:_AskType, Atts, _Elems), memberchk((dig:id=ID0), Atts) 
 		-> ID=id(ID0) 
-		; ID=noid 
+		; ID=noid %TODO
 	)},
 	[ID-unknown(A)],
 	parse_asks(Asks).
