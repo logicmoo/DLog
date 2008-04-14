@@ -1,7 +1,7 @@
 
 :- module(dig_reader,[read_dig/2]).
 
-:- use_module('../config', [target/1]).
+:- use_module('../config', [target/1, get_dlog_option/2]).
 :- use_module('../kb_manager', [default_kb/1]).
 :- target(sicstus) -> 
         use_module('xml_reader/xml_parser') %TODO
@@ -26,7 +26,6 @@
 %	releaseKB(ID)
 %	getIdentifier
 read_dig(DIG_Input, Answer) :-
-	%print(user_error, 'read dig\n'),
 	load_structure(DIG_Input, [element(dig:Root,Atts,Elems)], 
 	[
 		dialect(xmlns),
@@ -36,21 +35,7 @@ read_dig(DIG_Input, Answer) :-
 		call(urlns, dig_reader:xmlns), 
 		call(error, dig_reader:xmlerror)
 	]), %TODO: még elfogad 2 gyökér elemet, és idézöjel nélküli attribútumot
-	
-	% print(user_error, 'XML:\n'),
-	% print(user_error, element(dig:Root,Atts,Elems)),
-	% print(user_error, '\n'),
-	
-	% DIG_Input=stream(S),
-		% read_pending_input(S, Codes, _Tail),
-	% print(user_error, Codes),
-	% print(user_error, '\n\n'),
-	% Root = newKB, Atts=[], Elems=[],
-	% print(user_error, 'parse dig\n'),
-	%Answer = element(dig:Root,Atts,Elems).
-	parse(Root, Atts, Elems, Answer)
-	%,print(user_error, 'parsed\n')
-	.
+	parse(Root, Atts, Elems, Answer).
 
 xmlns('http://dl.kr.org/dig/2003/02/lang', dig, _). %dig 1.1
 xmlns('http://dl.kr.org/dig/lang', dig, _). %dig 1.0
@@ -108,7 +93,11 @@ parse_tells([]) --> [].
 parse_tells([element(dig:AxiomType, Atts, Elems)|Axioms]) -->
 	parse_tell(AxiomType, Atts, Elems), !,
 	parse_tells(Axioms).
-parse_tells([E|_]) --> {throw(digerror(302, 'Unknown Tell Operation', E))}.
+parse_tells([E|Axioms]) --> 
+	({get_dlog_option(dig_reader_fault_tolerance, no) -> 
+		throw(digerror(302, 'Unknown Tell Operation', E))
+	;	true}),
+	parse_tells(Axioms).
 
 
 %parse_tell(+Axiom, +Atts, +Elems, +axioms(ImpliesCL, ImpliesRL, TransL, ABox), -axioms(ImpliesCL1, ImpliesRL1, TransL1, ABox1)):
@@ -168,13 +157,13 @@ parse_tell(range, _Atts,
 parse_tell(rangeint, Atts,
 			[element(dig:AttributeType, Atts, Elems)]) -->
 	{parse_attribute(AttributeType, Atts, Elems, Role)},  
-	add_impliesc(top, all(Role, int)), %SPEC
+	add_impliesc(top, all(Role, domain(int))), %SPEC
 	{throw_tell_error(element(rangeint , Atts, [element(dig:AttributeType, Atts, Elems)]))}.
 
 parse_tell(rangestring, Atts,
 			[element(dig:AttributeType, Atts, Elems)]) -->
 	{parse_attribute(AttributeType, Atts, Elems, Role)},  
-	add_impliesc(top, all(Role, string)), %SPEC
+	add_impliesc(top, all(Role, domain(string))), %SPEC
 	{throw_tell_error(element(rangestring , Atts, [element(dig:AttributeType, Atts, Elems)]))}.
 
 parse_tell(transitive, _Atts, 
@@ -233,7 +222,10 @@ parse_tell(defindividual , _Atts, _Elems) --> [].
 parse_tell(clearKB , _Atts, _Elems) --> {throw(clearKB)}.
 
 
-throw_tell_error(Elem) :- throw(digerror(301, 'Unsupported Tell Operation', Elem)).
+throw_tell_error(Elem) :- 
+	get_dlog_option(dig_reader_fault_tolerance, no) -> 
+	throw(digerror(301, 'Unsupported Tell Operation', Elem))
+	; true.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add Tell Axioms %%%%%%%%%%%%%%%%%%%
@@ -484,13 +476,13 @@ parse_concept(atleast, Atts,
 	memberchk((dig:num=NA),Atts),
 	atom_codes(NA,NC), number_codes(N,NC).
 
-parse_concept(iset, Atts, Elems, iset(Individuals)) :- %SPEC
+parse_concept(iset, Atts, Elems, or(Individuals)) :- %SPEC
 	parse_individuals(Elems, Individuals),
 	throw_concept_error(element(dig:iset, Atts, Elems)).
 
 
 %concrete domain %SPEC
-parse_concept(defined, Atts, [element(dig:AttributeType, AttsA, Elems)], defined(Attribute)) :-  
+parse_concept(defined, Atts, [element(dig:AttributeType, AttsA, Elems)], some(Attribute, top)) :-  %TODO ? defined(Attribute)
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
 	throw_concept_error(element(dig:defined, Atts, [element(dig:AttributeType, Atts, Elems)])).
 parse_concept(stringmin, Atts, [element(dig:AttributeType, AttsA, Elems)], stringmin(Val, Attribute)) :-
@@ -501,15 +493,24 @@ parse_concept(stringmax, Atts, [element(dig:AttributeType, AttsA, Elems)], strin
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
 	memberchk((dig:val=Val),Atts), 
 	throw_concept_error(element(dig:stringmax, Atts, [element(dig:AttributeType, AttsA, Elems)])).
-parse_concept(stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)], stringequals(Val, Attribute)) :-
+% parse_concept(stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)], stringequals(Val, Attribute)) :- %TODO így vagy úgy? 
+	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
+	% memberchk((dig:val=Val),Atts), 
+	% throw_concept_error(element(dig:stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
+parse_concept(stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)], 
+		and([stringmin(Val, Attribute), stringmax(Val, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts), 
-	throw_concept_error(element(dig:stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
-parse_concept(stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)], stringrange(Min, Max, Attribute)) :-
+	memberchk((dig:val=Val),Atts).
+% parse_concept(stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)], stringrange(Min, Max, Attribute)) :-
+	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
+	% memberchk((dig:min=Min),Atts), 
+	% memberchk((dig:max=Max),Atts), 
+	% throw_concept_error(element(dig:stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
+parse_concept(stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)], 
+		and([stringmin(Min, Attribute), stringmax(Max, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:min=Min),Atts),
-	memberchk((dig:max=Max),Atts), 
-	throw_concept_error(element(dig:stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
+	memberchk((dig:min=Min),Atts), 
+	memberchk((dig:max=Max),Atts).
 parse_concept(intmin, Atts, [element(dig:AttributeType, AttsA, Elems)], intmin(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
 	memberchk((dig:val=Val),Atts), 
@@ -518,14 +519,25 @@ parse_concept(intmax, Atts, [element(dig:AttributeType, AttsA, Elems)], intmax(V
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
 	memberchk((dig:val=Val),Atts),  
 	throw_concept_error(element(dig:intmax, Atts, [element(dig:AttributeType, AttsA, Elems)])).
-parse_concept(intequals, Atts, [element(dig:AttributeType, AttsA, Elems)], intequals(Val, Attribute)) :-
+% parse_concept(intequals, Atts, [element(dig:AttributeType, AttsA, Elems)], intequals(Val, Attribute)) :-
+	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
+	% memberchk((dig:val=Val),Atts),  
+	% throw_concept_error(element(dig:intequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
+parse_concept(intequals, Atts, [element(dig:AttributeType, AttsA, Elems)], 
+		and([intmin(Val, Attribute), intmax(Val, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
 	memberchk((dig:val=Val),Atts),  
 	throw_concept_error(element(dig:intequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
-parse_concept(intrange, Atts, [element(dig:AttributeType, AttsA, Elems)], intrange(Min, Max, Attribute)) :-
+% parse_concept(intrange, Atts, [element(dig:AttributeType, AttsA, Elems)], intrange(Min, Max, Attribute)) :-
+	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
+	% memberchk((dig:min=Min),Atts), 
+	% memberchk((dig:max=Max),Atts),  
+	% throw_concept_error(element(dig:intrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
+parse_concept(intrange, Atts, [element(dig:AttributeType, AttsA, Elems)], 
+		and([intmin(Min, Attribute), intmax(Max, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:min=Min),Atts),
-	memberchk((dig:max=Max),Atts),  
+	memberchk((dig:min=Min),Atts), 
+	memberchk((dig:max=Max),Atts), 
 	throw_concept_error(element(dig:intrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 
 %parse_concepts(+Elems, -Concepts)
@@ -534,10 +546,13 @@ parse_concepts([element(dig:ConceptType, Atts, Elems)|ElemL], [Concept|Concepts]
 	parse_concepts(ElemL, Concepts).
 parse_concepts([], []).
 
-throw_concept_error(Elem) :- throw(digerror(103, 'Unsupported Operation', Elem)).
+throw_concept_error(Elem) :- 
+	get_dlog_option(dig_reader_fault_tolerance, no) -> 
+		throw(digerror(103, 'Unsupported Operation', Elem))
+		; true.
 
 %parse_individuals(+Elems, -Individuals)
-parse_individuals([element(dig:individual, Atts, _Elems)|Elems], [Individual|Individuals]) :-
+parse_individuals([element(dig:individual, Atts, _Elems)|Elems], [iconcept(Individual)|Individuals]) :-
 	memberchk((dig:name=Individual), Atts),
 	parse_individuals(Elems, Individuals).
 parse_individuals([], []).

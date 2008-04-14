@@ -61,9 +61,6 @@ stop_dig_server_swi(Port) :-
 	http_delete_handler(Path).
 
 swi_dig_server(Request) :-
-	% print(user_error, 'Req:\n'),
-	% print(user_error, Request),
-	% print(user_error, '\n'),
 	(
 		memberchk(method(Method), Request),
 		Method \== post 
@@ -84,76 +81,38 @@ swi_dig_server(Request) :-
 			catch(
 				read_dig(stream(DIGFile), DIG),
 				digerror(Code, Expl, Msg),
-				send_error(Code, Expl, Msg)
+				send_error(Code, Expl, Msg, 'http://dl.kr.org/dig/2003/02/lang')
 			),
 			close(DIGFile)
 		),
 		free_memory_file(MemFile)
 	),
-	% print(user_error, 'DIG:\n'),
-	% print(user_error, DIG),
-	% print(user_error, '\n'),
-	(nonvar(DIG) -> execute(DIG)
+	(nonvar(DIG) -> 
+		catch(
+			execute(DIG, Reply),
+			no_such_kb,  
+			Reply = no_such_kb
+		),
+		reply(Reply, 'http://dl.kr.org/dig/2003/02/lang') %TODO URI
 	;	true).
 
 
-
-
-send_error(Code, Expl, Msg) :-
-	(atom(Msg) -> MsgA = Msg ; term_to_atom(Msg, MsgA)),
-	send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'], %TODO dig 1.0 ns
-				[element(error, [code=Code, message=Expl],[MsgA])])).
-
-send_xml(Element) :-
-	current_output(Stream),
-	xml_write(Stream, Element, []).
-
-execute(newKB) :- 
-	new_kb(URI),
-	send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
-				[element(kb, [uri=URI],[])])).
-execute(clearKB(URI)) :- 
-	catch(
-		(clear_kb(URI), 
-		send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
-				[element(ok, [],[])]))),
-		no_such_kb,  
-		send_error(203, 'Unknown or stale KB URI', '')
-	).
-execute(clearKBW(URI)) :- 
-	catch(
-		(clear_kb(URI), 
-		send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
-				[element(ok, [],[
-						element(warning, [message='KB cleared'], ['Cleared KB in tells request.'])
-						])
-				]))
-		),
-		no_such_kb,  
-		send_error(203, 'Unknown or stale KB URI', '')
-	).
-execute(releaseKB(URI)) :-
-	catch(
-		(release_kb(URI), 
-		send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],
-				[element(ok, [],[])]))),
-		no_such_kb,  
-		send_error(203, 'Unknown or stale KB URI', '')
-	).
-execute(getIdentifier) :-
-	throw(http_reply(file('text/xml', 'interfaces/dig_identifier.dig'))). %resource?
-execute(tells(URI, Axioms)) :-
-	catch(
-		(add_axioms(URI, Axioms) ->
-			send_xml(element(response, [xmlns='http://dl.kr.org/dig/2003/02/lang'],	[element(ok, [],[])]))
-		;	send_error(300, 'General Tell Error', 'add_axioms failed.')
-		),
-		no_such_kb,  
-		send_error(203, 'Unknown or stale KB URI', '')
-	).
-execute(asks(URI, Asks)) :- 
-		with_read_lock(URI, dig_iface:ask(Asks, URI, Responses)),
-		send_xml(element(responses, [xmlns='http://dl.kr.org/dig/2003/02/lang'], Responses)).
+%execute(Command, Reply) throws no_such_kb
+execute(newKB, kb(URI)) :- 
+	new_kb(URI).
+execute(clearKB(URI), kb_cleared(URI)) :- 
+	clear_kb(URI).
+execute(clearKBW(URI), kb_cleared_in_tells(URI)) :- 
+	clear_kb(URI).
+execute(releaseKB(URI), kb_released(URI)) :-
+	release_kb(URI).
+execute(getIdentifier, identifier).
+execute(tells(URI, Axioms), Reply) :-
+	add_axioms(URI, Axioms) ->
+		Reply = axioms_added(URI, Axioms)
+	;	Reply = failed_to_add_axiom(URI, Axioms).
+execute(asks(URI, Asks), responses(Responses)) :-
+	with_read_lock(URI, dig_iface:ask(Asks, URI, Responses)).
 
 ask([], _, []).
 ask([IDT-Type|Asks], URI, [Response|Responses]) :- 
@@ -165,33 +124,29 @@ ask([IDT-Type|Asks], URI, [Response|Responses]) :-
 		(
 			Type = unknown(Elem) %unknown ask
 		->
-			term_to_atom(Elem, ElemA),
-			Response = element(error, [id=ID, code=402, message='Unknown Ask Operation'], [ElemA])
+			Response = ID-unknown(Elem)
 		;
 			Type = unsupported(Elem) %unsupported concept
 		->
-			term_to_atom(Elem, ElemA),
-			Response = element(error, [id=ID, code=401, message='Unsupported Ask Operation'], [ElemA])
+			Response = ID-unsupported(Elem)
 		;	
 			unsupported(Type) %unsupported ask
 		->
-			term_to_atom(Type, TypeA),
-			Response = element(error, [id=ID, code=401, message='Unsupported Ask Operation'], [TypeA])
+			Response = ID-unsupported(Elem)
 		;
 			( %supported question
 				run_query(Type, URI, Answer)
 			->
-				create_response(Answer, ID, Response)				
+				Response = ID-Answer
 			;
-				Response = element(error, [id=ID, code=400, message='General Ask Error'], []) %bad answer
+				Response = ID-error  %bad answer
 			)
 		), 
 		E, %whatever exception
 		(
-			E = no_such_kb -> Response = element(error, [id=ID, code=203, message='Unknown or stale KB URI'], [''])
+			E = no_such_kb -> throw(no_such_kb)
 			;
-			(term_to_atom(E, EA),
-			Response = element(error, [id=ID, code=400, message='General Ask Error'], [EA]))
+			Response = ID-error(E)
 		)
 	),
 	ask(Asks, URI, Responses).
@@ -219,6 +174,12 @@ unsupported(rdescendants(_Role)).
 unsupported(toldValues(_Name, _Attribute)).
 unsupported(types(_Name)).
 
+
+create_responses([], []).
+create_responses([ID-R|Rs], [E|Es]) :-
+	create_response(R, ID, E),
+	create_responses(Rs, Es).
+
 create_response(conceptSet(Synonyms), ID, element(conceptSet, [id=ID], Elems)) :-
 	create_synonyms(Synonyms, Elems). 
 create_response(roleSet(Synonyms), ID, element(roleSet, [id=ID], Elems)) :-
@@ -231,6 +192,14 @@ create_response(individualPairSet(Individual_pairs), ID, element(individualPairS
 	create_individual_pairs(Individual_pairs, Elems).
 create_response(sval(Atom), ID, element(sval, [id=ID], [Atom])).
 create_response(ival(Int), ID, element(ival, [id=ID], [Int])).
+
+create_response(unknown(Elem), ID, element(error, [id=ID, code=402, message='Unknown Ask Operation'], [ElemA]) ) :-
+	term_to_atom(Elem, ElemA).
+create_response(unsupported(Elem), ID, element(error, [id=ID, code=401, message='Unsupported Ask Operation'], [ElemA])) :-
+	term_to_atom(Elem, ElemA).
+create_response(error, ID, element(error, [id=ID, code=400, message='General Ask Error'], [])).
+create_response(error(E), ID, element(error, [id=ID, code=400, message='General Ask Error'], [EA])) :-
+	term_to_atom(E, EA).
 
 
 create_individuals([], []).
@@ -257,5 +226,42 @@ create_concepts([Concept|Concepts], [Elem|Elems]) :-
 create_concept(aconcept(Concept), element(catom, [name=Concept], [])).
 create_concept(arole(Role), element(ratom, [name=Role], [])). %TODO: feature, attribute?
 
-	
+
+
+send_xml(Element) :-
+	current_output(Stream),
+	xml_write(Stream, Element, []).
+
+send_error(Code, Expl, Msg, NS) :-
+	(atom(Msg) -> MsgA = Msg ; term_to_atom(Msg, MsgA)),
+	send_xml(element(response, [xmlns=NS],
+				[element(error, [code=Code, message=Expl],[MsgA])])).
+
+
+reply(kb(URI), NS) :-
+	send_xml(element(response, [xmlns=NS], [element(kb, [uri=URI],[])])).
+reply(kb_cleared(_URI), NS) :-
+		send_xml(element(response, [xmlns=NS], [element(ok, [],[])])).
+reply(kb_cleared_in_tells(_URI), NS) :-
+	send_xml(element(response, [xmlns=NS], [element(ok, [],[
+			element(warning, [message='KB cleared'], ['Cleared KB in tells request.'])
+		])])).
+reply(no_such_kb, NS) :-
+	send_error(203, 'Unknown or stale KB URI', '', NS).
+reply(kb_released(_URI), NS) :-
+	send_xml(element(response, [xmlns=NS], [element(ok, [],[])])).
+reply(identifier, _NS) :-
+	throw(http_reply(file('text/xml', 'interfaces/dig_identifier.dig'))). %resource? TODO NS
+reply(axioms_added(_URI, _Axioms), NS) :-
+	 send_xml(element(response, [xmlns=NS],	[element(ok, [],[])])).
+reply(failed_to_add_axiom(_URI, _Axioms), NS) :-
+	send_error(300, 'General Tell Error', 'add_axioms failed.', NS).
+reply(responses(Responses), NS) :-
+	create_responses(Responses, R),
+	send_xml(element(responses, [xmlns=NS], R)).
+
+
+
+
+
 

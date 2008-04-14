@@ -34,6 +34,7 @@ default_option(tbox_target, allinonefile). %[assert, tempfile, allinonefile]
 default_option(dig_server_port, 8080). %TODO HTTP server port? (közös server?)
 default_option(dig_server_path, '/'). %DIG server elérése
 default_option(dig_server_service_limit, 60). %a kiszolgálásra mennyit várjon
+default_option(dig_reader_fault_tolerance, no). %a nem támogatott fogalmakra dobjon-e hibát
 
 :- dynamic  current_option/2.
 
