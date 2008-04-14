@@ -259,4 +259,14 @@ sample13:-
 	Transitive = [],
 	translate([CInclusion, RInclusion, Transitive]).
 
+sample14:-
+	CInclusion = [
+		      implies(top, atleast(1,arole(gyereke),aconcept(a))),
+		      implies(top, atleast(1,arole(gyereke),aconcept(b))),		      
+		      implies(top, atleast(1,arole(gyereke),aconcept(c))),
+		      implies(top, atleast(1,arole(gyereke),or([not(aconcept(a)),not(aconcept(b)),not(aconcept(c))]))),
+		      implies(top, atmost(1, arole(gyereke),top))
+		     ],
+	translate([CInclusion, [],[]]).
+
 

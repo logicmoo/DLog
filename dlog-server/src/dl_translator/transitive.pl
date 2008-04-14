@@ -74,9 +74,6 @@ getNewAxioms([atmost(0,R,C)|Closure],RInclusion,Transitive,NewAxioms):-
 
 getNewAxioms([],_,_,[]).
 
-% inv(S,R): - S szerep inverze R
-inv(arole(R),inv(arole(R))).
-inv(inv(arole(R)),arole(R)).
 
 % someSubRole(+S,+R,+RInclusion)
 % adott Hbox szerephierarchia mellett
@@ -93,3 +90,9 @@ newAxiomList(_,_,[],[]).
 newAxiomList(R,C,[S|Ss],[A|NewAxioms]):-
 	negNormForm(or([atleast(1,R,C,[C]),atmost(0,S,atleast(1,S,C,[C]))]),A),
 	newAxiomList(R,C,Ss,NewAxioms).
+
+
+% inv(S,R): - S szerep inverze R
+inv(arole(R),inv(arole(R))).
+inv(inv(arole(R)),arole(R)).
+

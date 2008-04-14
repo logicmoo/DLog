@@ -2,7 +2,6 @@
 :- use_module('dl_to_fol',[negNormForm/2]).
 :- use_module('saturate',[simplifyConcept/2]).
 :- use_module(library(lists), [append/3, member/2]).
-:- use_module('show').
 
 boolneg(not(C),C):- !.
 boolneg(C,NC):-

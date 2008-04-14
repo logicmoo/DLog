@@ -1,6 +1,5 @@
 :- module(selectResolvable, [selectResolvableList/2, selectResolvable/2]).
 
-:- use_module(struct).
 :- use_module(library(lists), [select/3, append/3]).
 
 % selectResolvableList(+Cs,-OCs)
@@ -82,40 +81,3 @@ greatness(arole(R),G):-
 	atom_concat(R,'0',G).
 greatness(inv(arole(R)),G):-
 	atom_concat(R,'1',G).
-
-% select_precisely(+Element,+List,+Rest)
-% ugyanaz, mint a konyvtari select, csak
-% nincs egyesites
-select_precisely(A,L,R):-
-	select_precisely(A,L,[],R).
-select_precisely(_,[],R,R).
-select_precisely(A,[L|Ls],T,R):-
-	A == L, !,
-	append(Ls,T,R).
-select_precisely(A,[L|Ls],T,R):-
-	select_precisely(A,Ls,[L|T],R).
-	
-	
-	
-
-	
-/*************************** teszt **************************/
-/*
-test1:-
-	greater(fun(f,X),X). % yes
-test2:-
-	greater(X,fun(f,X)). % no
-test3:-
-	greater(fun(f,fun(g,X)),fun(h,X)). % yes
-test4:-
-	greater(fun(f,fun(g,X)),fun(h,fun(k,X))). % no
-test5:-
-	greater(aconcept(okos,X), aconcept(szep,X)). % no
-test6:-
-	greater(aconcept(szep,X), aconcept(okos,X)). % yes
-test7:-
-	greater(aconcept(okos,fun(f,X)), aconcept(szep,X)). % yes
-test8:-
-	greater(aconcept(okos,fun(f,X)), aconcept(szep,fun(f,marked(fun(g,X))))). % no
-*/
-

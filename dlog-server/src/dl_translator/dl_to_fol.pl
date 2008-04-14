@@ -1,7 +1,6 @@
 :- module(dl_to_fol, [axiomsToNNFConcepts/2, def_list/3, negNormForm/2]).
 
 :- use_module(library(lists)).
-% :- use_module(struct).
 
 /***************************************************/
 /********* Negacios normalformara hozas ************/
@@ -334,88 +333,3 @@ defName(or([C|L]),N):-
 	atom_concat(N2,'_',N3),
 	defName(or(L),N4),
 	atom_concat(N3,N4,N).
-
-
-% nextName(+Name,-NextName): NextName a lexikografikus rendezes
-% szerinti Name utani betusorozat
-nextName(N,NN):-
-	atom_codes(N,Codes),
-	reverse(Codes,R),
-	nextList(R,NR),reverse(NR,NC),
-	atom_codes(NN,NC).
-
-nextList([C|Cs],[NC|NCs]):-
-	(C < 122 ->
-	    NC is C+1, NCs=Cs;
-	    NC=97,nextList(Cs,NCs)).
-nextList([],[97]).
-
-
-/*****************************************************************/
-/******************** Klozformara hozas **************************/
-/*****************************************************************/
-
-% cls(+F,-Cs): Cs az F elsorendu logikai formulanak megfelelo
-% klozokbol allo lista
-% egy kloz formatuma: [tipus, literalok listaja]
-cls(and(L),Cs):-
-	!, delete(L,true,L2),
-	(
-	  member(not(true),L2) -> Cs=[[]]
-	; and_cls(L2,Cs)
-	).
-cls(or(L),Cs):-
-	!, delete(L,not(true),L2),
-	(
-	  member(true,L2) -> Cs = []
-	; or_cls(L2,Cs)
-	).
-cls(L,[[L]]).
-	
-and_cls([],[]).
-and_cls([L|Ls],CList):-
-	cls(L,C),
-	append(C,C2,CList),
-	and_cls(Ls,C2).
-
-% or_cls(+Ors,-LClss): LClss az or(Ors) formulanak megfelelo
-% klozokbol allo lista
-or_cls(Ors,LClss):-
-	or_cls(Ors,[[]],LClss).
-
-% or_cls(+Ors,+LClss0,-LCls): elozo gyujtoargumentummal
-or_cls([],LClss,LClss).
-or_cls([or(L)|Ls],LClss0,LClss):-
-	!,
-	or_cls(L,LClss0,LClss1),or_cls(Ls,LClss1,LClss).
-or_cls([L|Ls],LClss0,LClss):-
-	cls(L,L2),
-	combine_to_lists(L2,LClss0,LClss1),
-	or_cls(Ls,LClss1,LClss).
-	
-
-% combine_to_lists(List1,List2,ResList): ResList-et ugy kapjuk, hogy
-% minden List2-ben talalhato listahoz List1 1-1 elemlistajat hozzafuzzuk
-% az osszes lehetseges modon
-
-combine_to_lists(As,L,Res):-
-	combine_to_lists(As,L,[],Res).
-combine_to_lists([A|As],L,R0,R):-
-	combine_to(A,L,R1),append(R1,R0,R2),combine_to_lists(As,L,R2,R).
-combine_to_lists([],_,R,R).
-
-% combine_to(+A,+L,-R): Az L listaban talalhato valamennyi listahoz
-% A listat hozzafuzve kapjuk az R listat
-combine_to(_,[],[]).
-combine_to(A,[L|Ls],[R|Rs]):-
-	append(A,L,R),
-	combine_to(A,Ls,Rs).
-
-% list_cls(+Fs, -Clss): Fs elsorendu formulak listaja
-% Clss az Fs-beli formulaknak megfelelo klozok listaja
-list_cls([],[]).
-list_cls([F|Fs],Clss):-
-	cls(F,Clss1),
-	append(Clss1,Clss2,Clss),list_cls(Fs,Clss2).
-
-

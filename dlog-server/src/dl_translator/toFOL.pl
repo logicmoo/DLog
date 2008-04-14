@@ -2,7 +2,6 @@
 
 :- use_module(library(lists)).
 :- use_module(bool, [boolneg/2, boolinter/2, boolunion/2]).
-:- use_module(show).
 
 toFOL_list(L,R):-
 	toFOL_list(L,_,R).
@@ -22,26 +21,11 @@ toFOL(and(L),X,and(R)):- !,
 	toFOL_list(L,X,R).
 toFOL(or(L),X,or(R)):- !,
 	toFOL_list(L,X,R).
-
-/*
-toFOL(atmost(0,R,C),X,or([not(R2)|Rest])):- !,
-	toFOL(R,X,Y,R2),
-	boolneg(C,C2),
-	toFOL(C2,Y,Rest1),
-	(
-	  Rest1 = or(Rest), !
-	; Rest1 = bottom -> Rest = []
-	; Rest = Rest1
-	).
-*/
-
 toFOL(atmost(N,R,C),X,or(Literals)):-
 	boolneg(C,C2),
 	N1 is N + 1,
 	createVars(N1,Vars),
 	atmostLiterals(Vars,R,C2,X,Literals).
-
-
 toFOL(arole(R),X,Y,arole(R,X,Y)):- !.
 toFOL(inv(arole(R)),X,Y,arole(R2,X,Y)):- % TODO ezt majd szepiteni kell
 	atom_concat('inv_',R,R2).
@@ -76,15 +60,13 @@ equalLiterals(V,[V2|Vars],[eq(V,V2)|Equals]):-
 
 toClause_list(L,R):-
 	toFOL_list(L,L2),
-
-	% nl, show(L2), nl,
-
 	findall(C, (
 		     member(A,L2),
 		     one_conjunct(A,B),
 		     sort(B,C)
 		   ), R
 	       ).
+
 
 one_conjunct(and(L),D):- !,
 	member(C,L),
@@ -100,7 +82,7 @@ one_conjunct(X,[X]).
 
 
 /*********************** Redundans klozok elhagyasa *******************************/
-
+/*
 % redundant(+C, +Clauses): igaz, ha van C-nel szukebb kloz a Clauses
 % klozhalmazban
 % nincs behelyettesites
@@ -202,13 +184,13 @@ remove_redundant([L|Ls],Acc,R):-
 	elim_reds(Acc,L,Acc2),
 	remove_redundant(Ls,[L|Acc2],R).
 
-
+*/
 
 	
 /****************************************************************************************/
 /*************** Az ujonnan bevezetett fogalmak eliminalasa *****************************/
 /****************************************************************************************/
-
+/*
 % remove_temp(+L,-R)
 % L klozok listaja, melyeket telitve a bevezetett fogalmak szerint
 % es elhagyva ezen fogalmakat tartalmazo klozokat kapjuk R klozlistat
@@ -264,3 +246,49 @@ resolve_specific([_,C1],[_,C2],PredName,[10,R]):-
 	),
 	append(M1,M2,L),sort(L,L1),
 	simplifyClause([_,L1],[_,R]).
+*/
+
+
+/**************************************************************************/
+/******************* Ketszeres bizonyitas elkerulese **********************/
+/**************************************************************************/
+/*					      
+% remove_double_proof_list(+L,-S)
+% Ha az L beli klozban vannak olyan literalparok, melyek eliminalasa ugyanannak
+% a bizonyitasnak az ismetleset jelentene, akkor kiszurjuk az egyiket
+% a keletkezo klozlista S
+remove_double_proof_list([],[]).
+remove_double_proof_list([[T,L]|Ls],[[T,R]|Rs]):-
+	remove_double_proof(L,R),
+	remove_double_proof_list(Ls,Rs).
+
+% remove_double_proof(+L,-S)
+% Ha az L klozban vannak olyan literalparok, melyek eliminalasa ugyanannak
+% a bizonyitasnak az ismetleset jelentene, akkor kiszurjuk az egyiket
+% a keletkezo kloz S
+remove_double_proof(L,S):-
+	select(not(arole(R,X,Y1)),L,L1),
+	select(not(arole(R,X,Y2)),L1,L2),
+	
+	findall(C, (
+		     ( contains_struct2(L2,aconcept(C,_))
+		     ; contains_struct2(L2,nconcept(C,_))
+		     ),
+		     ( member(M1,L2), M1 == aconcept(C,Y1), \+ (member(M2,L2), M2 == aconcept(C,Y2))
+		     ; member(M1,L2), M1 == not(aconcept(C,Y1)), \+ (member(M2,L2), M2 == not(aconcept(C,Y2)))
+		     ; member(M1,L2), M1 == nconcept(C,Y1), \+ (member(M2,L2), M2 == nconcept(C,Y2))
+		     ; member(M1,L2), M1 == not(nconcept(C,Y1)), \+ (member(M2,L2), M2 == not(nconcept(C,Y2)))
+		     ; member(M1,L2), M1 == aconcept(C,Y2), \+ (member(M2,L2), M2 == aconcept(C,Y1))
+		     ; member(M1,L2), M1 == not(aconcept(C,Y2)), \+ (member(M2,L2), M2 == not(aconcept(C,Y1)))
+		     ; member(M1,L2), M1 == nconcept(C,Y2), \+ (member(M2,L2), M2 == nconcept(C,Y1))
+		     ; member(M1,L2), M1 == not(nconcept(C,Y2)), \+ (member(M2,L2), M2 == not(nconcept(C,Y1)))		   
+		     )
+		     ), Cs
+	       ),	
+	Cs = [],
+	\+ (member(M,L2), (M == eq(Y1,Y2); M == eq(Y2,Y1))), !,
+	Y1 = Y2,
+	sort(L,LReduced),
+	remove_double_proof(LReduced,S).
+remove_double_proof(L,L).
+*/

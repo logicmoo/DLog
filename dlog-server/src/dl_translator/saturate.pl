@@ -1,15 +1,10 @@
 :- module(saturate,[saturate/3,simplifyConcept/2]).
 
-:- use_module('../config').
+% :- use_module('../config').
 :- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).
 :- use_module('transitive', [inv/2]).
-% :- use_module(show).
-% :- use_module(struct).
 :- use_module(selectResolvable, [selectResolvableList/2, selectResolvable/2]).
 :- use_module(library(lists),[append/3,member/2,select/3,delete/3]).
-:- target(sicstus) -> 
-        use_module(library(terms),[subsumes/2, term_variables/2])
-        ; true.
 :- use_module(library(ordsets),[list_to_ord_set/2,ord_subset/2]).
 
 /*********************** Fogalomhalmaz telitese **************************/
@@ -19,23 +14,9 @@
 % RInclusion szerephierarchia mellett
 saturate(W,RInclusion,S):-
 	simplifyConcepts(W,W2),
-
-	% nl, print('Egyszerusites utan'), nl,nl, show(W2), nl,
-	
 	selectResolvableList(W2,Selected),
-
-	% nl, print('Rendezes utan'), nl,nl, show(Selected), nl,
-	
 	saturate([],Selected,RInclusion,S).
-/*
-% saturate(+W1, +W2, -S):- W1 rendezett es telitett klozok listaja
-% W1 es W2 egyuttes telitesevel kapjuk S klozlistat
-saturate_partially(W1,W2,S):-
-	simplifyConcepts(W2,W21),
-	selectResolvable(W21,W22),
-	saturate(W1,W22,S).
 
-*/
 
 /********************************saturation*****************************/
 
@@ -46,21 +27,21 @@ saturate_partially(W1,W2,S):-
 saturate(W1,[],_,W1).
 saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
-	% nl, print('---- ') ,print(C), print('---- redundans'),
+	nl, print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,RInclusion,S).
 saturate(W1,[C|W2],RInclusion,S):-
-	% nl, print(C),
+	nl, print(C),
 	findall(R,(
 		   (
 		     member(A,W1),
 		     resolve(A,C,R1),
-		     % nl, print('  + '), print(A),
+		     nl, print('  + '), print(A),
 		     true
 		   ; resolve2(C,RInclusion,R1)
 		   ),		     
 		   simplifyConcept(R1,R2),
 		   selectResolvable(R2,R),
-		   % nl, print('  = '), print(R),
+		   nl, print('  = '), print(R),
 		   true
 		  ), Rs),
 % 	read(_),
@@ -100,7 +81,6 @@ includes(atmost(N,R,C),atmost(K,R,D)):-
 	K =< N,
 	includes(D,C).
 includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):-
-% 	sameSelector(Sel1,Sel2),
 	(
 	  append(Sel2,_,Sel1)
 	; list_to_ord_set(Sel1,OrdSet),
@@ -236,17 +216,6 @@ resolve(or(Cs),or([atleast(K,S,D,Sel)|Ds]),or(Res)):- !,
 	; Res = [R|Ds]
 	).
 
-/*	
-resolve(or([C|Cs]),or([D|Ds]),or(R)):- !,
-	resolve(C,D,CDRES),
-	append(Cs,Ds,R1),
-	(
-	  CDRES = or(CDRES1) ->
-	  append(CDRES1,R1,R)
-	; R = [CDRES|R1]
-	).
-*/
-
 resolve(or([C|Cs]),D,or(R)):- !,
 	resolve(C,D,CDRES),
 	(
@@ -294,7 +263,6 @@ simplifyConcept(or(C),Simplified):-
 	; member(A,C2), member(not(A),C2) -> Simplified = top
 	; sort(C2,C3),
 	  simplifyDisjunction(C3,C4),
-	  % delete(C3,bottom,C4),
 	  (
 	    C4 = [] -> Simplified = bottom
 	  ; C4 = [X] -> Simplified = X
@@ -336,88 +304,3 @@ simplifyDisjunction([C|Cs],L,Rs):-
 sameSelector(X,X):- !.
 sameSelector([X],[X,marked]):- !.
 sameSelector([X,marked],[X]).
-
-/****************************************************************************************/
-/*************** Az ujonnan bevezetett fogalmak eliminalasa *****************************/
-/****************************************************************************************/
-/*
-% remove_temp(+L,-R)
-% L fogalmak listaja, melyeket telitve a bevezetett fogalmak szerint
-% es elhagyva ezen fogalmakat tartalmazo klozokat kapjuk R klozlistat
-% ha vegtelen ciklusba esnenk, akkor meghagyjuk az adott bevezetett fogalmat
-remove_temp(L,R):-
-	contains_struct2(L,nconcept(Pred)),
-	\+ (
-	     member(or(Cs),L),
-	     (
-	       member(nconcept(Pred),Cs)
-	     ; member(and(Ds1),Cs),
-	       member(nconcept(Pred),Ds1)
-	     ),
-	     (
-	       member(not(nconcept(Pred)),Cs)
-	     ; member(and(Ds2),Cs),
-	       member(not(nconcept(Pred)),Ds2)
-	     )
-	   ),
-	!,
-	saturate_specific(L,Pred,L2),
-	omit_structs(L2,nconcept(Pred),L3),	
-	remove_temp(L3,R).
-remove_temp(L,L).
-
-
-% saturate_specific(+L,+PredName,-R)
-% L fogalmak listaja, melyeket telitve a PredName nevu bevezetett fogalom szerint
-% kapjuk R fogalomlistat
-saturate_specific(L,PredName,R):-
-	saturate_specific([],L,PredName,R).
-	
-	
-% saturate_specific(+W1,+W2, +PredName, -R): W1 es W2 fogalmak listaja, R-t W1 es W2
-% telitesevel nyerjuk a PredName nevu bevezetett fogalom szerint
-% ugy hogy W1 es W2-beli fogalmakat, valamint W2-W2-beli fogalmakat rezolvalunk egymassal
-saturate_specific(W1,[],_,W1).
-saturate_specific(W1,[C|W2],PredName,R):-
-	redundant(C,W1), !, 
-	saturate_specific(W1,W2,PredName,R).
-saturate_specific(W1,[C|W2],PredName,S):-	
-	findall(R,(
-		   member(R1,W1),
-		   resolve_specific(R1,C,PredName,R1),
-		   simplifyConcept(R1,R)
-		  ),Rs),
-	elim_reds(W1,C,EW1),
-	append(Rs,W2,EW2),
-	saturate_specific([C|EW1],EW2,PredName,S).		
-
-
-% resolve_specific(+C1,C2,PredName,Resolvent): Resolvent C1 es C2 fogalmak PredName uj
-% fogalom szerinti rezolvense
-resolve_specific(C1,C2,PredName,Res):-
-	(	select(nconcept(PredName,X),Res1,M1),		
-		select(not(nconcept(PredName,X)),Res2,M2)		
-	;	select(not(nconcept(PredName,X)),Res1,M1),		
-		select(nconcept(PredName,X),Res2,M2)
-	),
-	append(M1,M2,L),sort(L,L1),
-	simplifyConcept([_,L1],[_,R]).
-
-
-
-% remove_redundant(+L,-R),
-% L klozlistabol kikuszobolve a redundansakat kapjuk R klozlistat
-% a klozok tipussal szerepelnek
-remove_redundant(L,R):-
-	remove_redundant(L,[],R).
-
-
-remove_redundant([],R,R).
-remove_redundant([L|Ls],Acc,R):-
-	redundant(L,Acc), !,
-	remove_redundant(Ls,Acc,R).
-remove_redundant([L|Ls],Acc,R):-
-	elim_reds(Acc,L,Acc2),
-	remove_redundant(Ls,[L|Acc2],R).
-
-*/
