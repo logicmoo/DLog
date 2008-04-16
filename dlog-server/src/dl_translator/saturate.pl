@@ -27,24 +27,23 @@ saturate(W,RInclusion,S):-
 saturate(W1,[],_,W1).
 saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
-	nl, print('---- ') ,print(C), print('---- redundans'),
+	% nl, print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,RInclusion,S).
 saturate(W1,[C|W2],RInclusion,S):-
-	nl, print(C),
+	% nl, print(C),
 	findall(R,(
 		   (
 		     member(A,W1),
 		     resolve(A,C,R1),
-		     nl, print('  + '), print(A),
+		     % nl, print('  + '), print(A),
 		     true
 		   ; resolve2(C,RInclusion,R1)
 		   ),		     
 		   simplifyConcept(R1,R2),
 		   selectResolvable(R2,R),
-		   nl, print('  = '), print(R),
+		   % nl, print('  = '), print(R),
 		   true
 		  ), Rs),
-% 	read(_),
 	elim_reds(W1,C,EW1),
 	append(Rs,W2,EW2),
 	saturate([C|EW1],EW2,RInclusion,S).
