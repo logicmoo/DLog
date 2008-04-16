@@ -105,7 +105,7 @@ read_dig_from_request(Request, NS-DIG) :-
 	).
 
 execute_dig_file(DIGFile, Reply) :-
-	read_dig(DIGFile, DIG),
+	read_dig(DIGFile, _NS-DIG),
 	execute(DIG, Reply).	
 
 
