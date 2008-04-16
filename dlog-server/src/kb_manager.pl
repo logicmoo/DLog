@@ -10,9 +10,9 @@
 :- use_module('prolog_translator/abox_signature', [abox_signature/3]).
 :- use_module('prolog_translator/abox_translator', [abox2prolog/2]). %TODO
 :- use_module('prolog_translator/tbox_translator', [tbox2prolog/3]).
+:- use_module('prolog_translator/tbox_annotator', [annotated_tbox/2]).
 :- use_module(query, [query/4]).
-:- use_module(config, [target/1, get_dlog_option/3, default_kb/1, kb_uri/2, remove_dlog_options/1, 
-						abox_module_name/2, tbox_module_name/2, abox_file_name/2, tbox_file_name/2]).
+:- use_module(config, [target/1, get_dlog_option/3, default_kb/1, kb_uri/2, remove_dlog_options/1,abox_module_name/2, tbox_module_name/2, abox_file_name/2, tbox_file_name/2]).
 :- target(swi) -> use_module(library(memfile)) ; true.
 
 :- dynamic current_kb/1,
@@ -62,10 +62,10 @@ clear_kb(URI) :-
 
 add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni, hozzáadni
 	exists_kb(URI),
-	
-	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], TBox_Clauses, IBox, HBox, _), %TODO
+	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL],
+			  TBox_Clauses0, IBox, HBox, _), %TODO
+	annotated_tbox(TBox_Clauses0, TBox_Clauses), % annotated version of TBox
 	abox_signature(ABox, ABoxStr, Signature),
-	
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
 	with_write_lock(URI, 
