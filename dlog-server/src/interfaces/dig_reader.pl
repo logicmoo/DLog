@@ -14,10 +14,10 @@
 
 
 % read_dig(+DIG_Input,-Answer) throws 
-%			digerror(102, 'Malformed Request (XML error)', Message),
-%			digerror(302, 'Unknown Tell Operation', E),
-%			digerror(301, 'Unsupported Tell Operation', Elem),
-%			digerror(103, 'Unsupported Operation', Elem) -- csak tells
+%			digerror(102, 'Malformed Request (XML error)', Message, NS),
+%			digerror(302, 'Unknown Tell Operation', E, NS),
+%			digerror(301, 'Unsupported Tell Operation', Elem, NS),
+%			digerror(103, 'Unsupported Operation', Elem, NS) -- csak tells
 % beolvassa a DIG_Input DIG file tartalmát
 % Answer: 
 %	tells(ID, (ImpliesCL, InvRL, ImpliesRL, TransL, ABox))
@@ -25,7 +25,8 @@
 %	newKB
 %	releaseKB(ID)
 %	getIdentifier
-read_dig(DIG_Input, Answer) :-
+read_dig(DIG_Input, NS-Answer) :-
+	(
 	load_structure(DIG_Input, [element(dig:Root,Atts,Elems)], 
 	[
 		dialect(xmlns),
@@ -34,24 +35,33 @@ read_dig(DIG_Input, Answer) :-
 		qualify_attributes(true),
 		call(urlns, dig_reader:xmlns), 
 		call(error, dig_reader:xmlerror)
-	]), %TODO: még elfogad 2 gyökér elemet, és idézöjel nélküli attribútumot
-	parse(Root, Atts, Elems, Answer).
+	]) %TODO: még elfogad 2 gyökér elemet, és idézöjel nélküli attribútumot
+	-> true
+	; throw(digerror(102, 'Malformed Request (XML error)', '', 'http://dl.kr.org/dig/2003/02/lang'))
+		%no way to decide -> dig 1.1
+	),
+	memberchk((dig:xmlns=NS), Atts),
+	catch(
+		parse(Root, Atts, Elems, Answer),
+		digerror(Code, Expl, Msg),
+		throw(digerror(Code, Expl, Msg, NS))
+	).
 
 xmlns('http://dl.kr.org/dig/2003/02/lang', dig, _). %dig 1.1
 xmlns('http://dl.kr.org/dig/lang', dig, _). %dig 1.0
 
 xmlerror(_Severity, Message, _Parser) :- 
-	throw(digerror(102, 'Malformed Request (XML error)', Message)). 
+	throw(digerror(102, 'Malformed Request (XML error)', Message)).
 
 %parse(+Root, +Atts, +Elems, -Answer).
-parse(newKB, _Atts, _Elems, newKB).
-parse(clearKB, Atts, _Elems, clearKB(URI)) :-
+parse(newKB, _Atts, _Elems, newKB) :- !.
+parse(clearKB, Atts, _Elems, clearKB(URI)) :- !,
 	(memberchk((dig:uri=URI),Atts) -> true
 	; default_kb(URI)). %dig1.0
-parse(releaseKB, Atts, _Elems, releaseKB(URI)) :-
+parse(releaseKB, Atts, _Elems, releaseKB(URI)) :- !,
 	memberchk(dig:uri=URI,Atts).
 parse(getIdentifier, _Atts, _Elems, getIdentifier).
-parse(tells, Atts, Elems, Req) :-
+parse(tells, Atts, Elems, Req) :- !,
 	(memberchk((dig:uri=URI),Atts) -> true
 	; default_kb(URI)), %dig 1.0
 	catch(
@@ -59,10 +69,12 @@ parse(tells, Atts, Elems, Req) :-
 		clearKB,
 		Req = clearKBW(URI)
 	).
-parse(asks, Atts, Elems, asks(URI, Asks)) :-
+parse(asks, Atts, Elems, asks(URI, Asks)) :- !,
 	(memberchk((dig:uri=URI),Atts) -> true
 	; default_kb(URI)), %dig 1.0
 	phrase(parse_asks(Elems), Asks).
+parse(Req, Atts, Elems, _) :- 
+	throw(digerror(101, 'Unknown Request', element(dig:Req, Atts, Elems))).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -94,9 +106,7 @@ parse_tells([element(dig:AxiomType, Atts, Elems)|Axioms]) -->
 	parse_tell(AxiomType, Atts, Elems), !,
 	parse_tells(Axioms).
 parse_tells([E|Axioms]) --> 
-	({get_dlog_option(dig_reader_fault_tolerance, no) -> 
-		throw(digerror(302, 'Unknown Tell Operation', E))
-	;	true}),
+	{throw(digerror(302, 'Unknown Tell Operation', E))},
 	parse_tells(Axioms).
 
 
@@ -155,25 +165,25 @@ parse_tell(range, _Atts,
 	add_impliesc(top, all(Role, Concept)).
 
 parse_tell(rangeint, Atts,
-			[element(dig:AttributeType, Atts, Elems)]) -->
-	{parse_attribute(AttributeType, Atts, Elems, Role)},  
+			[element(dig:AttributeType, AttsA, ElemsA)]) -->
+	{parse_attribute(AttributeType, AttsA, ElemsA, Role)},  
 	add_impliesc(top, all(Role, domain(int))), %SPEC
-	{throw_tell_error(element(rangeint , Atts, [element(dig:AttributeType, Atts, Elems)]))}.
+	{throw_tell_error(element(rangeint , Atts, [element(dig:AttributeType, AttsA, ElemsA)]))}.
 
 parse_tell(rangestring, Atts,
-			[element(dig:AttributeType, Atts, Elems)]) -->
-	{parse_attribute(AttributeType, Atts, Elems, Role)},  
+			[element(dig:AttributeType, AttsA, ElemsA)]) -->
+	{parse_attribute(AttributeType, AttsA, ElemsA, Role)},  
 	add_impliesc(top, all(Role, domain(string))), %SPEC
-	{throw_tell_error(element(rangestring , Atts, [element(dig:AttributeType, Atts, Elems)]))}.
+	{throw_tell_error(element(rangestring , Atts, [element(dig:AttributeType, AttsA, ElemsA)]))}.
 
 parse_tell(transitive, _Atts, 
-			[element(dig:RoleType, Atts, Elems)]) -->
-	{parse_role(RoleType, Atts, Elems, Role)},
+			[element(dig:RoleType, AttsR, ElemsR)]) -->
+	{parse_role(RoleType, AttsR, ElemsR, Role)},
 	add_transitive(Role). %TODO: inverz?, functional, feature, attribute? ->(300, 'General Tell Error'), vagy fail?
 
 parse_tell(functional, _Atts, 
-			[element(dig:RoleType, Atts, Elems)]) -->
-	{parse_role(RoleType, Atts, Elems, Role)}, 
+			[element(dig:RoleType, AttsR, ElemsR)]) -->
+	{parse_role(RoleType, AttsR, ElemsR, Role)}, 
 	add_impliesc(top, atmost(1, Role, top)).
 
 
@@ -405,7 +415,7 @@ parse_role(inverse, _Atts, [element(dig:RoleType, Atts, Elems)], Role) :-
 	% parse_role(RoleType, Atts, Elems, Role1), !.
 	(
 		RoleType = inverse -> 
-		Elems = [element(dig:RoleType1, Atts1, Elems1)], %TODO: inv(inv()) eliminálása?
+		Elems = [element(dig:RoleType1, Atts1, Elems1)], %inv(inv()) eliminálása
 		parse_role(RoleType1, Atts1, Elems1, Role)
 	;
 		Role = inv(Role1),
@@ -424,7 +434,7 @@ parse_attribute(chain, _Atts, Elems, achain(Chain)) :- %SPEC
 %parse_chain(+Elems, -Chain)
 parse_chain([element(dig:attribute, Atts, _Elems)], [arole(Attribute)]) :- %SPEC arole kell?
 	memberchk((dig:name=Attribute), Atts).
-parse_chain([element(dig:feature, Atts, _Elems, Next)| Elems], [arole(Feature)| Chain]) :-
+parse_chain([element(dig:feature, Atts, _Elems), Next| Elems], [arole(Feature)| Chain]) :-
 	memberchk((dig:name=Feature), Atts), 
 	parse_chain([Next|Elems], Chain).
 
@@ -443,7 +453,7 @@ parse_concept(not, _Atts,
 			[element(dig:ConceptType, Atts, Elems)], Concept) :- 
 	(
 		ConceptType = not -> 
-		Elems = [element(dig:ConceptType1, Atts1, Elems1)], %TODO: not(not()) eliminálása?
+		Elems = [element(dig:ConceptType1, Atts1, Elems1)], %not(not()) eliminálása
 		parse_concept(ConceptType1, Atts1, Elems1, Concept)
 	;
 		Concept = not(Concept1),
@@ -513,11 +523,11 @@ parse_concept(stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)],
 	memberchk((dig:max=Max),Atts).
 parse_concept(intmin, Atts, [element(dig:AttributeType, AttsA, Elems)], intmin(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts), 
+	memberchk((dig:min=Val),Atts), 
 	throw_concept_error(element(dig:intmin, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(intmax, Atts, [element(dig:AttributeType, AttsA, Elems)], intmax(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts),  
+	memberchk((dig:max=Val),Atts),  
 	throw_concept_error(element(dig:intmax, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 % parse_concept(intequals, Atts, [element(dig:AttributeType, AttsA, Elems)], intequals(Val, Attribute)) :-
 	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 

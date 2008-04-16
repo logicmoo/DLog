@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<asks xmlns="http://dl.kr.org/dig/lang">
+	<instances id="q1">
+		<catom name="Good" />
+	</instances>
+	<instance id="q2">
+		<individual name="i1" />
+		<catom name="Good" />
+	</instance>
+	<instance id="q3">
+		<individual name="i2" />
+		<catom name="Good" />
+	</instance>
+	<roleFillers id="q4">
+		<individual name="i1" />
+		<ratom name="hasChild" />
+	</roleFillers>
+	<relatedIndividuals id="q5">
+		<ratom name="hasChild" />
+	</relatedIndividuals>
+</asks>

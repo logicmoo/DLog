@@ -11,8 +11,13 @@
 target(swi).
 
 
-
 %default_option(?Name, ?Value): compile time default preferences
+%%%%%%%%%%%% System Options %%%%%%%%%%%%
+default_option(name, 'DLog'). %program name
+default_option(version, '0.2 alpha'). %program version
+default_option(description, 'Up \'n\' runnin\''). %TODO: 'DLog running on HOST:PORT', etc.
+default_option(program_root, '/DLOG/dlog-server/scr/').
+
 %%%%%%%%%%%% Translator Options %%%%%%%%%%%%
 default_option(statistics, no). %[yes, no] 
 default_option(orphan, priority). %[normal, priority]
@@ -40,7 +45,7 @@ default_option(dig_reader_fault_tolerance, no). %a nem támogatott fogalmakra dob
 
 %get_dlog_option(+Name, ?Value): get non KB-specific options
 get_dlog_option(Name, Value) :-
-	current_option(Name, Value) -> true
+	current_option(Name, Val) -> Val=Value
 	; default_option(Name, Value).
 
 %get_dlog_option(+Name, +URI, ?Value): get KB-specific options
@@ -48,9 +53,9 @@ get_dlog_option(Name, URI, Value) :-
 	atom_concat('option_', URI, OptURI),
 	(
 		current_predicate(OptURI/2),
-		call(OptURI, Name, Value) -> true
+		call(OptURI, Name, Val) -> Val=Value
 	;
-		current_option(Name, Value) -> true
+		current_option(Name, Value) -> Val=Value
 	; 
 		default_option(Name, Value)
 	).
@@ -61,7 +66,7 @@ set_dlog_option(Name, Value) :-
 	assert(current_option(Name, Value)).
 
 
-%set_dlog_option(+Name, +URI, +Value): set non KB-specific options
+%set_dlog_option(+Name, +URI, +Value): set KB-specific options
 set_dlog_option(Name, URI,  Value) :-
 	atom_concat('option_', URI, OptURI),
 	Pred1 =.. [OptURI, Name, _],
@@ -107,10 +112,16 @@ tbox_module_name(URI, Module) :-
 
 abox_file_name(URI, File) :- %TODO: custom file name/KB
 	kb_uri(ID, URI),
-	atom_concat('../output/abox_', ID, F),
-	atom_concat(F, '.pl', File).
+	get_dlog_option(program_root, R),
+	atom_concat(R, '../output/abox_', F0),
+	atom_concat(F0, ID, F1),
+	atom_concat(F1, '.pl', F2),
+	absolute_file_name(F2, File).	
 
 tbox_file_name(URI, File) :-
 	kb_uri(ID, URI),
-	atom_concat('../output/tbox_', ID, F),
-	atom_concat(F, '.pl', File).
+	get_dlog_option(program_root, R),
+	atom_concat(R, '../output/tbox_', F0),
+	atom_concat(F0, ID, F1),
+	atom_concat(F1, '.pl', F2),
+	absolute_file_name(F2, File).

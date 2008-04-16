@@ -1,9 +1,10 @@
 
-:- module(dig_iface, [start_dig_server/1, start_dig_server/0, stop_dig_server/1, stop_dig_server/0]).
+:- module(dig_iface, [start_dig_server/1, start_dig_server/0, stop_dig_server/1, stop_dig_server/0, execute_dig_file/2]).
 
 :- use_module('../config', [target/1, get_dlog_option/2]).
 :- use_module('../kb_manager').
 :- use_module(dig_reader).
+:- use_module(dig_identifier, [identifier/5]).
 :- target(swi) -> 
 		use_module(library('http/thread_httpd')),
 		use_module(library('http/http_dispatch')), %hiba kezelés, több szolgáltatás ugyanazon a porton (OWL?)
@@ -71,6 +72,21 @@ swi_dig_server(Request) :-
 	;	true
 	),
 	format('Content-type: text/xml~n~n', []),
+	read_dig_from_request(Request, NS-DIG),
+	(
+		nonvar(DIG) 
+	-> 
+		catch(
+			execute(DIG, Reply),
+			no_such_kb,  
+			Reply = no_such_kb
+		),
+		reply(Reply, NS)
+	;	
+		true
+	).
+
+read_dig_from_request(Request, NS-DIG) :-
 	new_memory_file(MemFile),
 	call_cleanup(
 		(
@@ -79,22 +95,18 @@ swi_dig_server(Request) :-
 			close(Stream),
 			open_memory_file(MemFile, read, DIGFile),
 			catch(
-				read_dig(stream(DIGFile), DIG),
-				digerror(Code, Expl, Msg),
-				send_error(Code, Expl, Msg, 'http://dl.kr.org/dig/2003/02/lang')
+				read_dig(stream(DIGFile), NS-DIG),
+				digerror(Code, Expl, Msg, NS),
+				send_error(Code, Expl, Msg, NS)
 			),
 			close(DIGFile)
 		),
 		free_memory_file(MemFile)
-	),
-	(nonvar(DIG) -> 
-		catch(
-			execute(DIG, Reply),
-			no_such_kb,  
-			Reply = no_such_kb
-		),
-		reply(Reply, 'http://dl.kr.org/dig/2003/02/lang') %TODO URI
-	;	true).
+	).
+
+execute_dig_file(DIGFile, Reply) :-
+	read_dig(DIGFile, DIG),
+	execute(DIG, Reply).	
 
 
 %execute(Command, Reply) throws no_such_kb
@@ -139,7 +151,7 @@ ask([IDT-Type|Asks], URI, [Response|Responses]) :-
 			->
 				Response = ID-Answer
 			;
-				Response = ID-error  %bad answer
+				Response = ID-error(bad_question(Type))  %bad answer
 			)
 		), 
 		E, %whatever exception
@@ -197,7 +209,7 @@ create_response(unknown(Elem), ID, element(error, [id=ID, code=402, message='Unk
 	term_to_atom(Elem, ElemA).
 create_response(unsupported(Elem), ID, element(error, [id=ID, code=401, message='Unsupported Ask Operation'], [ElemA])) :-
 	term_to_atom(Elem, ElemA).
-create_response(error, ID, element(error, [id=ID, code=400, message='General Ask Error'], [])).
+%create_response(error, ID, element(error, [id=ID, code=400, message='General Ask Error'], [])).
 create_response(error(E), ID, element(error, [id=ID, code=400, message='General Ask Error'], [EA])) :-
 	term_to_atom(E, EA).
 
@@ -250,8 +262,13 @@ reply(no_such_kb, NS) :-
 	send_error(203, 'Unknown or stale KB URI', '', NS).
 reply(kb_released(_URI), NS) :-
 	send_xml(element(response, [xmlns=NS], [element(ok, [],[])])).
-reply(identifier, _NS) :-
-	throw(http_reply(file('text/xml', 'interfaces/dig_identifier.dig'))). %resource? TODO NS
+reply(identifier, NS) :-
+	get_dlog_option(name, Name),
+	get_dlog_option(version, Version),
+	get_dlog_option(description, Message),
+	identifier(NS, Name, Version, Message, Identifier),
+	send_xml(Identifier).
+	%throw(http_reply(file('text/xml', 'interfaces/dig_identifier.dig'))). %resource? TODO NS
 reply(axioms_added(_URI, _Axioms), NS) :-
 	 send_xml(element(response, [xmlns=NS],	[element(ok, [],[])])).
 reply(failed_to_add_axiom(_URI, _Axioms), NS) :-

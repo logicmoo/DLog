@@ -53,11 +53,20 @@ clear_kb(URI) :-
 	abox_module_name(URI, AB),
 	with_write_lock(URI,
 	(
-		retractall(AB:_), 
-		retractall(TB:_) %TODO file-ok törlése?
-		%, remove_dlog_options(URI) %TODO: beállítások törlése?
+		abolish_module(AB),
+		abolish_module(TB)		
+		%TODO file-ok törlése?
+		%, remove_dlog_options(URI) %TODO: beállítások törlése? -> csak default kb-nál
 	)).
 
+abolish_module(Module) :-
+	current_predicate(Module:P),
+	%\+ predicate_property(AB:AP, built_in),
+	%\+ predicate_property(AB:AP, imported_from(_Module)),
+	%\+ predicate_property(AB:AP, transparent),
+	catch(abolish(Module:P), error(permission_error(_,_,_),_), fail),
+	fail.
+abolish_module(_Module).
 
 add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni, hozzáadni
 	exists_kb(URI),

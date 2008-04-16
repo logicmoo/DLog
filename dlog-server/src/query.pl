@@ -8,39 +8,37 @@ query(allIndividuals, _TBox, _ABox, individualSet(_Answer)).
 
 query(instances(ConceptTerm), TBox, _ABox, individualSet(Answer)) :-
 	ConceptTerm = aconcept(Concept),
-	catch(
-		(setof(
-			I,
-			call(TBox:Concept, I), %TODO: összetett concept?
-			Answer		
-		) -> true ; Answer = []), %üres válasz? --> []
-		error(existence_error(procedure, TBox:Concept/1), _),
-		fail %nem létezö concept --> fail
+	current_predicate(TBox:Concept/1) 
+	->
+	(setof(
+		I,
+		call(TBox:Concept, I), %TODO: összetett concept?
+		Answer) -> true 
+	; Answer = [] %üres válasz? --> []
 	).
-query(instance(Name, Concept), TBox, _ABox, Answer) :-
-	catch(
-		(call(TBox:Concept, Name) -> !, Answer = true
-		; Answer = false),
-		error(existence_error(procedure, TBox:Concept/1), _),
-		fail
+query(instance(Name, ConceptTerm), TBox, _ABox, Answer) :-
+	ConceptTerm = aconcept(Concept),
+	current_predicate(TBox:Concept/1) 
+	->
+	(
+	call(TBox:Concept, Name) -> !, Answer = true
+		; Answer = false
 	).
-query(roleFillers(Name, Role), TBox, _ABox, individualSet(Answer)) :-
-	catch(
-		(setof(
-			I,
-			call(TBox:Role, Name, I), %TODO: inv?, arole(Role)?
-			Answer		
-		) -> true ; Answer = []),
-		error(existence_error(procedure, TBox:Role/2), _),
-		fail
-	).
-query(relatedIndividuals(Role), TBox, _ABox, individualPairSet(Answer)) :-
-	catch(
-		(setof(
-			I1-I2,
-			call(TBox:Role, I1, I2), %TODO: inv?, arole(Role)?
-			Answer
-		) -> true ; Answer = []),
-		error(existence_error(procedure, TBox:Role/2), _),
-		fail
-	).
+query(roleFillers(Name, RoleTerm), TBox, _ABox, individualSet(Answer)) :-
+	RoleTerm = arole(Role),
+	current_predicate(TBox:Role/2) 
+	->
+	(setof(
+		I,
+		call(TBox:Role, Name, I), %TODO: inv?, arole(Role)?
+		Answer) -> true 
+	; Answer = []).
+query(relatedIndividuals(RoleTerm), TBox, _ABox, individualPairSet(Answer)) :-
+	RoleTerm = arole(Role),
+	current_predicate(TBox:Role/2) 
+	->
+	(setof(
+		I1-I2,
+		call(TBox:Role, I1, I2), %TODO: inv?, arole(Role)?
+		Answer) -> true 
+	; Answer = []).

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tells xmlns="http://dl.kr.org/dig/lang">
+	<defconcept name="CN" />
+	<defrole name="RN" />
+	<deffeature name="FN" />
+	<defattribute name="AN" />
+	<defindividual name="IN" />
+	<impliesc> 
+		<catom name="CN" />
+		<bottom/>
+	</impliesc>
+	<equalc>
+		<and> 
+			<or>
+				<not>
+					<some>
+						<ratom name="RN" />
+						<all>
+							<inverse>
+								<ratom name="RN" />
+							</inverse>
+							<atmost num="3">
+								<ratom name="RN" />
+								<top/>
+							</atmost>
+						</all>						
+					</some>
+				</not>
+				<atleast num="1">
+					<feature name="FN" />
+					<iset>
+						<individual name="IN" />
+					</iset>
+				</atleast>
+				<defined> 
+					<attribute name="AN" />
+				</defined> 
+			</or>			
+			<stringmin val="asdf">
+				<chain name="reaction"> 
+					<feature name="FN" />
+					<feature name="FN" />
+					<feature name="FN" />
+					<attribute name="AN" />
+				</chain>
+			</stringmin>
+		</and>
+		<stringmax val="qwerty">
+			<attribute name="AN" />
+		</stringmax>
+	</equalc>
+
+	<disjoint> 
+		<stringequals val="muhahaha">
+			<attribute name="AN" />
+		</stringequals>
+		<stringrange min="alma" max="körte">
+			<attribute name="AN" />
+		</stringrange> 
+		<intmin min="23">
+			<chain> 
+				<feature name="FN" />
+				<attribute name="AN" />
+			</chain>
+		</intmin>
+	</disjoint>	
+	<impliesr>
+		<feature name="FN" />
+		<ratom name="RN" />
+	</impliesr>
+	<equalr>
+		<ratom name="RN" />
+		<inverse>
+			<ratom name="RN" />
+		</inverse>
+	</equalr>
+	<domain>
+		<feature name="FN" />
+		<intmax max="25"> 
+			<attribute name="AN" />
+		</intmax>
+	</domain>
+	<range>
+		<feature name="FN" />
+		<intequals val="40" >
+			<attribute name="AN" />
+		</intequals>
+	</range>
+	<rangeint> 
+		<attribute name="AN" />
+	</rangeint>
+	<rangestring>
+		<chain> 
+			<feature name="FN" />
+			<attribute name="AN" />
+		</chain>
+	</rangestring>
+	<transitive>
+		<ratom name="RN" />
+	</transitive>
+	<functional>
+		<feature name="FN" />
+	</functional>
+	
+	<instanceof> 
+		<individual name="IN" />
+		<intrange min="10" max="100" >
+			<attribute name="AN" />
+		</intrange>
+	</instanceof>
+	<related> 
+		<individual name="IN" />
+		<ratom name="RN" />
+		<individual name="IN" />
+	</related>
+	<value> 
+		<individual name="IN" />
+		<chain> 
+			<feature name="FN" />
+			<attribute name="AN" />
+		</chain>
+		<sval>
+			Pistike
+		</sval>		
+	</value>
+	<value> 
+		<individual name="IN" />
+		<attribute name="AN" />
+		<ival>
+			26
+		</ival>		
+	</value>		
+</tells>
