@@ -4,21 +4,30 @@
 					with_read_lock/2, with_write_lock/2
 					]).
 
-:- use_module(library(lists), [append/3]).
+:- use_module(library(lists)).
 
-:- use_module('dl_translator/translator', [axioms_to_clauses/5]). %TODO
+:- use_module('dl_translator/translator', [axioms_to_clauses/6]).
 :- use_module('prolog_translator/abox_signature', [abox_signature/3]).
-:- use_module('prolog_translator/abox_translator', [abox2prolog/2]). %TODO
+:- use_module('prolog_translator/abox_translator', [abox2prolog/2]).
 :- use_module('prolog_translator/tbox_translator', [tbox2prolog/3]).
 :- use_module(query, [query/4]).
-:- use_module(config, [target/1, get_dlog_option/3, default_kb/1, kb_uri/2, remove_dlog_options/1,abox_module_name/2, tbox_module_name/2, abox_file_name/2, tbox_file_name/2]).
+:- use_module(config, [target/1, default_kb/1, kb_uri/2, 
+				get_dlog_option/3, remove_dlog_options/1,
+				abox_module_name/2, tbox_module_name/2, 
+				abox_file_name/2, tbox_file_name/2]).
 :- target(swi) -> use_module(library(memfile)) ; true.
 
 :- dynamic current_kb/1,
 			kb_count/1.
 
+:- volatile current_kb/1,
+			kb_count/1.
 
-:- assert(kb_count(1)), mutex_create(kb_count), default_kb(Def), mutex_create(Def), assert(current_kb(Def)). %initialization?
+:- default_kb(Def), mutex_create(kb_count), mutex_create(Def).
+:- initialization
+		assert(kb_count(1)), 
+		default_kb(Def), 
+		assert(current_kb(Def)). %initialization?
 
 
 exists_kb(URI) :-
@@ -70,7 +79,7 @@ abolish_module(_Module).
 
 add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni, hozzáadni
 	exists_kb(URI),
-	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL],
+	axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
 			  TBox_Clauses, IBox, HBox, _), %TODO
 	abox_signature(ABox, ABoxStr, Signature),
 	get_dlog_option(abox_target, URI, ATarget),

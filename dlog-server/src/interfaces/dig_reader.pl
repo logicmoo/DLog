@@ -106,7 +106,8 @@ parse_tells([element(dig:AxiomType, Atts, Elems)|Axioms]) -->
 	parse_tell(AxiomType, Atts, Elems), !,
 	parse_tells(Axioms).
 parse_tells([E|Axioms]) --> 
-	{throw(digerror(302, 'Unknown Tell Operation', E))},
+	{get_dlog_option(dig_reader_fault_tolerance, drop) -> true
+	; throw(digerror(302, 'Unknown Tell Operation', E))},
 	parse_tells(Axioms).
 
 
@@ -233,9 +234,9 @@ parse_tell(clearKB , _Atts, _Elems) --> {throw(clearKB)}.
 
 
 throw_tell_error(Elem) :- 
-	get_dlog_option(dig_reader_fault_tolerance, no) -> 
-	throw(digerror(301, 'Unsupported Tell Operation', Elem))
-	; true.
+	get_dlog_option(dig_reader_fault_tolerance, yes) -> true
+	; get_dlog_option(dig_reader_fault_tolerance, drop) -> fail
+	; throw(digerror(301, 'Unsupported Tell Operation', Elem)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add Tell Axioms %%%%%%%%%%%%%%%%%%%
@@ -557,9 +558,9 @@ parse_concepts([element(dig:ConceptType, Atts, Elems)|ElemL], [Concept|Concepts]
 parse_concepts([], []).
 
 throw_concept_error(Elem) :- 
-	get_dlog_option(dig_reader_fault_tolerance, no) -> 
-		throw(digerror(103, 'Unsupported Operation', Elem))
-		; true.
+	get_dlog_option(dig_reader_fault_tolerance, yes) -> true
+	; get_dlog_option(dig_reader_fault_tolerance, drop) -> fail
+	;	throw(digerror(103, 'Unsupported Operation', Elem)).
 
 %parse_individuals(+Elems, -Individuals)
 parse_individuals([element(dig:individual, Atts, _Elems)|Elems], [iconcept(Individual)|Individuals]) :-

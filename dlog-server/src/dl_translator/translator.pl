@@ -1,4 +1,4 @@
-:- module(translator,[axioms_to_clauses/5, axioms_to_clauses/2]).
+:- module(translator,[axioms_to_clauses/6, axioms_to_clauses/2]).
 
 :- use_module(library(lists), [append/3,select/3, member/2]).
 :- use_module(transitive, [removeTransitive/4]).
@@ -15,7 +15,7 @@
 % Ibox az inverzeket tartalmazza
 % Hbox a szerephierarchiat
 % Trbox a tranzitiv szerepeket
-axioms_to_clauses(SHIQAxioms,Clauses,_Ibox,Hbox,Transitive):-
+axioms_to_clauses(_URI, SHIQAxioms,Clauses,_Ibox,Hbox,Transitive):-
 	axioms_to_clauses2(SHIQAxioms,Clauses1,Hbox,Transitive),
 	% elhagyjuk a tranzitivitashoz tartozo klozokat
 	findall(C,(

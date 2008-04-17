@@ -1,5 +1,5 @@
 
-:- module(dig_iface, [start_dig_server/1, start_dig_server/0, stop_dig_server/1, stop_dig_server/0, execute_dig_file/2]).
+:- module(dig_iface, [start_dig_server/0, stop_dig_server/0, execute_dig_file/2]).
 
 :- use_module('../config', [target/1, get_dlog_option/2]).
 :- use_module('../kb_manager').
@@ -18,9 +18,6 @@
 %start_dig_server: start server on default port
 start_dig_server :- 
 	get_dlog_option(dig_server_port, Port),
-	start_dig_server(Port).
-%start_dig_server(+Port): start server on specified port
-start_dig_server(Port) :-
 	(
 		target(swi)
 	->
@@ -45,9 +42,6 @@ start_dig_server_swi(Port) :- %TODO átstruktúrálni az egészet
 %stop_dig_server: stop server on default port
 stop_dig_server :- 
 	get_dlog_option(dig_server_port, Port),
-	stop_dig_server(Port). 
-%stop_dig_server(+Port): stop server on specified port
-stop_dig_server(Port) :-
 	(
 		target(swi)
 	->

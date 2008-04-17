@@ -142,7 +142,8 @@ tbox_module(URI) :-
 
 used_modules :-
 	env_parameter(allinone, yes), !,
-	write(':- use_module(library(lists)).\n'),
+	%write(':- use_module(library(lists)).\n'),
+	%write(':- require(lists:member/2).\n'),
 	write(':- use_module(hash).\n').
 used_modules.
 

@@ -6,7 +6,7 @@
 target(swi).
 :- target(sicstus) -> use_module(library(terms)) ; true.
 :- target(swi) -> use_module(hash_swi) ; true.
-:- use_module(library(lists)).
+%:- use_module(library(lists)).
 
 init_state(LoopHash-AncList) :-
 	init_hash(LoopHash),
@@ -36,7 +36,7 @@ hash_elem(Goal, LH, Elem) :-
 	arg(H2, LHRow, Elem).
 
 check_anc(Goal, _-AL) :-
-	member(Goal, AL).
+	lists:member(Goal, AL).
 
 check_loop(Goal, LH-_) :-
 	hash_elem(Goal, LH, Elem),

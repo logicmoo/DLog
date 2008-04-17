@@ -16,7 +16,9 @@ target(swi).
 default_option(name, 'DLog'). %program name
 default_option(version, '0.2 alpha'). %program version
 default_option(description, 'Up \'n\' runnin\''). %TODO: 'DLog running on HOST:PORT', etc.
-default_option(program_root, '/DLOG/dlog-server/scr/').
+default_option(base_path, './').
+default_option(output_path, '../output/').
+default_option(config_file, 'dlog.conf').
 
 %%%%%%%%%%%% Translator Options %%%%%%%%%%%%
 default_option(statistics, no). %[yes, no] 
@@ -27,6 +29,9 @@ default_option(projection, yes). %[yes, no]
 default_option(preprocessing, yes). %[yes, no]
 default_option(ground_optim, yes). %[yes, no]
 default_option(filter_duplicates, no). %[yes, no]
+
+default_option(q_elimination, no). %[yes, no]
+default_option(dl_calculus, yes). %[yes, no]
 
 %assert: assert to module
 %tempfile: create to temporary memory/disk file, compile to module --> TODO: delete after compile/destroying KB
@@ -39,7 +44,7 @@ default_option(tbox_target, allinonefile). %[assert, tempfile, allinonefile]
 default_option(dig_server_port, 8080). %TODO HTTP server port? (közös server?)
 default_option(dig_server_path, '/'). %DIG server elérése
 default_option(dig_server_service_limit, 60). %a kiszolgálásra mennyit várjon
-default_option(dig_reader_fault_tolerance, no). %a nem támogatott fogalmakra dobjon-e hibát
+default_option(dig_reader_fault_tolerance, no). %[no, drop, yes] a nem támogatott fogalmakra dobjon-e hibát
 
 :- dynamic  current_option/2.
 
@@ -112,16 +117,18 @@ tbox_module_name(URI, Module) :-
 
 abox_file_name(URI, File) :- %TODO: custom file name/KB
 	kb_uri(ID, URI),
-	get_dlog_option(program_root, R),
-	atom_concat(R, '../output/abox_', F0),
-	atom_concat(F0, ID, F1),
+	get_dlog_option(base_path, BP),
+	get_dlog_option(output_path, OP),
+	atom_concat(BP, OP, Path),
+	atom_concat('abox_', ID, F1),
 	atom_concat(F1, '.pl', F2),
-	absolute_file_name(F2, File).	
+	absolute_file_name(F2, [relative_to(Path)], File).
 
 tbox_file_name(URI, File) :-
 	kb_uri(ID, URI),
-	get_dlog_option(program_root, R),
-	atom_concat(R, '../output/tbox_', F0),
-	atom_concat(F0, ID, F1),
+	get_dlog_option(base_path, BP),
+	get_dlog_option(output_path, OP),
+	atom_concat(BP, OP, Path),
+	atom_concat('tbox_', ID, F1),
 	atom_concat(F1, '.pl', F2),
-	absolute_file_name(F2, File).
+	absolute_file_name(F2, [relative_to(Path)], File).
