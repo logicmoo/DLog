@@ -6,7 +6,7 @@
 
 :- use_module(library(lists)).
 
-:- use_module('dl_translator/translator', [axioms_to_clauses/6]).
+:- use_module('dl_translator/axioms_to_clauses', [axioms_to_clauses/6]).
 :- use_module('prolog_translator/abox_signature', [abox_signature/3]).
 :- use_module('prolog_translator/abox_translator', [abox2prolog/2]).
 :- use_module('prolog_translator/tbox_translator', [tbox2prolog/3]).
