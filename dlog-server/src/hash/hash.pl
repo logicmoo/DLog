@@ -2,10 +2,11 @@
 		     new_state/3,new_anc/3,new_loop/3,
 		     check_anc/2,check_loop/2]).
 
-:- use_module('../config', [target/1]).
-:- target(sicstus) -> use_module(library(terms)) ; true.
-:- target(swi) -> use_module(hash_swi) ; true.
-:- use_module(library(lists)).
+%:- use_module('../config', [target/1]).
+:- config:target(sicstus) -> use_module(library(terms)) ; true.
+:- config:target(swi) -> open_resource(hash_swi, module, H), load_files(hash_swi, [stream(H)]) ; true.
+:- import(lists:member/2).
+%:- use_module(library(lists)).
 
 init_state(LoopHash-AncList) :-
 	init_hash(LoopHash),

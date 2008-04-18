@@ -143,8 +143,10 @@ tbox_module(URI) :-
 used_modules :-
 	env_parameter(allinone, yes), !,
 	%write(':- use_module(library(lists)).\n'),
+	write(':- import(lists:member/2).\n'), %TODO sicstus compatible
 	%write(':- require(lists:member/2).\n'),
-	write(':- use_module(hash).\n').
+	%write(':- use_module(hash).\n').
+	write(':- open_resource(dlog_hash, module, H), load_files(dlog_hash, [stream(H)]).\n'). 
 used_modules.
 
 
