@@ -26,7 +26,12 @@ tell_dig(DIGF) :-
 
 create_binary :- qsave_program('../bin/dlog', [stand_alone(true), 
 												goal(start_dlog), 
-												toplevel(prolog)]).
+												toplevel(halt(1))]).
+
+:- multifile user:resource/3.
+user:resource(dlog_hash, module, 'hash/hash.pl').
+user:resource(hash_swi, module, 'hash/hash_swi.pl').
+
 
 :- multifile user:file_search_path/2.
 user:file_search_path(foreign, 'lib').
@@ -41,8 +46,37 @@ start_dlog :-
 	set_dlog_options(T),
 	print('Config file loaded.\n'),
 	start_dig_server,
-	print('Server started.\n').
+	print('Server started.\n'),
+	console.
 
+console :-
+	help,
+	repeat, 
+	(catch(
+		(
+			read(X), 
+			parse_console_command(X)
+		), 
+		error(syntax_error(_), _), 
+		fail
+	) 
+	->
+		%stop_dig_server,
+		print('Server stopped.\n'),
+		halt
+	; 	help, 
+		fail 
+	).
 
+help :-
+	print('Type "quit." to quit.\n').
+
+parse_console_command(quit).
+parse_console_command(end_of_file).
+
+%TODO: runtime entry
+%TODO: sebesség, lib(list)
+
+%TODO: összetett fogalmak ABoxban, kérdésben, összes szerep, fogalom, egyed
 
 
