@@ -31,7 +31,7 @@ default_option(ground_optim, yes). %[yes, no]
 default_option(filter_duplicates, no). %[yes, no]
 
 default_option(q_elimination, no). %[yes, no]
-default_option(dl_calculus, yes). %[yes, no]
+default_option(dl_calculus, no). %[yes, no]
 
 %assert: assert to module
 %tempfile: create to temporary memory/disk file, compile to module --> TODO: delete after compile/destroying KB
