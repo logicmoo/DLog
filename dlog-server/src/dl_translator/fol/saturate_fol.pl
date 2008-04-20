@@ -52,15 +52,15 @@ separate_seven([C|Cls],Seven,[C|Rest]):-
 saturate(W1,[],W1).
 saturate(W1,[C|W2],S):-
 	redundant(C,W1), !,
-	nl, print('---- ') ,print(C), print('---- redundans'),
+	% nl, print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,S).
 saturate(W1,[C|W2],S):-
-	nl, print(C),
+	% nl, print(C),
 	findall(R,(
 		   resolve_list(C,W1,Res),
 		   simplifyClause(Res,Res1),
 		   cls_to_ocls(Res1,R),
-		   nl, print('  = '), print(R),
+		   % nl, print('  = '), print(R),
 		   true
 		  ), Rs),
 	elim_reds(W1,C,EW1),
@@ -169,7 +169,7 @@ resolve_list([7-N,Cls],W,Res):- !,
 	sublist_max(Three,N,Size,SomeThree),
 	copy_term(Cls,Cls1),
 	hyperresolve(Cls1,SomeThree,Res1),
-	nl, print('  + '), print(SomeThree),
+	% nl, print('  + '), print(SomeThree),
 	(
 	  Size > 0,
 	  Res = [5,Res1]
