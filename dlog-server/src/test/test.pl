@@ -259,6 +259,17 @@ sample14:-
 		     ],
 	test([CInclusion, [],[]]).
 
+sample15:-
+	CInclusion = [
+		      implies(top, atleast(2,arole(gyereke),aconcept(a))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(b))),		      
+		      implies(top, atleast(2,arole(gyereke),aconcept(c))),
+
+		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(c))),
+		      implies(top, atmost(3, arole(gyereke),top))
+		     ],
+	test([CInclusion, [],[]]).
+
 
 
 /*

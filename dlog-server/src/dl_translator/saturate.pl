@@ -27,21 +27,21 @@ saturate(W,RInclusion,S):-
 saturate(W1,[],_,W1).
 saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
-	% nl, print('---- ') ,print(C), print('---- redundans'),
+	nl, print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,RInclusion,S).
 saturate(W1,[C|W2],RInclusion,S):-
-	% nl, print(C),
+	nl, print(C),
 	findall(R,(
 		   (
 		     member(A,W1),
 		     resolve(A,C,R1),
-		     % nl, print('  + '), print(A),
+		     nl, print('  + '), print(A),
 		     true
 		   ; resolve2(C,RInclusion,R1)
 		   ),		     
 		   simplifyConcept(R1,R2),
 		   selectResolvable(R2,R),
-		   % nl, print('  = '), print(R),
+		   nl, print('  = '), print(R),
 		   true
 		  ), Rs),
 	elim_reds(W1,C,EW1),
@@ -143,9 +143,9 @@ resolve(D,and(Cs),bottom):-
 	boolneg(C,D), !.
 
 % 5. szabaly
-resolve(atleast(N,R,C,Sel),atleast(K,S,D,Sel2),atleast(M,R,CD,Sel)):- !,
+resolve(atleast(N,R,C,Sel1),atleast(K,S,D,Sel2),atleast(M,R,CD,Sel)):- !,
 	R = S,
-	sameSelector(Sel,Sel2),
+	sameSelector(Sel1,Sel2,Sel),
 	resolve(C,D,CD),
 	M is min(N,K).
 
@@ -299,7 +299,11 @@ simplifyDisjunction([C|Cs],L,Rs):-
 	; simplifyDisjunction(Cs,[C|L],Rs)
 	).
 
-% sameSelector(+Sel1,+Sel2): Sel1 es Sel2 azonos szelektorok
-sameSelector(X,X):- !.
-sameSelector([X],[X,marked]):- !.
-sameSelector([X,marked],[X]).
+% sameSelector(+Sel1,+Sel2,-Sel): Sel1 es Sel2 azonos egyeteket is
+% tartalmazo szelektorok es Sel a ketto kozul a szukebb
+sameSelector(X,X,X):- !.
+sameSelector([X],Y,Y):- !,
+	member(X,Y).
+sameSelector(X,[Y],X):-
+	member(Y,X).
+sameSelector([X,Y],[Y,X],[X,Y]).
