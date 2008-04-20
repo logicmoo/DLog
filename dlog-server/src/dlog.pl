@@ -14,7 +14,7 @@
 %DIGF : file name or stream(Stream)
 % tell_dig('../examples/iocaste/c10.dig').
 tell_dig(DIGF) :-
-	read_dig(DIGF, tells(_, Axioms)),
+	read_dig(DIGF, _NS-tells(_, Axioms)),
 	new_kb(URI),
 	call_cleanup(
 		add_axioms(URI, Axioms),
