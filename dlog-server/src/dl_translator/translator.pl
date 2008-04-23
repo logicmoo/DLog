@@ -1,8 +1,8 @@
 :- module(translator,[translate_axioms/4]).
 
 :- use_module(library(lists), [append/3,select/3, member/2]).
-:- use_module(transitive, [removeTransitive/4]).
 :- use_module(dl_to_fol, [axiomsToNNFConcepts/2, def_list/3]).
+:- use_module(transitive, [removeTransitive/4]).
 :- use_module(saturate, [saturate/3]).
 :- use_module(toFOL, [toClause_list/2]).
 :- use_module(show).

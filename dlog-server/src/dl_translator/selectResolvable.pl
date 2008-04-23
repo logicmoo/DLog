@@ -57,13 +57,14 @@ greater(A,B):-
 % greatness(+L,-G)
 % L egy DL kifejezes, melyhez hozzarendelunk egy G
 % atomot, hogy tudjuk a kifejezeseket rendezni
-greatness(atleast(_,_,_,_),'4').
-greatness(atmost(N,R,C),G):-
+greatness(atleast(_,_,_,_),'5'):- !.
+greatness(atmost(N,R,C,_),G):-
 	greatness(R,GR),
 	greatness(C,GC),
 	atom_concat('3',GR,G1),
 	atom_concat(G1,N,G2),
 	atom_concat(G2,GC,G).
+
 greatness(and(L),G):-
 	getGreatest(L,Greatest,_),
 	greatness(Greatest,G).
@@ -77,6 +78,8 @@ greatness(aconcept(C),G):-
 	atom_concat('1',C,G).
 greatness(nconcept(C),G):-
 	atom_concat('0',C,G).
+greatness(top,'0').
+greatness(bottom,'0').
 greatness(arole(R),G):-
 	atom_concat(R,'0',G).
 greatness(inv(arole(R)),G):-

@@ -24,15 +24,15 @@ getClosure([C|NNF],Closure):-
 	getClosure(NNF,Rest).
 	
 % universalSubConcepts(+Concept,-SubCon)
-% SubCon azon atmost(0,R,C) kifejezesek listaja,
+% SubCon azon atmost(0,R,C,Sel) kifejezesek listaja,
 % melyek elofordulnak reszfogalomkent Concept-ben
 universalSubConcepts(and(Cs),SubCon):- !,
 	universalSubConceptsList(Cs,SubCon).
 universalSubConcepts(or(Cs),SubCon):-	!,
 	universalSubConceptsList(Cs,SubCon).	
-universalSubConcepts(atmost(0,R,C),[atmost(0,R,C)|Rest]):- !,
+universalSubConcepts(atmost(0,R,C,Sel),[atmost(0,R,C,Sel)|Rest]):- !,
 	universalSubConcepts(C,Rest).
-universalSubConcepts(atmost(_,arole(_),C),SubCon):-	!,
+universalSubConcepts(atmost(_,arole(_),C,_),SubCon):-	!,
 	negNormForm(not(C),X),
 	universalSubConcepts(X,SubCon1),
 	universalSubConcepts(C,SubCon2),
@@ -58,7 +58,7 @@ universalSubConceptsList([C|Cs],SubCon):-
 % NewAxioms azon all(R,C) -> all(S,all(S,C)) axiomak listaja, melyre
 % S reszszerepe R-nek es S tranzitiv (belsositett es normalizalt
 % alakban)
-getNewAxioms([atmost(0,R,C)|Closure],RInclusion,Transitive,NewAxioms):-
+getNewAxioms([atmost(0,R,C,_)|Closure],RInclusion,Transitive,NewAxioms):-
 	findall(S,(
 		   (
 		     member(S,Transitive)
@@ -88,7 +88,7 @@ someSubRole(S,R,RInclusion):-
 % newAxiomList(+R,+C,+Ss,-NewAxioms)
 newAxiomList(_,_,[],[]).
 newAxiomList(R,C,[S|Ss],[A|NewAxioms]):-
-	negNormForm(or([atleast(1,R,C,[C]),atmost(0,S,atleast(1,S,C,[C]))]),A),
+	negNormForm(or([atleast(1,R,C,[]),atmost(0,S,atleast(1,S,C,[]),[])]),A),
 	newAxiomList(R,C,Ss,NewAxioms).
 
 

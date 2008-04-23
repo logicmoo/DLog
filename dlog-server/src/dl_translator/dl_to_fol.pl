@@ -44,18 +44,21 @@ negNormForm(not(or([X])),N):-
 negNormForm(not(or(Xs)),and(Ns)):-
 	!,nnegForms(Xs,Ns).
 
-negNormForm(not(all(R,C)),atleast(1,R,N,[N])):-
+negNormForm(not(all(R,C)),atleast(1,R,N,[])):-
 	!,negNormForm(not(C),N).
-negNormForm(not(some(R,C)),atmost(0,R,C2)):-
+negNormForm(not(some(R,C)),atmost(0,R,C2,[])):-
 	!,negNormForm(C,C2).	
-negNormForm(not(atleast(N,R,C)),atmost(N2,R,C2)):-
+negNormForm(not(atleast(N,R,C)),atmost(N2,R,C2,[])):-
 	!,negNormForm(C,C2),
 	N2 is N - 1.	
-negNormForm(not(atleast(N,R,C,_)),atmost(N2,R,C2)):-
+negNormForm(not(atleast(N,R,C,Sel)),atmost(N2,R,C2,Sel)):-
 	!,negNormForm(C,C2),
 	N2 is N - 1.	
-negNormForm(not(atmost(N,R,C)),atleast(N2,R,C2,[C2])):-
+negNormForm(not(atmost(N,R,C)),atleast(N2,R,C2,[])):-
 	!,negNormForm(C,C2),
+	N2 is N + 1.
+negNormForm(not(atmost(N,R,C,Sel)),atleast(N2,R,C2,Sel)):-
+	!, negNormForm(C,C2),
 	N2 is N + 1.
 
 negNormForm(and([X]),N):-
@@ -69,18 +72,20 @@ negNormForm(or(Xs), or(Ns)):-
 	!, negForms(Xs,Ns2),
 	simplifyOr(Ns2,Ns).		
 
-negNormForm(some(R,C), atleast(1,R,N,[N])):-
+negNormForm(some(R,C), atleast(1,R,N,[])):-
 	!,negNormForm(C, N).
 
-negNormForm(all(R,C), atmost(0,R,N)):-
+negNormForm(all(R,C), atmost(0,R,N,[])):-
 	!,negNormForm(not(C), N).
 	
-negNormForm(atleast(N,R,C), atleast(N,R,C2,[C2])):-
+negNormForm(atleast(N,R,C), atleast(N,R,C2,[])):-
 	!,negNormForm(C, C2).
 negNormForm(atleast(N,R,C,Sel), atleast(N,R,C2,Sel)):-
 	!,negNormForm(C, C2).
 
-negNormForm(atmost(N,R,C), atmost(N,R,C2)):-
+negNormForm(atmost(N,R,C), atmost(N,R,C2,[])):-
+	!,negNormForm(C, C2).
+negNormForm(atmost(N,R,C,Sel), atmost(N,R,C2,Sel)):-
 	!,negNormForm(C, C2).
 
 
@@ -136,7 +141,7 @@ def(C,_,[C]):-
 	not_embedded(C), !.
 def(atleast(N,R,C,Sel),Prefix,[atleast(N,R,Q,Sel)|Defs]):-
 	def2(C,Prefix,1,Q,Defs).
-def(atmost(N,R,C),Prefix,[atmost(N,R,Q)|Defs]):-
+def(atmost(N,R,C,Sel),Prefix,[atmost(N,R,Q,Sel)|Defs]):-
 	def2(C,Prefix,-1,Q,Defs).
 def(and(L),Prefix,Defs):-
 	select(C,L,Rest), \+ literal_concept(C), !,	
@@ -190,10 +195,10 @@ def2(C,Prefix,Pol,Q,Defs):-
 def2(atleast(N,R,C,Sel),Prefix,Pol,Q1,[D|Defs]):-
 	def2(C,Prefix,Pol,Q2,Defs),
 	def2(atleast(N,R,Q2,Sel),Prefix,Pol,Q1,[D]).
-def2(atmost(N,R,C),Prefix,Pol,Q1,[D|Defs]):-
+def2(atmost(N,R,C,Sel),Prefix,Pol,Q1,[D|Defs]):-
 	Pol1 is Pol * -1,
 	def2(C,Prefix,Pol1,Q2,Defs),
-	def2(atmost(N,R,Q2),Prefix,Pol,Q1,[D]).
+	def2(atmost(N,R,Q2,Sel),Prefix,Pol,Q1,[D]).
 def2(and(L),Prefix,1,Q1,Defs):-
 	select(C,L,Rest), \+ literal_concept(C), !,	
 	def2(C,Prefix,1,Q2,Defs1),
@@ -265,7 +270,7 @@ not_embedded(or(L)):-
 	literal_list(L), !.
 not_embedded(atleast(_,_,C,_)):-
 	literal_concept(C), !.
-not_embedded(atmost(_,_,C)):-
+not_embedded(atmost(_,_,C,_)):-
 	literal_concept(C), !.
 not_embedded(C):-
 	literal_concept(C), !.
@@ -310,7 +315,7 @@ defName(atleast(Num,R,C,_),N):-
 	atom_concat(N4,'_',N5),
 	defName(C,N6),
 	atom_concat(N5,N6,N).
-defName(atmost(Num,R,C),N):-
+defName(atmost(Num,R,C,_),N):-
 	number_codes(Num,NumCode), atom_codes(Num1,NumCode),	
 	atom_concat(atmost_,Num1,N1),
 	atom_concat(N1,'_',N2),

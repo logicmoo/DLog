@@ -7,19 +7,22 @@
 compare(X):-
 	atom_concat(sample,X,Y),
 	set_dlog_option(dl_calculus,yes),
-	call(Y),
+	nl, print('Uj szamitas: '), nl,
+	call(Y),	
 	set_dlog_option(dl_calculus,no),
+	nl, print('Regi szamitas: '), nl,	
 	call(Y).
+	
 
 test(TBox):-
 	statistics(runtime, [T0,_]),
 	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
 	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]),
-	( member([bottom],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl, fail
+	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl
 	; true
 	),
-	nl, print('Eredeti TBox'), nl, show(TBox),
+	nl, print('Eredeti TBox'), nl, show(TBox),	
 	nl, print('Eredo TBox'), nl, show(TBox_Clauses),
 	true.
 

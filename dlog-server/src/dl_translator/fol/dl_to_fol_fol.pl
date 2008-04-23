@@ -142,9 +142,9 @@ def(all(R,C),Prefix,[all(R,Q)|Defs]):-
 	def2(C,Prefix,1,Q,Defs).
 def(some(R,C),Prefix,[some(R,Q)|Defs]):-
 	def2(C,Prefix,1,Q,Defs).
-def(atleast(R,C),Prefix,[atleast(R,Q)|Defs]):-
+def(atleast(N,R,C),Prefix,[atleast(N,R,Q)|Defs]):-
 	def2(C,Prefix,1,Q,Defs).
-def(atmost(R,C),Prefix,[almost(R,Q)|Defs]):-
+def(atmost(N,R,C),Prefix,[atmost(N,R,Q)|Defs]):-
 	def2(C,Prefix,-1,Q,Defs).
 def(and(L),Prefix,Defs):-
 	select(C,L,Rest), \+ literal_concept(C), !,	

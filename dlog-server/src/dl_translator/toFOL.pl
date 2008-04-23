@@ -2,6 +2,39 @@
 
 :- use_module(library(lists)).
 :- use_module(bool, [boolneg/2, boolinter/2, boolunion/2]).
+:- use_module('struct',[contains_struct2/2, omit_structs/3]).
+
+
+toClause_list(L,R):-
+	toFOL_list(L,L2),
+	findall(C, (
+		     member(A,L2),
+		     one_conjunct(A,B),
+		     sort(B,C)
+		   ), Clauses
+	       ),
+	remove_temp(Clauses,Clauses1),
+	remove_double_proof_list(Clauses1,Clauses2),
+	remove_redundant(Clauses2,Clauses3),
+	(
+	  Clauses3 = [[bottom]] -> R = [[]]
+	; R = Clauses3
+	).
+
+
+one_conjunct(and(L),D):- !,
+	member(C,L),
+	one_conjunct(C,D).
+one_conjunct(or([C]),D):- !,
+	one_conjunct(C,D).
+one_conjunct(or([C|Cs]),X):- !,
+	one_conjunct(C,D),
+	one_conjunct(or(Cs),Ds),
+	append(D,Ds,X).
+one_conjunct(X,[X]).
+
+
+
 
 toFOL_list(L,R):-
 	toFOL_list(L,_,R).
@@ -21,7 +54,7 @@ toFOL(and(L),X,and(R)):- !,
 	toFOL_list(L,X,R).
 toFOL(or(L),X,or(R)):- !,
 	toFOL_list(L,X,R).
-toFOL(atmost(N,R,C),X,or(Literals)):-
+toFOL(atmost(N,R,C,_),X,or(Literals)):-
 	boolneg(C,C2),
 	N1 is N + 1,
 	createVars(N1,Vars),
@@ -58,69 +91,33 @@ equalLiterals(V,[V2|Vars],[eq(V,V2)|Equals]):-
 	equalLiterals(V,Vars,Equals).
 
 
-toClause_list(L,R):-
-	toFOL_list(L,L2),
-	findall(C, (
-		     member(A,L2),
-		     one_conjunct(A,B),
-		     sort(B,C)
-		   ), R
-	       ).
-
-
-one_conjunct(and(L),D):- !,
-	member(C,L),
-	one_conjunct(C,D).
-one_conjunct(or([C]),D):- !,
-	one_conjunct(C,D).
-one_conjunct(or([C|Cs]),X):- !,
-	one_conjunct(C,D),
-	one_conjunct(or(Cs),Ds),
-	append(D,Ds,X).
-one_conjunct(X,[X]).
-
-
 
 /*********************** Redundans klozok elhagyasa *******************************/
-/*
+
 % redundant(+C, +Clauses): igaz, ha van C-nel szukebb kloz a Clauses
 % klozhalmazban
 % nincs behelyettesites
 % a klozoknak meg van adva a tipusuk is
-redundant(_,Cs):-
-	member([],Cs), !.
-redundant([_,C],_):-
-	member(true,C), !.
-redundant([1,C],Cs):- !,
-	member([1,C],Cs).
-
-redundant([TypeC,C],Clauses):-
-	member([TypeD,D],Clauses),
-	length(D,LD),
-	length(C,LC),
-	LC >= LD,
-	copy_term(D,D2),
-	copy_term(C,C2),
-	term_variables(C2,Vars),
-	includes([TypeC,C2],[TypeD,D2]),
-	none_related(Vars), !.
+redundant(C,[D|Ds]):-
+	(
+	  copy_term(C,C2),
+	  copy_term(D,D2),
+	  term_variables(C2,Vars),
+	  includes(C2,D2),
+	  none_related(Vars), !
+	; redundant(C,Ds)
+	).
 
 % includes(+C,+D): C kloz tartalmazza D-t
 % !!! behelyettesites tortenik !!!		  
-includes(_,[_,[]]):- !.
-includes([TypeC,C],[TypeD,[LD|D]]):-
-	(
-	  TypeD = 5
-	; TypeC = 10
-	; TypeD = 10
-	; TypeC = 3, TypeD = 3
-	; TypeC = 4, TypeD = 4
-	; TypeC = 6, TypeD = 6
-	; TypeD = 7-_, TypeD = 7-_
-	), !,
+includes(_,[]):- !.
+includes(_,[bottom]):- !.
+includes(C,_):-
+	member(top,C), !.
+includes(C,[LD|D]):-
 	select(LC,C,RestC),
 	subsumes(LD,LC),
-	includes([TypeC,RestC],[TypeD,D]).
+	includes(RestC,D).
 	
 
 % none_related(+L)
@@ -184,22 +181,19 @@ remove_redundant([L|Ls],Acc,R):-
 	elim_reds(Acc,L,Acc2),
 	remove_redundant(Ls,[L|Acc2],R).
 
-*/
-
 	
 /****************************************************************************************/
 /*************** Az ujonnan bevezetett fogalmak eliminalasa *****************************/
 /****************************************************************************************/
-/*
+
 % remove_temp(+L,-R)
 % L klozok listaja, melyeket telitve a bevezetett fogalmak szerint
 % es elhagyva ezen fogalmakat tartalmazo klozokat kapjuk R klozlistat
 % ha vegtelen ciklusba esnenk, akkor meghagyjuk az adott bevezetett fogalmat
-% L-ben a klozok tipusukkal egyutt szerepelnek, mig R-ben tipus nelkul vannak
 remove_temp(L,R):-
 	contains_struct2(L,nconcept(Pred,_)),
 	\+ (
-	     member([_,Cls],L),
+	     member(Cls,L),
 	     member(nconcept(Pred,_),Cls),
 	     member(not(nconcept(Pred,_)),Cls)
 	   ),
@@ -224,7 +218,7 @@ saturate_specific(W1,[],_,W1).
 saturate_specific(W1,[C|W2],PredName,R):-
 	redundant(C,W1), !, 
 	saturate_specific(W1,W2,PredName,R).
-saturate_specific(W1,[C|W2],PredName,S):-	
+saturate_specific(W1,[C|W2],PredName,S):-
 	findall(R,(
 		   member(R1,W1),
 		   resolve_specific(R1,C,PredName,R)
@@ -236,7 +230,7 @@ saturate_specific(W1,[C|W2],PredName,S):-
 
 % resolve_specific(+Clause1,Clause2,PredName,Resolvant): Resolvant Clause1 es Clause2 kloz PredName uj
 % fogalom szerinti rezolvense
-resolve_specific([_,C1],[_,C2],PredName,[10,R]):-
+resolve_specific(C1,C2,PredName,R):-
 	copy_term(C1,Res1),
 	copy_term(C2,Res2),
 	(	select(nconcept(PredName,X),Res1,M1),		
@@ -244,21 +238,20 @@ resolve_specific([_,C1],[_,C2],PredName,[10,R]):-
 	;	select(not(nconcept(PredName,X)),Res1,M1),		
 		select(nconcept(PredName,X),Res2,M2)
 	),
-	append(M1,M2,L),sort(L,L1),
-	simplifyClause([_,L1],[_,R]).
-*/
+	append(M1,M2,L),sort(L,R).
+
 
 
 /**************************************************************************/
 /******************* Ketszeres bizonyitas elkerulese **********************/
 /**************************************************************************/
-/*					      
+					      
 % remove_double_proof_list(+L,-S)
 % Ha az L beli klozban vannak olyan literalparok, melyek eliminalasa ugyanannak
 % a bizonyitasnak az ismetleset jelentene, akkor kiszurjuk az egyiket
 % a keletkezo klozlista S
 remove_double_proof_list([],[]).
-remove_double_proof_list([[T,L]|Ls],[[T,R]|Rs]):-
+remove_double_proof_list([L|Ls],[R|Rs]):-
 	remove_double_proof(L,R),
 	remove_double_proof_list(Ls,Rs).
 
@@ -291,4 +284,3 @@ remove_double_proof(L,S):-
 	sort(L,LReduced),
 	remove_double_proof(LReduced,S).
 remove_double_proof(L,L).
-*/
