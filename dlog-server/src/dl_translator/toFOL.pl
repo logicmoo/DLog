@@ -1,21 +1,41 @@
 :- module(toFOL, [toClause_list/2]).
 
 :- use_module(library(lists)).
-:- use_module(bool, [boolneg/2, boolinter/2, boolunion/2]).
+:- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).
 :- use_module('struct',[contains_struct2/2, omit_structs/3]).
+:- use_module('fol/saturate_fol', [simplifyClause/2]).
+:- use_module('show').
 
 
 toClause_list(L,R):-
 	toFOL_list(L,L2),
+
+	% nl, print('FOL alak'), nl, show(L2), nl,	
+	
 	findall(C, (
 		     member(A,L2),
 		     one_conjunct(A,B),
-		     sort(B,C)
+		     sort(B,C),
+		     \+ (
+			  member(aconcept(Pred,X),C), member(not(aconcept(Pred,Y)),C), X == Y
+			; member(nconcept(Pred,X),C), member(not(nconcept(Pred,Y)),C), X == Y
+			)
 		   ), Clauses
 	       ),
+
+	% nl, print('Kloz alak'), nl, show(Clauses), nl,	
+	
 	remove_temp(Clauses,Clauses1),
+
+	% nl, print('Uj fogalmak kikuszobolese'), nl, show(Clauses1), nl,	
+	
 	remove_double_proof_list(Clauses1,Clauses2),
+
+	% nl, print('Redundanciavizsgalat elott'), nl, show(Clauses2), nl,
+
 	remove_redundant(Clauses2,Clauses3),
+
+	% nl, print('Redundanciavizsgalat utan'), nl, show(Clauses3), nl, 
 	(
 	  Clauses3 = [[bottom]] -> R = [[]]
 	; R = Clauses3
@@ -41,7 +61,7 @@ toFOL_list(L,R):-
 
 toFOL_list([],_,[]).
 toFOL_list([L|Ls],X,[R|Rs]):-
-	toFOL(L,X,R),
+	toFOL(L,X,R),	
 	toFOL_list(Ls,X,Rs).
 
 toFOL(top,_,top).
@@ -54,7 +74,7 @@ toFOL(and(L),X,and(R)):- !,
 	toFOL_list(L,X,R).
 toFOL(or(L),X,or(R)):- !,
 	toFOL_list(L,X,R).
-toFOL(atmost(N,R,C,_),X,or(Literals)):-
+toFOL(atmost(N,R,C),X,or(Literals)):-
 	boolneg(C,C2),
 	N1 is N + 1,
 	createVars(N1,Vars),
@@ -117,6 +137,9 @@ includes(C,_):-
 includes(C,[LD|D]):-
 	select(LC,C,RestC),
 	subsumes(LD,LC),
+	includes(RestC,D).
+includes(C,[eq(X,Y)|D]):-
+	select(eq(Y,X),C,RestC),
 	includes(RestC,D).
 	
 
@@ -219,9 +242,12 @@ saturate_specific(W1,[C|W2],PredName,R):-
 	redundant(C,W1), !, 
 	saturate_specific(W1,W2,PredName,R).
 saturate_specific(W1,[C|W2],PredName,S):-
+	% nl, print(C),
 	findall(R,(
 		   member(R1,W1),
-		   resolve_specific(R1,C,PredName,R)
+		   resolve_specific(R1,C,PredName,R),
+		   % nl, print('  + '), print(R1), nl, print('  = '), print(R),
+		   true		  
 		  ),Rs),
 	elim_reds(W1,C,EW1),
 	append(Rs,W2,EW2),
@@ -233,12 +259,19 @@ saturate_specific(W1,[C|W2],PredName,S):-
 resolve_specific(C1,C2,PredName,R):-
 	copy_term(C1,Res1),
 	copy_term(C2,Res2),
-	(	select(nconcept(PredName,X),Res1,M1),		
-		select(not(nconcept(PredName,X)),Res2,M2)		
-	;	select(not(nconcept(PredName,X)),Res1,M1),		
-		select(nconcept(PredName,X),Res2,M2)
+	(
+	  select(nconcept(PredName,X),Res1,M1),		
+	  select(not(nconcept(PredName,X)),Res2,M2),
+	  \+ ( member(not(arole(_,_,Y1)),M1), member(not(arole(_,_,Y2)),M2), Y1 == X, Y2 == X )
+	; select(not(nconcept(PredName,X)),Res1,M1),		
+	  select(nconcept(PredName,X),Res2,M2),
+	  \+ ( member(not(arole(_,_,Y1)),M1), member(not(arole(_,_,Y1)),M2), Y1 == X, Y2 == X )	  
 	),
-	append(M1,M2,L),sort(L,R).
+	append(M1,M2,L),sort(L,R),
+	\+ (
+	     member(aconcept(Pred,A1),R), member(not(aconcept(Pred,A2)),R), A1 == A2
+	   ; member(nconcept(Pred,A1),R), member(not(nconcept(Pred,A2)),R), A1 == A2
+	   ).
 
 
 

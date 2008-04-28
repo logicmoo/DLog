@@ -1,4 +1,4 @@
-% :- use_module('../dlog').
+:- use_module('../dlog').
 :- use_module('../dl_translator/show').
 :- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6]).
 :- use_module('../config',[set_dlog_option/2]).
@@ -27,16 +27,19 @@ test(TBox):-
 	true.
 
 
-lubm(N,Q):-
-	( N == 1 -> load_KB_interpreter('d:/Logic/ontology/lubm1.dig')
-	; N == 2 -> load_KB_interpreter('d:/Logic/ontology/lubm2.dig')
-	; N == 3 -> load_KB_interpreter('d:/Logic/ontology/lubm3.dig')
-	),
+lubm(N):-
+	set_dlog_option(dl_calculus,yes),
+	set_dlog_option(dig_reader_fault_tolerance,drop),
+	( N == 1 -> tell_dig('d:/Logic/ontology/lubm1.dig')
+	; N == 2 -> tell_dig('d:/Logic/ontology/lubm2.dig')
+	; N == 3 -> tell_dig('d:/Logic/ontology/lubm3.dig')
+	).
+/*
 	( Q == 1 -> solve('a:Chair')
 	; Q == 2 -> solve_n((X,Y), ('a:Chair'(X),'a:worksFor'(X,Y),'a:Department'(Y), 'a:subOrganizationOf'(Y,'p25:www.University0.edu')))
 	; Q == 3 -> solve_n((X,Y,Z), ('a:Student'(X),'a:Faculty'(Y),'a:Course'(Z), 'a:advisor'(X,Y), 'a:takesCourse'(X,Z), 'a:teacherOf'(Y,Z)))
 	).
-
+*/
 lubm_ford(N,Q):-
 	abolish(abox:_),
 	( N==1 -> dlkb2prolog('d:/Logic/ontology/lubm1.dig', './lubm1',[allinone(yes),statistics(yes)]), compile('./lubm1_tbox.pl')
@@ -272,6 +275,26 @@ sample15:-
 		      implies(top, atmost(3, arole(gyereke),top))
 		     ],
 	test([CInclusion, [],[]]).
+
+sample16:-
+	CInclusion = [
+		      implies(top, atleast(2,arole(gyereke),aconcept(a))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(b))),		      
+		      implies(top, atleast(2,arole(gyereke),aconcept(c))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(d))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(e))),
+
+		      implies(and([aconcept(a),aconcept(b),aconcept(c)]),not(aconcept(d))),
+		      implies(and([aconcept(a),aconcept(b),aconcept(c)]),not(aconcept(e))),
+		      implies(and([aconcept(a),aconcept(b),aconcept(d)]),not(aconcept(e))),
+		      implies(and([aconcept(a),aconcept(c),aconcept(d)]),not(aconcept(e))),
+		      implies(and([aconcept(b),aconcept(c),aconcept(d)]),not(aconcept(e))),
+
+
+		      implies(top, atmost(3, arole(gyereke),top))
+		     ],
+	test([CInclusion, [],[]]).
+
 
 
 

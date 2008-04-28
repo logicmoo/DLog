@@ -6,7 +6,8 @@
 boolneg(not(C),C):- !.
 boolneg(C,NC):-
 	negNormForm(not(C),C1),
-	normalize(C1,NC).
+	normalize(C1,NC1),
+	simplifyConcept(NC1,NC).
 
 boolunion(Cs,D):-
 	normalize(or(Cs),D1),

@@ -26,21 +26,21 @@ saturate(W,RInclusion,S):-
 saturate(W1,[],_,W1).
 saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
-	nl, print('---- ') ,print(C), print('---- redundans'),
+	% nl, print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,RInclusion,S).
 saturate(W1,[C|W2],RInclusion,S):-
-	nl, print(C),
+	% nl, print(C),
 	findall(R,(
 		   (
 		     member(A,W1),
 		     resolve(A,C,R1),
-		     nl, print('  + '), print(A),
+		     % nl, print('  + '), print(A),
 		     true
-		   ; resolve2(C,RInclusion,R1)
+		   ; resolve_alone(C,RInclusion,R1)
 		   ),		     
 		   simplifyConcept(R1,R2),
 		   selectResolvable(R2,R),
-		   nl, print('  = '), print(R),
+		   % nl, print('  = '), print(R),
 		   true
 		  ), Rs),
 	elim_reds(W1,C,EW1),
@@ -75,10 +75,14 @@ includes(and(C),and(D)):- !,
 	list_to_ord_set(C,OC),
 	list_to_ord_set(D,OD),
 	ord_subset(OC,OD).
-includes(atmost(N,R,C,_),atmost(K,R,D,_)):-
+includes(atmost(N,R,C),atmost(K,R,D)):-
 	K =< N,
 	includes(D,C).
-includes(atleast(N,R,C,_),atleast(K,R,D,_)):-
+includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):-
+	(
+	  Sel2 = [_], append(Sel2,_,Sel1)
+	; Sel2 = [Original,Num,skolem], Sel1 = [Original,Num]
+	),
 	N =< K,
 	includes(C,D).
 
@@ -114,12 +118,41 @@ elim_reds([A|Rest],C,[A|Reduced]):-
 	elim_reds(Rest,C,Reduced).
 
 /******************* Alap szuperpozicios kovetkeztetesi lepes *********************/
-% resolve2(+C,+RInclusion,-R1):- C fogalom rezolvalhato az egyik RInclusion-beli
+% resolve_alone(+C,+RInclusion,-R1):- C fogalom rezolvalhato az egyik RInclusion-beli
 % szereptartalmazasi axiomaval
-resolve2(atleast(N,R,C,Sel),RInclusion,atleast(N,S,C,Sel)):-
+resolve_alone(atleast(N,R,C,Sel),RInclusion,atleast(N,S,C,Sel)):-
 	member(subrole(R,S),RInclusion).
-resolve2(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or([atleast(N,S,C,Sel)|Rest])):-
-	member(subrole(R,S),RInclusion).
+
+resolve_alone(atleast(1,R,C,[Original,1]),_,atleast(1,R,C,[Original,1,skolem])):- !.
+resolve_alone(atleast(1,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,N,skolem]),atleast(1,R,C,[Original,N1])])):- !,
+	N > 1,
+	N1 is N - 1.
+
+resolve_alone(atleast(K,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,K1,skolem]),atleast(K,R,C,[Original,N1])])):-
+	N > K, !,
+	Min is N - K + 1,
+	number_between(Min,N,K1),
+	N1 is K1 - 1.
+resolve_alone(atleast(N,R,C,[Original,N]),_,atleast(1,R,C,[Original,K,skolem])):-
+	number_between(1,N,K).
+
+resolve_alone(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or(ResList)):-
+	resolve_alone(atleast(N,R,C,Sel),RInclusion,Res),
+	(
+	  Res = atleast(_,_,_,_) -> ResList = [Res|Rest]
+	; Res = or(L) -> append(L,Rest,ResList)
+	).
+
+% number_between(+Min,+Max,-Num):- Min =< Num =< Max
+number_between(N,N,N):- !.
+number_between(Min,Max,Num):-
+	Min < Max,
+	(
+	  Num = Max
+	; Max1 is Max - 1, number_between(Min,Max1,Num)
+	).
+
+
 
 % resolve(+C1,+C2,-R):- C1 es C2 fogalmak rezolvense R
 % 1. szabaly
@@ -136,84 +169,77 @@ resolve(D,and(Cs),bottom):-
 	member(C,Cs),
 	boolneg(C,D), !.
 
-resolve(atleast(_,_,_,_),atleast(_,_,_,_),_):- !, fail.
-/*
+
 % 5. szabaly
 resolve(atleast(N,R,C,Sel1),atleast(K,S,D,Sel2),atleast(M,R,CD,Sel)):- !,
 	R = S,
-	sameSelector(Sel1,Sel2,Sel),
-	resolve(C,D,CD),
-	M is min(N,K).
-*/
+	
+	\+ Sel1 = [_,_],
+	(
+	  Sel1 = Sel2 -> Sel = Sel1
+	; Sel1 = [Original], Sel2 = [Original,_,_] -> Sel = Sel2
+	; Sel2 = [Original], Sel1 = [Original,_,_] -> Sel = Sel1
+	),
+	M is min(N,K),
+	resolve(C,D,CD).
+
 
 % atleast mindig elolre kerul
 resolve(D,atleast(N,R,C,Sel),Res):- !,
 	resolve(atleast(N,R,C,Sel),D,Res).
 
 % 2. szabaly
-resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel)):-
+resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel1)):-
+	(
+	  Sel = [_,_,_] -> Sel1 = Sel
+	; Sel = [Original] -> Sel1 = [Original,0,type1]
+	),	  
+
 	\+ (
 	     D = atleast(_,_,_,_)
-	   ; D = atmost(_,_,_,_)
+	   ; D = atmost(_,_,_)
 	   ; D = or([atleast(_,_,_,_)|_])
-	   ; D = or([atmost(_,_,_,_)|_])
+	   ; D = or([atmost(_,_,_)|_])
 	   ), !,
-	resolve(C,D,CD2), !,
-	boolinter([C,CD2],CD).
+	resolve(C,D,CD).
 
 % 3., 4. szabaly
-resolve(atleast(K,R,D,Sel1),atmost(N,R,C,Sel2),Res):- !,
+resolve(atleast(K,R,D,Sel),atmost(N,R,C),Res):- !,
+	Sel = [Original],
+	
 	boolneg(C,NotC),
 	boolneg(D,NotD),
-
-	\+ member(NotC,Sel1),
-
-	/*
-	list_to_ord_set(Sel1,OSel1),
-	list_to_ord_set(Sel1,OSel2),
-	\+ (
-	     Sel1 = [_|_], Sel2 = [_|_],
-	     (
-	       ord_subset(OSel1,OSel2)
-	     ; ord_subset(OSel2,OSel1)
-	     )
-	   ),
-	*/
-	
-	append([NotC|Sel1],Sel2,Sel3),
-	sort(Sel3,Sel),
-
 	boolinter([C,NotD],CNotD),
-	boolinter([D,NotC],DNotC),
 
 	(
-	  K > N ->
+	  N = 0 ->
+	  Res = atleast(K,R,NotC,[Original])
+	; K > N ->
 	  N1 is K - N,
-	  Res = atleast(N1,R,DNotC,Sel)
-	;
-	  N1 is N - K,
-	  Res = or([atleast(1,R,DNotC,Sel),atmost(N1,R,CNotD,Sel)])
+	  Res = atleast(N1,R,NotC,[Original,K])
+	; N1 is N - K,
+	  Res = or([atleast(1,R,NotC,[Original,K]),atmost(N1,R,CNotD)])
 	).
 
 % 7. szabaly
-resolve(atleast(_,S,_,_),atmost(0,R,C,_),Res):- !,
+resolve(atleast(_,S,_,[_]),atmost(0,R,C),Res):- !,
 	inv(R,S),
 	boolneg(C,Res).
 
-resolve(atleast(K,S,_,Sel),or(Cs),Res):-
-	Cs = [atmost(0,R,_,_)|_], inv(R,S), !,
+resolve(atleast(K,S,_,[Original]),or(Cs),Res):-
+	Cs = [atmost(0,R,_)|_], inv(R,S), !,
 	findall( C, (
-		      member(atmost(0,R,C1,_),Cs),
+		      member(atmost(0,R,C1),Cs),
 		      boolneg(C1,C)
 		    ), Ci
-	       ),
+	       ),	
 	findall( D, (
 		      member(D,Cs),
-		      \+ D = atmost(_,_,_,_)
+		      \+ D = atmost(_,_,_)
 		    ), Ds
 	       ),
 	boolunion(Ds,D2),
-	boolunion([atleast(K,S,D2,Sel)|Ci],Res).
+	boolunion([atleast(K,S,D2,[Original])|Ci],Res).
 
 
 resolve(or(Cs),or([atleast(K,S,D,Sel)|Ds]),or(Res)):- !,
@@ -310,11 +336,6 @@ simplifyDisjunction([C|Cs],L,Rs):-
 
 % sameSelector(+Sel1,+Sel2,-Sel): Sel1 es Sel2 azonos egyedeket is
 % tartalmazo szelektorok es Sel a ketto kozul a szukebb
-/*
-sameSelector([X],[X,K],[X,K]):- !.
-sameSelector([X,K],[X],[X,K]):- !.
-sameSelector([_,0],[_,0],_):- !, fail.
 sameSelector(X,X,X).
-*/
-sameSelector(X,Y,X):-
-	X == Y.
+sameSelector([X],[X,K,skolem],[X,K,skolem]):- !.
+sameSelector([X,K,skolem],[X],[X,K]):- !.

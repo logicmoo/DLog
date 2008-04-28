@@ -11,9 +11,9 @@
 translate_axioms_fol(SHIQAxioms,Clauses,Hbox,Transitive):-
 	translate_axioms2(SHIQAxioms,Clauses1,_Ibox,Hbox,Transitive),
 	% tipusmegjelolesek elhagyasa
-	% inverzek es szerephierarchiak elhagyasa	
+	% inverzek es szerephierarchiak elhagyasa
 	findall(C,(
-		   member([Type,C],Clauses1);
+		   member([Type,C],Clauses1),
 		   \+ Type = 1
 		  ), Clauses
 	       ).
