@@ -57,7 +57,7 @@ tbox2prolog(URI, tbox(TBox, _IBox, HBox), abox(Signature)) :-
 	dl_preds(TBox, Preds),
 	preprocessing(Preds, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
-	tbox_headers(URI),
+	%tbox_headers(URI),
 	headwrite('Transformed TBox clauses'),
 	transformed_kb(DepGraph, Signature).
 
