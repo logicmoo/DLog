@@ -51,14 +51,18 @@ transformed_abox([], _Indexing, _ABox).
 transformed_abox([P-L|Ps], Indexing, ABox) :-
 	(
 	  L = [_-[*]|_] ->
+	  format('~n:- discontiguous(\'~w\'/1).~n',[P]),
 	  transformed_abox_concept(L, P, ABox)
 	;
 	  Indexing == yes ->
 	  inverses(L, IL),
 	  atom_concat('idx_', P, IP),
+  	  format('~n:- discontiguous(\'~w\'/2).~n',[P]),
+ 	  format(':- discontiguous(\'~w\'/2).~n',[IP]),
 	  transformed_abox_idx_role(L, P, ABox),
 	  transformed_abox_idx_role(IL, IP, ABox)
 	;
+  	  format('~n:- discontiguous(\'~w\'/2).~n',[P]),
 	  transformed_abox_noidx_role(L, P, ABox)
 	),
 	transformed_abox(Ps, Indexing, ABox).
@@ -166,13 +170,13 @@ portray_abox_clause(Module, C) :-
 abox_headers(URI) :-
 	headers,
 	abox_module_name(URI, MName),
-	format(':- module(\'~w\',[]).\n',[MName]),
-	(
-	 target(swi)->
-	 format(':- style_check(-discontiguous).~n',[])
-	;
-	 format(':- set_prolog_flag(discontiguous_warnings, off).~n',[])
-	).
+	format(':- module(\'~w\',[]).\n',[MName]).
+%	(
+%	 target(swi)->
+%	 format(':- style_check(-discontiguous).~n',[])
+%	;
+%	 format(':- set_prolog_flag(discontiguous_warnings, off).~n',[])
+%	).
 
 headers:-
 	datime(datime(Year, Month, Day, Hour, Min, Sec)),
