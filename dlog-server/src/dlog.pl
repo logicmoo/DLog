@@ -34,7 +34,11 @@ user:resource(hash_swi, module, 'hash/hash_swi.pl').
 
 
 :- multifile user:file_search_path/2.
-user:file_search_path(foreign, 'lib').
+user:file_search_path(foreign, LP) :- 
+	get_dlog_option(base_path, B),
+	get_dlog_option(lib_path, L),
+	absolute_file_name(L, [relative_to(B)], LP).
+
 
 start_dlog :- 
 	print('Starting DLog...\n'),

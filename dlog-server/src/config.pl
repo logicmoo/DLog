@@ -19,6 +19,8 @@ default_option(description, 'Up \'n\' runnin\''). %TODO: 'DLog running on HOST:P
 default_option(base_path, './').
 default_option(output_path, '../output/').
 default_option(config_file, 'dlog.conf').
+default_option(lib_path, 'hash').
+
 
 %%%%%%%%%%%% Translator Options %%%%%%%%%%%%
 default_option(statistics, no). %[yes, no] 

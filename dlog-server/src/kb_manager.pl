@@ -28,10 +28,12 @@
 :- volatile current_kb/1,
 			kb_count/1.
 
-:- default_kb(Def), mutex_create(kb_count), mutex_create(Def).
+%:- default_kb(Def), mutex_create(kb_count), mutex_create(Def).
 :- initialization
 		assert(kb_count(1)), 
 		default_kb(Def), 
+		mutex_create(kb_count), 
+		mutex_create(Def),
 		assert(current_kb(Def)). %initialization?
 
 
@@ -52,7 +54,6 @@ new_kb(URI) :-
 	assert(current_kb(URI)).
 
 release_kb(URI) :-
-	exists_kb(URI),
 	with_write_lock(URI,
 	(
 		clear_kb(URI),
@@ -63,10 +64,10 @@ release_kb(URI) :-
 	.
 
 clear_kb(URI) :- 
-	tbox_module_name(URI, TB),
-	abox_module_name(URI, AB),
 	with_write_lock(URI,
 	(
+		tbox_module_name(URI, TB),
+		abox_module_name(URI, AB),
 		abolish_module(AB),
 		abolish_module(TB)		
 		%TODO file-ok törlése?
@@ -170,11 +171,10 @@ add_tbox(assert, URI, TBox, ABox) :-
 
 
 run_query(Query, URI, Answer) :- 
-	exists_kb(URI),
-	tbox_module_name(URI, TBox),
-	abox_module_name(URI, ABox),
 	with_read_lock(URI,
 	(
+		tbox_module_name(URI, TBox),
+		abox_module_name(URI, ABox),
 		query(Query, TBox, ABox, Answer)
 	)).
 
@@ -193,43 +193,38 @@ write_tbox_header(URI) :-
 	%write(':- require(lists:member/2).\n'),
 	%write(':- use_module(hash).\n').
 	%write(':- open_resource(dlog_hash, module, H), load_files(dlog_hash, [stream(H)]).\n'),
-	write('
-	sicstus_init :-
-		use_module(library(lists), [member/2]),
-		use_module(hash).
-	'),
-	write('
-	swi_init :- 
-		(open_resource(dlog_hash, module, H)
-		-> 
-			load_files(dlog_hash, [stream(H)]),
-			import(lists:member/2)
-	'),
-	write('
-		; 
-			use_module(hash),
-			use_module(library(lists), [member/2])
-		).
-	'),
-	write('
-	:- current_predicate(config:target/1)
-		->
-			(config:target(sicstus) -> sicstus_init ; true),
-			(config:target(swi) -> swi_init ; true)
-		;
-	'),
-	write('
-			(current_prolog_flag(dialect, swi) -> swi_init 
-			; %current_prolog_flag(language, sicstus) %sicstus/iso
-				sicstus_init
-			)
-		.\n\n').
+	write('\n% ************************\n'),
+	write(  '% Header\n'),
+	write(  '% ************************\n'),
+	write('\nsicstus_init :-\n'),
+	write('    use_module(library(lists), [member/2]),\n'),
+	write('    use_module(hash).\n'),
+	write('\nswi_init :-\n'),
+	write('    (open_resource(dlog_hash, module, H)\n'),
+	write('    ->\n'),
+	write('        load_files(dlog_hash, [stream(H)]),\n'),
+	write('        import(lists:member/2)\n'),
+	write('    ;\n'),
+	write('        use_module(hash),\n'),
+	write('        use_module(library(lists), [member/2])\n'),
+	write('    ).\n'),
+	write('\n:- current_predicate(config:target/1)\n'),
+	write('    ->\n'),
+	write('        (config:target(sicstus) -> sicstus_init ; true),\n'),
+	write('        (config:target(swi) -> swi_init ; true)\n'),
+	write('    ;\n'),
+	write('        (current_prolog_flag(dialect, swi) -> swi_init\n'),
+	write('        ; %current_prolog_flag(language, sicstus) %sicstus/iso\n'),
+	write('            sicstus_init\n'),
+	write('        ).\n\n').
 
 
 get_read_lock(URI) :-
+	exists_kb(URI), %don't create if not exists
 	mutex_lock(URI),
-	exists_kb(URI).
+	exists_kb(URI). %check if still existing
 get_write_lock(URI) :-
+	exists_kb(URI), 
 	mutex_lock(URI),
 	exists_kb(URI).
 release_read_lock(URI) :-
@@ -237,6 +232,8 @@ release_read_lock(URI) :-
 release_write_lock(URI) :-
 	mutex_unlock(URI).
 with_read_lock(URI, Goal) :-
+	exists_kb(URI), 
 	with_mutex(URI, (exists_kb(URI),Goal)).
 with_write_lock(URI, Goal) :-
+	exists_kb(URI), 
 	with_mutex(URI, (exists_kb(URI),Goal)).

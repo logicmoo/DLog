@@ -12,7 +12,7 @@ sicstus_init :-
 	use_module(library(terms), [term_hash/4]).
 
 swi_init :- 
-	load_foreign_library(hash_swi, install),
+	initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
 	(open_resource(hash_swi, module, H) 
 	-> 
 		load_files(hash_swi, [stream(H)]),

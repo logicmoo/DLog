@@ -87,8 +87,8 @@ foreign_t lookup(term_t goal, term_t hashes, term_t elem){
 
 install_t install() 
 { 
-	PL_register_foreign("new_loop", 3, new_loop, 0);
-	PL_register_foreign("check_loop", 2, check_loop, 0);
+	PL_register_foreign_in_module("anc_loop", "new_loop", 3, new_loop, 0);
+	PL_register_foreign_in_module("anc_loop", "check_loop", 2, check_loop, 0);
 }
 
 #ifdef __cplusplus
