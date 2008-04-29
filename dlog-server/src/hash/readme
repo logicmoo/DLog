@@ -1,4 +1,8 @@
 To compile dlog_hash use:
 
-splfr dlog_hash.c dlog_hash.pl
+Sicstus:
+splfr hash_sicstus.c hash_sicstus.pl
+
+SWI:
+plld -shared hash_swi.c -o hash_swi
 
