@@ -5,12 +5,16 @@
 					set_dlog_option/2, set_dlog_option/3,
 					create_binary/0, load_config_file/0]).
 
-
+% IMPORTANT: first load the config module, then load the config file, 
+%  finally load the rest!
 :- use_module('core/config', [target/1,
 					get_dlog_option/2, get_dlog_option/3, 
 					set_dlog_option/2, set_dlog_option/3,
 					load_config_file/0, load_config_file/1]).
 
+
+%load config at startup
+:- initialization load_config_file.
 
 :- multifile user:file_search_path/2. %TODO: valami probléma SWI/VC nélküli gépeken
 user:file_search_path(foreign, LP) :- %TODO: include-hoz dlog(...)
@@ -33,7 +37,7 @@ user:file_search_path(foreign, LP) :- %TODO: include-hoz dlog(...)
 
 create_binary :- qsave_program('../bin/dlog', [stand_alone(true), 
 												goal(start_dlog), 
-												%init_file(none),
+												init_file(none),
 												toplevel(halt(1))
 												% toplevel(prolog) %debug
 												% local %stack sizes
@@ -51,10 +55,6 @@ start_dlog :-
 	print('Starting DLog server...\n'),
 	start_server,
 	console.
-
-
-%load config at startup
-:- initialization load_config_file.
 
 
 start_server :-

@@ -37,7 +37,7 @@ help :-
 	print('set_option(K, V): set the current value of the option K to V.\n'),
 	print('set_option(K, URI, V): set the current value of the option K for the knowledge base identified by the URI to V.\n'),
 	print('execute_dig_file(F): execute commands from the DIG file F and print the results.\n'),
-	print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n').
+	print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n'). %TODO?
 	% print('print(P): print the expression P.\n'),
 	% print('nl: print a new line.\n'),
 	% print('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), print(R).\n').
