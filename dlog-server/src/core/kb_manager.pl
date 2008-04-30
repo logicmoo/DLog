@@ -17,7 +17,7 @@
 				abox_file_name/2, tbox_file_name/2]).
 :- target(swi) -> 
 	use_module(library(memfile)),
-	use_module('prolog_translator/prolog_translator_swi_tools', [datime/1]) %TODO
+	use_module(core_swi_tools, [datime/1])
 	; true.
 :- target(sicstus) -> use_module(library(system), [datime/1]) ; true.
 

@@ -8,7 +8,7 @@ trace_count_pred(counter_value(_,_)).
 trace_count_pred(max(_,_)).
 trace_count_pred(count_failure(_)).
 
-:- use_module('../config').
+:- use_module('../core/config').
 :- use_module(library(lists)).
 :- target(sicstus) -> 
         use_module(library(terms))

@@ -1,61 +1,30 @@
 
-:- module(dig_iface, [start_dig_server/0, stop_dig_server/0, execute_dig_file/2]).
+:- module(dig_iface, [execute_dig_file/2]).
 
-:- use_module('../config', [target/1, get_dlog_option/2]).
-:- use_module('../kb_manager').
+:- use_module('../core/config', [target/1, get_dlog_option/2]).
+:- use_module('../core/kb_manager').
 :- use_module(dig_reader).
 :- use_module(dig_identifier, [identifier/5]).
 :- target(swi) -> 
-		use_module(library('http/thread_httpd')),
-		use_module(library('http/http_dispatch')), %hiba kezelés, több szolgáltatás ugyanazon a porton (OWL?)
 		use_module(library('http/http_client')),
+		use_module(library('http/http_dispatch')), 
 		use_module(library(sgml_write), [xml_write/3]),
 		use_module(library(memfile))
-		, use_module(library('http/http_error.pl'))	%debug modul -> 500 stacktrace-el
 		; true.
 
 
-%start_dig_server: start server on default port
-start_dig_server :- 
-	get_dlog_option(dig_server_port, Port),
-	(
-		target(swi)
-	->
-		start_dig_server_swi(Port)
-	;
-		throw(not_implemented) %TODO
-	).
-	
-
-start_dig_server_swi(Port) :- %TODO átstruktúrálni az egészet
+register_dig_server :- 
 	get_dlog_option(dig_server_path, Path),
 	get_dlog_option(dig_server_service_limit, Limit),
-	http_handler(Path, swi_dig_server, [time_limit(Limit)]), 
-	
-	%TODO: ezt máshova...
-	http_server(http_dispatch, [port(Port), timeout(30)]). %TODO: timeout(+SecondsOrInfinite): a kérésre mennyit várjon, 
-											%workers(+N): hány szál (2)
-											%after(:Goal) -> válasz után feldolgozás/statisztika
-											%... (stack méret, ssl)
+	http_handler(Path, dig_server, [time_limit(Limit)]).
 
-
-%stop_dig_server: stop server on default port
-stop_dig_server :- 
-	get_dlog_option(dig_server_port, Port),
-	(
-		target(swi)
-	->
-		stop_dig_server_swi(Port)
-	;
-		throw(not_implemented)
-	).
-
-stop_dig_server_swi(Port) :-
-	http_stop_server(Port, _Options), !, %TODO: itt? TODO cut?!?
-	http_current_handler(Path, swi_dig_server),
+unregister_dig_server :- 
+	http_current_handler(Path, dig_server),
 	http_delete_handler(Path).
 
-swi_dig_server(Request) :-
+:- initialization register_dig_server.
+
+dig_server(Request) :-
 	(
 		memberchk(method(Method), Request),
 		Method \== post 
@@ -106,18 +75,22 @@ execute_dig_file(DIGFile, Reply) :-
 %execute(Command, Reply) throws no_such_kb
 execute(newKB, kb(URI)) :- 
 	new_kb(URI).
-execute(clearKB(URI), kb_cleared(URI)) :- 
+execute(clearKB(URI), kb_cleared(URI)) :-
+	(var(URI) -> default_kb(URI) ; true),
 	clear_kb(URI).
 execute(clearKBW(URI), kb_cleared_in_tells(URI)) :- 
+	(var(URI) -> default_kb(URI) ; true),
 	clear_kb(URI).
 execute(releaseKB(URI), kb_released(URI)) :-
 	release_kb(URI).
 execute(getIdentifier, identifier).
 execute(tells(URI, Axioms), Reply) :-
+	(var(URI) -> default_kb(URI) ; true),
 	add_axioms(URI, Axioms) ->
 		Reply = axioms_added(URI, Axioms)
 	;	Reply = failed_to_add_axiom(URI, Axioms).
 execute(asks(URI, Asks), responses(Responses)) :-
+	(var(URI) -> default_kb(URI) ; true),
 	with_read_lock(URI, dig_iface:ask(Asks, URI, Responses)).
 
 ask([], _, []).

@@ -1,6 +1,6 @@
 :- module(struct,[contains_struct/2,contains_struct2/2, all_containing/4, omit_structs/3]).
 
-:- use_module('../config').
+:- use_module('../core/config').
 :- target(sicstus) 
 	-> use_module(library(terms),[subsumes/2,subsumes_chk/2])
 	; true.

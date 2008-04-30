@@ -1,12 +1,12 @@
 :- module(abox_translator,[abox2prolog/2]).
 
 :- use_module(library(lists)).
-:- use_module('../config').
+:- use_module('../core/config').
 :- target(sicstus) -> 
         use_module(library(system), [datime/1])
         ; true.
 :- target(swi) -> 
-		use_module(prolog_translator_swi_tools, [datime/1]),
+		use_module('../core/core_swi_tools', [datime/1]), %TODO: innen is kivenni a headert
 		use_module(library(listing), [portray_clause/1])
         ; true.
 :- use_module(transforming_tools, [headwrite/1]).

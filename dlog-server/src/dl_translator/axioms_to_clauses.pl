@@ -1,7 +1,7 @@
 :- module(axioms_to_clauses, [axioms_to_clauses/6]).
 :- use_module('translator', [translate_axioms/4]).
 :- use_module('fol/translator_fol', [translate_axioms_fol/4]).
-:- use_module('../config',[get_dlog_option/2]).
+:- use_module('../core/config',[get_dlog_option/2]).
 
 
 % axioms_to_clauses(+URI,+Axioms,-Clauses,-Ibox,-Hbox,-Trbox):-

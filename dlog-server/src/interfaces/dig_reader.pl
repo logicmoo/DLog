@@ -1,8 +1,8 @@
 
 :- module(dig_reader,[read_dig/2]).
 
-:- use_module('../config', [target/1, get_dlog_option/2]).
-:- use_module('../kb_manager', [default_kb/1]).
+:- use_module('../core/config', [target/1, get_dlog_option/2]).
+%:- use_module('../core/kb_manager', [default_kb/1]). %TODO ezt ne itt
 :- target(sicstus) -> 
         use_module('xml_reader/xml_parser') %TODO
         ; true.
@@ -37,10 +37,12 @@ read_dig(DIG_Input, NS-Answer) :-
 		call(error, dig_reader:xmlerror)
 	]) %TODO: még elfogad 2 gyökér elemet, és idézöjel nélküli attribútumot
 	-> true
-	; throw(digerror(102, 'Malformed Request (XML error)', '', 'http://dl.kr.org/dig/2003/02/lang'))
-		%no way to decide -> dig 1.1
+	; throw(digerror(102, 'Malformed Request (XML error)', '', 
+		'http://dl.kr.org/dig/2003/02/lang')) %no way to decide -> dig 1.1
 	),
 	memberchk((dig:xmlns=NS), Atts),
+	%assertion(NS=='http://dl.kr.org/dig/2003/02/lang' 
+	%			; NS == 'http://dl.kr.org/dig/lang'),
 	catch(
 		parse(Root, Atts, Elems, Answer),
 		digerror(Code, Expl, Msg),
@@ -57,13 +59,15 @@ xmlerror(_Severity, Message, _Parser) :-
 parse(newKB, _Atts, _Elems, newKB) :- !.
 parse(clearKB, Atts, _Elems, clearKB(URI)) :- !,
 	(memberchk((dig:uri=URI),Atts) -> true
-	; default_kb(URI)). %dig1.0
+	; true). % uninstantiated
+	%; default_kb(URI)). %dig1.0
 parse(releaseKB, Atts, _Elems, releaseKB(URI)) :- !,
 	memberchk(dig:uri=URI,Atts).
 parse(getIdentifier, _Atts, _Elems, getIdentifier).
 parse(tells, Atts, Elems, Req) :- !,
 	(memberchk((dig:uri=URI),Atts) -> true
-	; default_kb(URI)), %dig 1.0
+	; true), % uninstantiated
+	%; default_kb(URI)), %dig 1.0
 	catch(
 		(phrase(parse_tells(Elems), axioms([], [], [], []), Axioms), Req = tells(URI, Axioms)),
 		clearKB,
@@ -71,7 +75,8 @@ parse(tells, Atts, Elems, Req) :- !,
 	).
 parse(asks, Atts, Elems, asks(URI, Asks)) :- !,
 	(memberchk((dig:uri=URI),Atts) -> true
-	; default_kb(URI)), %dig 1.0
+	; true), % uninstantiated
+	%; default_kb(URI)), %dig 1.0
 	phrase(parse_asks(Elems), Asks).
 parse(Req, Atts, Elems, _) :- 
 	throw(digerror(101, 'Unknown Request', element(dig:Req, Atts, Elems))).

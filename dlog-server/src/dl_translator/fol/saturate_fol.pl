@@ -1,6 +1,6 @@
 :- module(saturate_fol,[saturate/2, saturate_partially/3, resolve/3, redundant/2, remove_redundant/2, elim_reds/3, simplifyClauses/2, simplifyClause/2,  remove_temp/2]).
 
-:- use_module('../../config').
+:- use_module('../../core/config').
 :- use_module('../show').
 :- use_module('../struct').
 :- use_module('selectResolvable_fol').

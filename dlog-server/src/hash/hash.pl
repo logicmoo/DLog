@@ -3,7 +3,7 @@
 		     check_anc/2,check_loop/2]).
 
 sicstus_init :-
-	assert((check_loop(Goal, St) :-	check_loop(Goal, St, 1))),
+	ensure_loaded(hash_sicstus),
 	load_foreign_resource(hash_sicstus),
 	use_module(library(lists), [member/2]),
 	use_module(library(terms), [term_hash/4]).
