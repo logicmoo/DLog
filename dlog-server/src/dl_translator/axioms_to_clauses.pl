@@ -1,4 +1,4 @@
-:- module(axioms_to_clauses, [axioms_to_clauses/6]).
+:- module(axioms_to_clauses, [axioms_to_clauses/6, temp/2]).
 :- use_module('translator', [translate_axioms/4]).
 :- use_module('fol/translator_fol', [translate_axioms_fol/4]).
 :- use_module('../core/config',[get_dlog_option/2]).
@@ -19,6 +19,8 @@ axioms_to_clauses(_URI, SHIQAxioms,Clauses,_Ibox,Hbox,Transitive):-
 	; translate_axioms(SHIQAxioms,Clauses,Hbox,Transitive)
 	).
 
+temp(SHIQAxioms,Clauses):-
+	translate_axioms(SHIQAxioms, Clauses,_,_).
 
 
 	% elhagyjuk a tranzitivitashoz tartozo klozokat

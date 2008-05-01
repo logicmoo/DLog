@@ -2,7 +2,7 @@
 
 :- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).
 :- use_module('transitive', [inv/2]).
-:- use_module('selectResolvable', [selectResolvableList/2, selectResolvable/2]).
+:- use_module('selectResolvable', [selectResolvableList/2, selectResolvable/2, greater/2]).
 :- use_module(library(lists),[append/3,member/2,select/3,delete/3]).
 :- use_module(library(ordsets),[list_to_ord_set/2,ord_subset/2]).
 
@@ -55,6 +55,7 @@ saturate(W1,[C|W2],RInclusion,S):-
 redundant(C,[D|Ds]):-
 	(
 	  includes(C,D), !
+	  % nl, nl, print('redu: '), print(C), nl, print('from: '), print(D), nl,nl
 	; redundant(C,Ds)
 	).
 
@@ -75,7 +76,7 @@ includes(and(C),and(D)):- !,
 	list_to_ord_set(C,OC),
 	list_to_ord_set(D,OD),
 	ord_subset(OC,OD).
-includes(atmost(N,R,C),atmost(K,R,D)):-
+includes(atmost(N,R,C,L),atmost(K,R,D,L)):-
 	K =< N,
 	includes(D,C).
 includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):-
@@ -128,11 +129,13 @@ resolve_alone(atleast(1,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,N,skolem
 	N > 1,
 	N1 is N - 1.
 
-resolve_alone(atleast(K,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,K1,skolem]),atleast(K,R,C,[Original,N1])])):-
+resolve_alone(atleast(K,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,X,skolem]),atleast(K1,R,C,[Original,N1])])):-
 	N > K, !,
 	Min is N - K + 1,
-	number_between(Min,N,K1),
-	N1 is K1 - 1.
+	number_between(Min,N,X),
+	K1 is K - N + X,
+	N1 is X - 1.
+
 resolve_alone(atleast(N,R,C,[Original,N]),_,atleast(1,R,C,[Original,K,skolem])):-
 	number_between(1,N,K).
 
@@ -142,6 +145,23 @@ resolve_alone(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or(ResList)):-
 	  Res = atleast(_,_,_,_) -> ResList = [Res|Rest]
 	; Res = or(L) -> append(L,Rest,ResList)
 	).
+
+resolve_alone(or(List),_,or([atmost(0,R,AllC,L)|Rest])):-
+	List = [atmost(0,R,_,L)|_],
+	findall( C, (
+		      member(X,List),
+		      X = atmost(0,R,C,L)
+		    ), Cs
+	       ),
+	Cs = [_,_|_],
+	boolinter(Cs,AllC),
+	      
+	findall( C, (
+		      member(C,List),
+		      \+ C = atmost(0,R,_,L)
+		    ), Rest
+	       ).
+	
 
 % number_between(+Min,+Max,-Num):- Min =< Num =< Max
 number_between(N,N,N):- !.
@@ -189,53 +209,60 @@ resolve(D,atleast(N,R,C,Sel),Res):- !,
 	resolve(atleast(N,R,C,Sel),D,Res).
 
 % 2. szabaly
-resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel1)):-
-	(
-	  Sel = [_,_,_] -> Sel1 = Sel
-	; Sel = [Original] -> Sel1 = [Original,0,type1]
-	),	  
-
+resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel)):-
+	( Sel = [_] ; Sel = [_,_,_] ),
+	
 	\+ (
 	     D = atleast(_,_,_,_)
-	   ; D = atmost(_,_,_)
+	   ; D = atmost(_,_,_,_)
 	   ; D = or([atleast(_,_,_,_)|_])
-	   ; D = or([atmost(_,_,_)|_])
+	   ; D = or([atmost(_,_,_,_)|_])
 	   ), !,
 	resolve(C,D,CD).
 
 % 3., 4. szabaly
-resolve(atleast(K,R,D,Sel),atmost(N,R,C),Res):- !,
+resolve(atleast(K,R,D,Sel),atmost(N,R,C,L),Res):- !,
 	Sel = [Original],
 	
 	boolneg(C,NotC),
 	boolneg(D,NotD),
 	boolinter([C,NotD],CNotD),
-
+	
+	(
+	  L = [] -> K1 = K
+	; L = [Previous], greater(Previous,Original) ->
+	  (
+	    K > N -> Nx is N+1, number_between(1,Nx,K1)
+	  ; number_between(1,K,K1)
+	  )
+	),
+	
 	(
 	  N = 0 ->
 	  Res = atleast(K,R,NotC,[Original])
-	; K > N ->
+	; K1 > N ->
 	  N1 is K - N,
 	  Res = atleast(N1,R,NotC,[Original,K])
-	; N1 is N - K,
-	  Res = or([atleast(1,R,NotC,[Original,K]),atmost(N1,R,CNotD)])
+	; N1 is N - K1,
+	  K2 is K - K1 + 1,
+	  Res = or([atleast(K2,R,NotC,[Original,K]),atmost(N1,R,CNotD,[Original])])
 	).
 
 % 7. szabaly
-resolve(atleast(_,S,_,[_]),atmost(0,R,C),Res):- !,
+resolve(atleast(_,S,_,[_]),atmost(0,R,C,_),Res):- !,
 	inv(R,S),
 	boolneg(C,Res).
 
 resolve(atleast(K,S,_,[Original]),or(Cs),Res):-
-	Cs = [atmost(0,R,_)|_], inv(R,S), !,
+	Cs = [atmost(0,R,_,_)|_], inv(R,S), !,
 	findall( C, (
-		      member(atmost(0,R,C1),Cs),
+		      member(atmost(0,R,C1,_),Cs),
 		      boolneg(C1,C)
 		    ), Ci
 	       ),	
 	findall( D, (
 		      member(D,Cs),
-		      \+ D = atmost(_,_,_)
+		      \+ D = atmost(_,_,_,_)
 		    ), Ds
 	       ),
 	boolunion(Ds,D2),
@@ -273,12 +300,12 @@ simplifyConcepts([C|Cs],[R|Rs]):-
 simplifyConcept(not(top), bottom):- !.
 simplifyConcept(not(bottom), top):- !.
 
-simplifyConcept(atmost(N,R,C),Simplified):-
+simplifyConcept(atmost(N,R,C,L),Simplified):-
 	!,
 	simplifyConcept(C,C2),
 	(
 	  C2 == bottom -> Simplified = top
-	; Simplified = atmost(N,R,C2)
+	; Simplified = atmost(N,R,C2,L)
 	).
 simplifyConcept(atleast(N,R,C,Sel),Simplified):-
 	!,

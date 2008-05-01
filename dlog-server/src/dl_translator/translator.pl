@@ -30,11 +30,11 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion,Transit
 	% klozhalmaz telitese alap-szuperpozicioval
 	saturate(AllDefs,RInclusion,Saturated),
 	
-	% nl,print('Telites utan'),nl, show(Saturated),nl,
+	nl,print('Telites utan'),nl, show(Saturated),nl,
 
 	omit_structs(Saturated,atleast(_,_,_,_),FunFree),
 
-        % nl,print('Fuggvenyjelek kikuszobolesevel'),nl, show(FunFree),nl,
+        nl,print('Fuggvenyjelek kikuszobolesevel'),nl, show(FunFree),nl,
 
 	toClause_list(FunFree,FOL),
 

@@ -1,8 +1,10 @@
-:- use_module('../dlog').
+% :- use_module('../dlog').
 :- use_module('../dl_translator/show').
-:- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6]).
+:- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6,temp/2]).
 :- use_module('../core/config',[set_dlog_option/2]).
 % :- set_prolog_flag(unknown, fail).
+
+
 
 compare(X):-
 	atom_concat(sample,X,Y),
@@ -16,7 +18,8 @@ compare(X):-
 
 test(TBox):-
 	statistics(runtime, [T0,_]),
-	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
+	temp(TBox,TBox_Clauses),
+	% axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
 	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]),
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl
@@ -84,8 +87,11 @@ semintec_ford(Q):-
 	print(B).
 
 wine:-
-	load_KB_interpreter('d:/Logic/ontology/wine_0.dig'),
-	solve('AmericanWine').
+	set_dlog_option(dl_calculus,yes),
+	set_dlog_option(dig_reader_fault_tolerance,drop),
+	tell_dig('d:/Logic/ontology/wine_0.dig').
+
+% solve('AmericanWine').
 
 wine_ford:-
 	abolish(abox:_),	
@@ -294,6 +300,18 @@ sample16:-
 		      implies(top, atmost(3, arole(gyereke),top))
 		     ],
 	test([CInclusion, [],[]]).
+
+sample17:-
+	CInclusion = [
+		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(c))),
+
+		      implies(top,atleast(3,arole(r),aconcept(a))),
+		      implies(top,atleast(3,arole(r),aconcept(b))),
+		      implies(top,atleast(3,arole(r),aconcept(c))),
+		      
+		      implies(top,atmost(4,arole(r),top))
+		     ],
+	test([CInclusion, [], []]).
 
 
 

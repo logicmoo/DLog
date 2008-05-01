@@ -74,7 +74,7 @@ toFOL(and(L),X,and(R)):- !,
 	toFOL_list(L,X,R).
 toFOL(or(L),X,or(R)):- !,
 	toFOL_list(L,X,R).
-toFOL(atmost(N,R,C),X,or(Literals)):-
+toFOL(atmost(N,R,C,_),X,or(Literals)):-
 	boolneg(C,C2),
 	N1 is N + 1,
 	createVars(N1,Vars),
@@ -265,7 +265,7 @@ resolve_specific(C1,C2,PredName,R):-
 	  \+ ( member(not(arole(_,_,Y1)),M1), member(not(arole(_,_,Y2)),M2), Y1 == X, Y2 == X )
 	; select(not(nconcept(PredName,X)),Res1,M1),		
 	  select(nconcept(PredName,X),Res2,M2),
-	  \+ ( member(not(arole(_,_,Y1)),M1), member(not(arole(_,_,Y1)),M2), Y1 == X, Y2 == X )	  
+	  \+ ( member(not(arole(_,_,Y1)),M1), member(not(arole(_,_,Y2)),M2), Y1 == X, Y2 == X )
 	),
 	append(M1,M2,L),sort(L,R),
 	\+ (

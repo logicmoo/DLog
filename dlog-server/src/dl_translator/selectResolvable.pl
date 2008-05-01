@@ -1,4 +1,4 @@
-:- module(selectResolvable, [selectResolvableList/2, selectResolvable/2]).
+:- module(selectResolvable, [selectResolvableList/2, selectResolvable/2, greater/2]).
 
 :- use_module(library(lists), [select/3, append/3]).
 
@@ -15,15 +15,15 @@ selectResolvableList([C|Cs],[OC|OCs]):-
 selectResolvable(or(L),or([Greatest|Rest])):- !,
 	getGreatest(L,Greatest1,Rest),
 	(
-	  Greatest1 = atmost(N,R,C) ->
+	  Greatest1 = atmost(N,R,C,L) ->
 	  selectResolvable(C,C2),
-	  Greatest = atmost(N,R,C2)
+	  Greatest = atmost(N,R,C2,L)
 	; Greatest1 = atleast(N,R,C,Sel) ->
 	  selectResolvable(C,C2),
 	  Greatest = atleast(N,R,C2,Sel)
 	; Greatest = Greatest1
 	).
-selectResolvable(atmost(N,R,C),atmost(N,R,C2)):- !,
+selectResolvable(atmost(N,R,C,L),atmost(N,R,C2,L)):- !,
 	selectResolvable(C,C2).
 selectResolvable(atleast(N,R,C,Sel),atleast(N,R,C2,Sel)):- !,
 	selectResolvable(C,C2).
@@ -61,7 +61,7 @@ greatness(atleast(_,_,_,[_]),'50'):- !.
 greatness(atleast(_,_,_,[_,_]),'51'):- !.
 greatness(atleast(_,_,_,[_,_,_]),'52'):- !.
 
-greatness(atmost(N,R,C),G):-
+greatness(atmost(N,R,C,_),G):-
 	greatness(R,GR),
 	greatness(C,GC),
 	atom_concat('3',GR,G1),
