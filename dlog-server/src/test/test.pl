@@ -1,7 +1,7 @@
 :- use_module('../dlog').
 :- use_module('../dl_translator/show').
 :- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6]).
-:- use_module('../config',[set_dlog_option/2]).
+:- use_module('../core/config',[set_dlog_option/2]).
 % :- set_prolog_flag(unknown, fail).
 
 compare(X):-
