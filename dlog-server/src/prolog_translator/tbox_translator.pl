@@ -1,7 +1,9 @@
-% 2007. 10. 25.
-% BME
-% v0.1
-% todo: symmetric
+% (c) BME
+% v0.2
+% todo:
+% - unfolding
+% - not_ -> not/1
+% - inv_ -> inv/1
 :- module(prolog_translator,[tbox2prolog/3]).
 
 :- use_module(library(lists), [append/3, member/2, last/2, select/3]).
@@ -19,7 +21,7 @@
 		use_module(prolog_translator_swi_tools, [term_variables_bag/2, reduce/2, bb_put/2, bb_get/2])
 		; true.
 
-:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2, cls_to_neglist/2]).
+:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2, cls_to_neglist/2, body_to_list/2]).
 
 :- dynamic 
 	predicate/2,
@@ -37,6 +39,7 @@
 	predicate/2,
 	goal/2,
 	orphan/2,
+	orphan_like/2,
 	atomic_predicate/2,
 	atomic_like_predicate/2,
 	inverse/2,
@@ -81,7 +84,6 @@ transformed_kb(DepGraph, Signature) :-
 	write_orphans,
 	write_statistics.
 
-
 generated_atomic :-
 	(
 	  atomic_predicate(_, 1) ->
@@ -116,6 +118,7 @@ init(URI) :-
 	retractall(predicate(_,_)),
 	retractall(goal(_,_)),
 	retractall(orphan(_,_)),
+	retractall(orphan_like(_,_)),
 	retractall(atomic_predicate(_,_)),
 	retractall(atomic_like_predicate(_,_)),
 	retractall(inverse(_,_)),
@@ -232,10 +235,38 @@ component_boss([[P|Rs]-Es|Cs], Name, [[P|Rs]-Es|Rest], Boss) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Preprocessing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-preprocessing(Preds, Signature, NPreds) :-
+preprocessing(Preds, Signature, Final_NPreds) :-
 	first_phase(Preds, Signature), % kezdetleges orphan/2,  atomic/2 besorolasok
 	fixpoint(Preds, Signature, NPreds), % atomic_like, uj atomic, uj orphan besorolasok
-	recalculate_orphans(NPreds, Signature).
+	recalculate_orphans(NPreds, Signature),
+	calculate_orphan_likes(NPreds, Signature),
+	findall(N/A, orphan_like(N, A), OL),
+	orphan_like_preds(OL, OLPreds),
+	append(NPreds, OLPreds, Final_NPreds). 
+	
+
+orphan_like_preds([], []).
+orphan_like_preds([N/A|Ss], [N/A-[]|Ss0]) :-
+	orphan_like_preds(Ss, Ss0).
+
+calculate_orphan_likes(Preds, Signature) :-
+	calculate_orphane_likes0(Signature, Preds).
+
+calculate_orphane_likes0([], _).
+calculate_orphane_likes0([Name/Arity|Ss], Preds) :-
+	(
+	 Arity == 2 -> 
+	 true
+	;
+	 functor(G, Name, Arity),
+	 neg(G, NG),
+	 functor(NG, NGName, NGArity),
+	 \+ predicate(Name, Arity), path(NGName/NGArity, Name/Arity, [], Preds) -> % ha af
+  	 safe_assert(orphan_like(Name, Arity))
+	;
+	 true
+	),
+	calculate_orphane_likes0(Ss, Preds).
 
 recalculate_orphans(Preds, Signature) :-
 	retractall(orphan(_,_)),
@@ -271,10 +302,16 @@ iterate([Name/Arity-Clauses|Preds], OrigGraph, Signature, NGraph0) :-
 	    (
 	      RClauses == [] -> % all TBox clauses of the predicate are eliminated
 	      (
-		\+ memberchk(Name/Arity, Signature) -> % there are no ABox clauses either
-		safe_assert(orphan(Name, Arity))
+	       \+ memberchk(Name/Arity, Signature) -> % there are no ABox clauses either
+	       safe_assert(orphan(Name, Arity))
 	      ;
-		safe_assert(atomic_predicate(Name, Arity)) % Name/Arity has become atomic
+	       functor(G, Name, Arity),
+	       neg(G, NG),
+	       functor(NG, NGName, NGArity),
+	       \+ path(NGName/NGArity, Name/Arity, [], OrigGraph) ->
+	       safe_assert(atomic_predicate(Name, Arity)) % Name/Arity has become atomic
+	      ;
+	       true
       	      ),
 	      NGraph = NGraph0
 	    ;
@@ -366,21 +403,24 @@ referenced0([G|Gs], Name/Arity, Road, Graph) :-
 
 first_phase(Preds, Signature) :-
 	first_phase0(Preds),
-	first_atomic0(Signature),
+	first_atomic0(Signature, Preds),
 	orphane_clauses(Signature).
 
-first_atomic0([]).
-first_atomic0([Name/Arity|Ss]) :-
+first_atomic0([], _).
+first_atomic0([Name/Arity|Ss], Preds) :-
 	(
 	  Arity == 2 -> % bináris mindenképpen atomi, FIXME ha ez nem jó
 	  safe_assert(atomic_predicate(Name, Arity))
 	;
-	  \+ predicate(Name, Arity) -> 
-	  safe_assert(atomic_predicate(Name, Arity))
+	 functor(G, Name, Arity),
+	 neg(G, NG),
+	 functor(NG, NGName, NGArity),
+	 \+ predicate(Name, Arity), \+ path(NGName/NGArity, Name/Arity, [], Preds) -> % nem af, 2008. 05. 04.
+  	 safe_assert(atomic_predicate(Name, Arity))
 	;
 	  true
 	),
-	first_atomic0(Ss).
+	first_atomic0(Ss, Preds).
 
 first_phase0([]).
 first_phase0([Name/Arity-Clauses|Preds]) :-
@@ -490,6 +530,10 @@ transformed_predicate(Clauses, Name/Arity, DepGraph, Signature) :-
 	  atomic_like_predicate(Name, Arity) -> % concepts referring only to query predicates
 	  format('\% Atomic-like predicate ~p~n',[Name/Arity]),
 	  transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature)
+	;
+	  orphan_like(Name, Arity) -> 
+	  format('\% Orphan-like predicate ~p~n',[Name/Arity]),
+	 transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature)
 	;
 	  % non-atomic concept predicates
 	  format('\% Predicate ~p~n',[Name/Arity]),
@@ -874,7 +918,8 @@ transformed_nonatomic_predicate(Clauses, Name, NClauses, [GClause1,GClause2|OGCl
 	  OGClauses = [ABoxGoal|OGClauses0],
 	  GClauses = [ABoxGoal|GClauses0]
 	),
-	transformed_concept_predicate(Clauses, GClauses0, CCat, OGClauses0),
+	% transforming the rest of the clauses
+	transformed_concept_predicate(Clauses, GClauses0, CCat, OGClauses0), 
 	(
 	  env_parameter(projection, yes) ->
 	  NClauses = [] % in case of projection there is no normal branch
@@ -909,13 +954,13 @@ transformed_rule(Head, Body, HeadVar, Vars, RCat, Clause) :-
 	transformed_head(Head, AncestorList, THead),
 	body_to_list(Body, BodyList),
 	orphaned_goals(BodyList, Orphans, RBodyList, OVars), % collecting orphan calls
-	wrapped_orphans(Orphans, Head, AncestorList, WOrphans), % add ancestor list
+	wrapped_orphans(Orphans, Head, AncestorList, AL, WOrphans), % add ancestor list
 	body_to_list(OrphanGoals, WOrphans),
 	(
 	  OrphanGoals == true -> % there are no orphan calls to move front
 	  Rest = TBody0
 	;
-	  Rest = (OrphanGoals, TBody0)
+	  Rest = (FinalOrphanGoals, TBody0)
 	),
 	(
 	  Mode == once ->
@@ -950,14 +995,20 @@ transformed_rule(Head, Body, HeadVar, Vars, RCat, Clause) :-
 	(
 	  varinbody(TBody1, AL), (cat(loopput, RCat) ; cat(ancput, RCat)) -> 
 	  arranged_ancloop(TBody1, LoopAncPass, AL, ATBody), % putting LoopAncPass to the best place
-	  TBody0 = ATBody
+	  TBody0 = ATBody,
+	  FinalOrphanGoals = OrphanGoals
+	;
+	  varinbody(OrphanGoals, AL), (cat(loopput, RCat) ; cat(ancput, RCat)) ->
+	  FinalOrphanGoals = (LoopAncPass, OrphanGoals),
+	  TBody0 = TBody1
 	;
 	  AL = AncestorList,
+	  FinalOrphanGoals = OrphanGoals,
 	  TBody0 = TBody1  % special case: body does not contain reference to new anc/loop list
 	),
 	(
 	  TBody0 == true ->
-	  TBody = OrphanGoals  % body contains only orphan calls
+	  TBody = FinalOrphanGoals  % body contains only orphan calls
 	;
 	  TBody = Rest
 	),
@@ -1149,7 +1200,7 @@ new_headvar([V1,V2], Old, New) :-
 new_headvar(_, Old, New) :-
 	New = Old.
 
-wrapped_goal(SGoal, Goal, GVars, AllVars, anc(_AL, H, AL0), RGoal) :-
+wrapped_goal(SGoal, Goal, GVars, AllVars, anc(AL, H, AL0), RGoal) :-
 	functor(SGoal, Name, Arity),
 	Goal =.. [_|Args],
 	(
@@ -1183,7 +1234,7 @@ wrapped_goal(SGoal, Goal, GVars, AllVars, anc(_AL, H, AL0), RGoal) :-
 	  functor(NSGoal, NSGoalName, _),
 	  (
 	    HeadName == NSGoalName ->
-	    RGoal = Goal
+	    transformed_head(SGoal, AL, RGoal)
 	  ;
 	    transformed_head(SGoal, AL0, RGoal)
 	  )
@@ -1302,10 +1353,10 @@ orphaned_goals(Body, Orphans, Rest, OVars) :-
 	orphaned_goals0(Body, Orphans, Rest, OVars).
 
 
-wrapped_orphans([], _, _, []).
-wrapped_orphans([O|Os], H, AL0, [WO|WOs]) :-
-	wrapped_goal(O, dummy(1), [], [], anc([], H, AL0), WO),	
-	wrapped_orphans(Os, H, AL0, WOs).
+wrapped_orphans([], _, _, _, []).
+wrapped_orphans([O|Os], H, AL0, AL, [WO|WOs]) :-
+	wrapped_goal(O, dummy(1), [], [], anc(AL, H, AL0), WO),	
+	wrapped_orphans(Os, H, AL0, AL, WOs).
 
 
 
@@ -1325,11 +1376,6 @@ orphaned_goals0([G|Gs], Orphans0, Rest0, OVars0) :-
 	),
 	orphaned_goals(Gs, Orphans, Rest, OVars).
 	
-body_to_list(true, []) :- !.
-body_to_list((G1,G2), [G1,Gx|Gs]) :-   % at-least two goals
-	!, body_to_list(G2, [Gx|Gs]).
-body_to_list(G, [G]).
-
 ground_goal([], _).
 ground_goal([V|Vs], Vs2) :-
 	varmemberchk(V, Vs2),

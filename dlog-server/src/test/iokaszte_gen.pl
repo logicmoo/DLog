@@ -498,7 +498,7 @@ graf2dig(g(Elek, Csucsok), File) :-
 	current_output(Output),
 	set_output(Stream),
 	format('<?xml version="1.0" encoding="UTF-8"?>~n',[]),
-	format('<tells uri="" xmlns="http://dl.kr.org/dig/2003/02/lang">~n',[]),
+	format('<tells xmlns=""http://dl.kr.org/dig/lang">~n',[]),
 	format('    <defconcept name="Patricide"/>~n',[]),
 	format('    <defconcept name="Good"/>~n',[]),
 	format('    <equalc>~n',[]),

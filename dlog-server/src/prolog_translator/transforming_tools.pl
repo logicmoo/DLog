@@ -1,6 +1,12 @@
-:- module(transforming_tools,[headwrite/1, neg/2, add_key/2, unzip_second/2, list_to_open_list/2, contra/2, cls_to_neglist/2]).
+:- module(transforming_tools,[headwrite/1, neg/2, add_key/2, unzip_second/2, list_to_open_list/2, contra/2, cls_to_neglist/2, body_to_list/2]).
 
 :- use_module(library(lists)).
+
+
+body_to_list(true, []) :- !.
+body_to_list((G1,G2), [G1,Gx|Gs]) :-   % at-least two goals
+	!, body_to_list(G2, [Gx|Gs]).
+body_to_list(G, [G]).
 
 headwrite(Atom) :-
 	atom_codes(Atom, Cs),
