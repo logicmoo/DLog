@@ -74,7 +74,6 @@ stop_server :-
 
 %TODO: sebesség
 %TODO: összetett fogalmak ABoxban, kérdésben, összes szerep, fogalom, egyed
-%cassertion rassertion
 
 
 %DIGF : file name or stream(Stream)

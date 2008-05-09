@@ -195,28 +195,34 @@ write_tbox_header(URI) :-
 	%write(':- open_resource(dlog_hash, module, H), load_files(dlog_hash, [stream(H)]).\n'),
 	write('\n% ************************\n'),
 	write(  '% Header\n'),
-	write(  '% ************************\n'),
-	write('\nsicstus_init :-\n'),
-	write('    use_module(library(lists), [member/2]),\n'),
-	write('    use_module(hash).\n'),
-	write('\nswi_init :-\n'),
-	write('    (open_resource(dlog_hash, module, H)\n'),
-	write('    ->\n'),
-	write('        load_files(dlog_hash, [stream(H)]),\n'),
-	write('        import(lists:member/2)\n'),
-	write('    ;\n'),
-	write('        use_module(hash),\n'),
-	write('        use_module(library(lists), [member/2])\n'),
-	write('    ).\n'),
-	write('\n:- current_predicate(config:target/1)\n'),
-	write('    ->\n'),
-	write('        (config:target(sicstus) -> sicstus_init ; true),\n'),
-	write('        (config:target(swi) -> swi_init ; true)\n'),
-	write('    ;\n'),
-	write('        (current_prolog_flag(dialect, swi) -> swi_init\n'),
-	write('        ; %current_prolog_flag(language, sicstus) %sicstus/iso\n'),
-	write('            sicstus_init\n'),
-	write('        ).\n\n').
+	write(  '% ************************\n\n'),
+	portray_clause((
+		sicstus_init :-
+			use_module(library(lists), [member/2]),
+			use_module(hash))),
+	nl,
+	portray_clause((
+		swi_init :-
+			open_resource(dlog_hash, module, H)
+			->
+			load_files(dlog_hash, [stream(H)]),
+			import(lists:member/2)
+			;
+			use_module(hash),
+			use_module(library(lists), [member/2])
+		)),
+	nl,
+	portray_clause((
+		:- current_predicate(config:target/1)
+			->
+			(config:target(sicstus) -> sicstus_init ; true),
+			(config:target(swi) -> swi_init ; true)
+			;
+			(current_prolog_flag(dialect, swi) -> swi_init
+			; %current_prolog_flag(language, sicstus) %sicstus/iso
+			sicstus_init)
+		)),
+	nl.
 
 
 get_read_lock(URI) :-

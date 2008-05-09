@@ -36,8 +36,9 @@ help :-
 	print('show_option(K, URI): show the current value of the option K for the knowledge base identified by the URI.\n'),
 	print('set_option(K, V): set the current value of the option K to V.\n'),
 	print('set_option(K, URI, V): set the current value of the option K for the knowledge base identified by the URI to V.\n'),
-	print('execute_dig_file(F): execute commands from the DIG file F and print the results.\n'),
-	print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n'). %TODO?
+	print('execute_dig_file(F): execute commands from the DIG file F and print the result state.\n'),
+	print('execute_dig_filev(F): execute commands from the DIG file F and print the detailed results.\n').
+	%print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n'). %TODO?
 	% print('print(P): print the expression P.\n'),
 	% print('nl: print a new line.\n'),
 	% print('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), print(R).\n').
@@ -64,7 +65,7 @@ parse_console_command(start_server) :- !,
 parse_console_command(stop_server) :- !,
 	stop_server.
 
-parse_console_command(execute_dig_file(F)) :- !,
+parse_console_command(execute_dig_filev(F)) :- !,
 	catch(
 		execute_dig_file(F, R),
 		E,
@@ -72,12 +73,21 @@ parse_console_command(execute_dig_file(F)) :- !,
 	),
 	print(R),
 	nl.
-parse_console_command(execute_dig_file(F, R)) :- !,
+parse_console_command(execute_dig_file(F)) :- !,
 	catch(
 		execute_dig_file(F, R),
 		E,
-		R=E
-	).
+		(format('~w~n', E), fail)
+	),
+	R =.. [H|_],
+	print(H),
+	nl.
+% parse_console_command(execute_dig_file(F, R)) :- !,
+	% catch(
+		% execute_dig_file(F, R),
+		% E,
+		% R=E
+	% ).
 
 
 parse_console_command(quit) :- !,

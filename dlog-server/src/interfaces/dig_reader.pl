@@ -95,8 +95,8 @@ parse(Req, Atts, Elems, _) :-
 %	3. lista: tranzitiv szerepek
 %	   R, azaz egyszeruen szerepek listaja
 %
-%	Egy r szerep szintaxisa: arole(r) --> arole(r, i1, i2) --> inv(r)? TODO: feature, attribute
-%	Egy c atomi fogalom: aconcept(c) --> aconcept(c, i1)
+%	Egy r szerep szintaxisa: arole(r) --> rassertion(r, i1, i2) --> inv(r)? TODO: feature, attribute
+%	Egy c atomi fogalom: aconcept(c) --> cassertion(c, i1)
 %	Negalt fogalom: not(c)
 %	sok fogalom metszete: and([C1,C2,...Ck])
 %	sok fogalom unioja: or([C1,C2,...Ck])
@@ -199,7 +199,7 @@ parse_tell(instanceof, _Atts,
 			 element(dig:ConceptType, AttsC, ElemsC)]) -->
 	{parse_concept(ConceptType, AttsC, ElemsC, Concept),
 	memberchk((dig:name=I1), AttsI)}, 
-	add_ABox(aconcept(Concept, I1)).
+	add_ABox(cassertion(Concept, I1)).
 
 parse_tell(related, _Atts, 
 			[element(dig:individual, AttsI1, _ElemsI1), 
@@ -208,7 +208,7 @@ parse_tell(related, _Atts,
 	{parse_role(RoleType, AttsR, ElemsR, Role),
 	memberchk((dig:name=I1), AttsI1),
 	memberchk((dig:name=I2), AttsI2)}, 
-	add_ABox(arole(Role, I1, I2)).
+	add_ABox(rassertion(Role, I1, I2)).
 
 parse_tell(value, Atts, 
 			[element(dig:individual, AttsI, ElemsI), 
