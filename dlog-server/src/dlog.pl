@@ -1,9 +1,15 @@
-:- module(dlog, [%tell_dig/1, 
-					execute_dig_file/2, 
-					start_server/0, stop_server/0,
-					get_dlog_option/2, get_dlog_option/3, 
-					set_dlog_option/2, set_dlog_option/3,
-					create_binary/0, load_config_file/0]).
+:- module(dlog, [
+		execute_dig_file/2, %reexported from module dig_iface.
+		start_server/0, stop_server/0, %start/stop the server.
+		get_dlog_option/2, get_dlog_option/3, %reexported from module config.
+		set_dlog_option/2, set_dlog_option/3, %reexported from module config.
+		load_config_file/0, load_config_file/1, %reexported from module config.
+		create_binary/0 %create the stand-alone binary version of DLog.
+	]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                      STARTUP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % IMPORTANT: first load the config module, then load the config file, 
 %  finally load the rest!
@@ -12,15 +18,8 @@
 					set_dlog_option/2, set_dlog_option/3,
 					load_config_file/0, load_config_file/1]).
 
-
 %load config at startup
 :- initialization load_config_file.
-
-:- multifile user:file_search_path/2. %TODO: valami probléma SWI/VC nélküli gépeken
-user:file_search_path(foreign, LP) :- %TODO: include-hoz dlog(...)
-	get_dlog_option(base_path, B),
-	get_dlog_option(lib_path, L),
-	absolute_file_name(L, [relative_to(B)], LP).
 
 :- use_module('core/kb_manager', [new_kb/1, release_kb/1%, add_axioms/2
 			]).
@@ -34,29 +33,44 @@ user:file_search_path(foreign, LP) :- %TODO: include-hoz dlog(...)
 	use_module(library('http/http_dispatch')). %hiba kezelés, több szolgáltatás ugyanazon a porton (OWL?)
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-create_binary :- qsave_program('../bin/dlog', [stand_alone(true), 
-												goal(start_dlog), 
-												init_file(none),
-												toplevel(halt(1))
-												% toplevel(prolog) %debug
-												% local %stack sizes
-												% global
-												% trail
-												% argument
-												]).
+:- multifile user:file_search_path/2. 
+user:file_search_path(foreign, LP) :- %TODO: include-hoz dlog(...)?
+	get_dlog_option(base_path, B),
+	get_dlog_option(lib_path, L),
+	absolute_file_name(L, [relative_to(B)], LP).
 
-:- multifile user:resource/3.
+:- multifile user:resource/3. %TODO Sicstus
 user:resource(dlog_hash, module, 'hash/hash.pl').
 user:resource(hash_swi, module, 'hash/hash_swi.pl').
 
 
+%create the stand-alone binary version of DLog.
+create_binary :- 
+	get_dlog_option(base_path, B),
+	get_dlog_option(binary_name, RN),
+	absolute_file_name(RN, [relative_to(B)], N),
+	qsave_program(N, [
+		stand_alone(true), 
+		goal(start_dlog), 
+		init_file(none),
+		toplevel(halt(1))
+		% toplevel(prolog) %debug
+		% local %stack sizes
+		% global
+		% trail
+		% argument
+	]).
+
+
+%startup goal
 start_dlog :- 
 	print('Starting DLog server...\n'),
 	start_server,
 	console.
 
-
+%start the server.
 start_server :-
 	get_dlog_option(server_port, Port),
 	http_server(http_dispatch, [port(Port), timeout(30)]),
@@ -66,6 +80,7 @@ start_server :-
 		%... (stack méret, ssl)
 	format('Server started on port ~d.~n', Port).
 
+%stop the server.
 stop_server :- 
 	get_dlog_option(server_port, Port), %TODO: mi van, ha változtattak rajta?
 	http_stop_server(Port, _Options), %TODO: exception

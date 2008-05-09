@@ -25,6 +25,7 @@ default_option(description, D) :-
 default_option(base_path, './').
 default_option(output_path, '../output/'). %Relative to base_path
 default_option(config_file, 'dlog.conf'). %Relative to base_path
+default_option(binary_name, '../bin/dlog'). %Relative to base_path
 default_option(lib_path, 'hash'). %Relative to base_path
 
 

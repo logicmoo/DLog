@@ -13,17 +13,20 @@
 		; true.
 
 
+%register the server
 register_dig_server :- 
 	get_dlog_option(dig_server_path, Path),
 	get_dlog_option(dig_server_service_limit, Limit),
 	http_handler(Path, dig_server, [time_limit(Limit)]).
 
+%unregister the server
 unregister_dig_server :- 
 	http_current_handler(Path, dig_server),
 	http_delete_handler(Path).
 
 :- initialization register_dig_server.
 
+%service requests
 dig_server(Request) :-
 	(
 		memberchk(method(Method), Request),
@@ -49,6 +52,8 @@ dig_server(Request) :-
 		true
 	).
 
+%read the request from the HTTP stream
+%TODO: memory limit? disk file?
 read_dig_from_request(Request, NS-DIG) :-
 	new_memory_file(MemFile),
 	call_cleanup(
@@ -67,12 +72,14 @@ read_dig_from_request(Request, NS-DIG) :-
 		free_memory_file(MemFile)
 	).
 
+%execute_dig_file(+DIGFile, -Reply): 
+%Read commands from DIGFile, execute them, and return the result in Reply
 execute_dig_file(DIGFile, Reply) :-
 	read_dig(DIGFile, _NS-DIG),
 	execute(DIG, Reply).	
 
 
-%execute(Command, Reply) throws no_such_kb
+%execute(+Command, -Reply) throws no_such_kb
 execute(newKB, kb(URI)) :- 
 	new_kb(URI).
 execute(clearKB(URI), kb_cleared(URI)) :-
@@ -93,6 +100,7 @@ execute(asks(URI, Asks), responses(Responses)) :-
 	(var(URI) -> default_kb(URI) ; true),
 	with_read_lock(URI, dig_iface:ask(Asks, URI, Responses)).
 
+%execute asks
 ask([], _, []).
 ask([IDT-Type|Asks], URI, [Response|Responses]) :- 
 	(
@@ -131,9 +139,9 @@ ask([IDT-Type|Asks], URI, [Response|Responses]) :-
 	ask(Asks, URI, Responses).
 
 %supported:
-% allConceptNames
-% allRoleNames
-% allIndividuals
+unsupported(allConceptNames).
+unsupported(allRoleNames).
+unsupported(allIndividuals).
 %instances(Concept)
 %instance(Name, Concept)
 %roleFillers(Name, Role)
