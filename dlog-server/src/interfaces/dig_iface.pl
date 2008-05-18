@@ -3,6 +3,7 @@
 
 :- use_module('../core/config', [target/1, get_dlog_option/2]).
 :- use_module('../core/kb_manager').
+:- use_module('../core/dlogger', [error/3, warning/3, info/3, detail/3]).
 :- use_module(dig_reader).
 :- use_module(dig_identifier, [identifier/5]).
 :- target(swi) -> 
@@ -17,39 +18,64 @@
 register_dig_server :- 
 	get_dlog_option(dig_server_path, Path),
 	get_dlog_option(dig_server_service_limit, Limit),
-	http_handler(Path, dig_server, [time_limit(Limit)]).
+	http_handler(Path, dig_server, [time_limit(Limit)]),
+	info(dig_iface, register_dig_server, 'DIG server registered.').
 
 %unregister the server
 unregister_dig_server :- 
 	http_current_handler(Path, dig_server),
-	http_delete_handler(Path).
+	http_delete_handler(Path),
+	info(dig_iface, register_dig_server, 'DIG server unregistered.').
 
-:- initialization register_dig_server.
+:- initialization 
+	info(dig_iface, initialization, 'DIG interface initializing...'),
+	register_dig_server.%TODO: option?
 
 %service requests
 dig_server(Request) :-
+	info(dig_iface, dig_server(...), 'Request received.'),
+	detail(dig_iface, dig_server(Request), 'Request parameters:'),
 	(
 		memberchk(method(Method), Request),
 		Method \== post 
 	->  
 		%throw(http_reply(cgi_stream(+Stream, +Len))) %?
+		warning(dig_iface, dig_server([method(Method), ...]), 'Method Not Allowed.'),
 		throw(http_reply(forbidden('anything with GET method'), ['Allow'('POST')])) %TODO
 		%format('Allow: POST~n~n') %405 Method Not Allowed
 	;	true
 	),
+	catch(
+		(
+			process_request(Request)
+		->  true
+		;   error(dig_iface, dig_server(...), 'Internal server error (processing failed).'),
+			fail
+		),
+		E,
+		(
+			error(dig_iface, dig_server(...) --> E, 'Internal server error (exception).'),
+			throw(E)
+		)
+	).
+
+process_request(Request) :-
 	format('Content-type: text/xml~n~n', []),
 	read_dig_from_request(Request, NS-DIG),
+	detail(dig_iface, process_request(...) --> NS-DIG, 'Request body:'),
 	(
 		nonvar(DIG) 
 	-> 
 		catch(
 			execute(DIG, Reply),
 			no_such_kb,  
-			Reply = no_such_kb
+			(	Reply = no_such_kb, 
+				warning(dig_iface, process_request(...), 'Invalid KB reference.')
+			)
 		),
 		reply(Reply, NS)
-	;	
-		true
+	;
+		true %sent error
 	).
 
 %read the request from the HTTP stream
@@ -65,7 +91,9 @@ read_dig_from_request(Request, NS-DIG) :-
 			catch(
 				read_dig(stream(DIGFile), NS-DIG),
 				digerror(Code, Expl, Msg, NS),
-				send_error(Code, Expl, Msg, NS)
+				(send_error(Code, Expl, Msg, NS),
+				info(dig_iface, read_dig_from_request(...) --> digerror(Code, Expl, Msg, NS), 'Error in DIG code.') %TODO: info/warning?
+				)
 			),
 			close(DIGFile)
 		),
@@ -76,64 +104,87 @@ read_dig_from_request(Request, NS-DIG) :-
 %Read commands from DIGFile, execute them, and return the result in Reply
 execute_dig_file(DIGFile, Reply) :-
 	read_dig(DIGFile, _NS-DIG),
+	detail(dig_iface, execute_dig_file(DIGFile, ...) --> DIG, 'DIG content:'),
 	execute(DIG, Reply).	
 
 
 %execute(+Command, -Reply) throws no_such_kb
 execute(newKB, kb(URI)) :- 
+	info(dig_iface, execute(newKB, ...), 'Creating new KB.'),
 	new_kb(URI).
 execute(clearKB(URI), kb_cleared(URI)) :-
 	(var(URI) -> default_kb(URI) ; true),
+	info(dig_iface, execute(clearKB(URI), ...), 'Clearing KB.'),
 	clear_kb(URI).
 execute(clearKBW(URI), kb_cleared_in_tells(URI)) :- 
 	(var(URI) -> default_kb(URI) ; true),
+	info(dig_iface, execute(clearKB(URI), ...), 'Clearing KB (in a tell request!).'),
 	clear_kb(URI).
 execute(releaseKB(URI), kb_released(URI)) :-
+	info(dig_iface, execute(releaseKB(URI), ...), 'Releasing KB.'),
 	release_kb(URI).
-execute(getIdentifier, identifier).
+execute(getIdentifier, identifier) :-
+	info(dig_iface, execute(getIdentifier, ...), 'DIG identifier request.').
 execute(tells(URI, Axioms), Reply) :-
 	(var(URI) -> default_kb(URI) ; true),
-	add_axioms(URI, Axioms) ->
-		Reply = axioms_added(URI, Axioms)
-	;	Reply = failed_to_add_axiom(URI, Axioms).
+	info(dig_iface, execute(tells(URI, ...), ...), 'Adding axioms.'),
+	detail(dig_iface, execute(tells(URI, Axioms), ...), 'Axioms:'),
+	(add_axioms(URI, Axioms) 
+	->	Reply = axioms_added(URI, Axioms)
+	;	Reply = failed_to_add_axiom(URI, Axioms),
+		warning(dig_iface, execute(tells(URI, ...), ...), 'Failed to add axioms.') %TODO: warning/error?
+	).
 execute(asks(URI, Asks), responses(Responses)) :-
 	(var(URI) -> default_kb(URI) ; true),
+	info(dig_iface, execute(asks(URI, ...), ...), 'Running queries.'),
 	with_read_lock(URI, dig_iface:ask(Asks, URI, Responses)).
 
 %execute asks
 ask([], _, []).
 ask([IDT-Type|Asks], URI, [Response|Responses]) :- 
-	(
-		IDT = id(ID) -> true
-		; IDT = noid, ID = noid %TODO
+	(IDT = id(ID) 
+	->	true
+	;	IDT = noid, 
+		ID = noid, %TODO
+		warning(dig_iface, ask(..., URI, ...), 'Query ID missing.'),
+		detail(dig_iface, ask([IDT-Type| ...], URI, ...), 'Query:')
 	),
 	catch(
 		(
 			Type = unknown(Elem) %unknown ask
 		->
-			Response = ID-unknown(Elem)
+			Response = ID-unknown(Elem),
+			info(dig_iface, ask([IDT-Type| ...], URI, ...), 'Unknown query.') %TODO: info/warning?
 		;
 			Type = unsupported(Elem) %unsupported concept
 		->
-			Response = ID-unsupported(Elem)
+			Response = ID-unsupported(Elem),
+			info(dig_iface, ask([IDT-Type| ...], URI, ...), 'Unsupported concept in query.')
 		;	
 			unsupported(Type) %unsupported ask
 		->
-			Response = ID-unsupported(Elem)
+			Response = ID-unsupported(Elem),
+			info(dig_iface, ask([IDT-Type| ...], URI, ...), 'Unsupported query operation.')
 		;
 			( %supported question
-				run_query(Type, URI, Answer)
+				run_query(URI, Type, Answer)
 			->
-				Response = ID-Answer
+				Response = ID-Answer,
+				detail(dig_iface, ask([IDT-Type| ...], URI, [Response|...]), 'Query successful.')
 			;
-				Response = ID-error(bad_question(Type))  %bad answer
+				Response = ID-error(bad_question(Type)),  %bad answer
+				warning(dig_iface, ask([IDT-Type| ...], URI, ...), 'Query failed.')
 			)
 		), 
 		E, %whatever exception
 		(
-			E = no_such_kb -> throw(no_such_kb)
-			;
-			Response = ID-error(E)
+			E == no_such_kb 
+		->	throw(no_such_kb) %handled in process_request
+		;	E == time_limit_exceeded
+		->	%warning(dig_iface, ask([IDT-Type| ...], URI, ...), 'Timeout while running query.'),
+			throw(time_limit_exceeded) %handled in dig_server
+		;	Response = ID-error(E),
+			warning(dig_iface, ask([IDT-Type| ...], URI, [Response|...]), 'Exception while running query.')
 		)
 	),
 	ask(Asks, URI, Responses).
@@ -243,7 +294,6 @@ reply(identifier, NS) :-
 	get_dlog_option(description, Message),
 	identifier(NS, Name, Version, Message, Identifier),
 	send_xml(Identifier).
-	%throw(http_reply(file('text/xml', 'interfaces/dig_identifier.dig'))). %resource? TODO NS
 reply(axioms_added(_URI, _Axioms), NS) :-
 	 send_xml(element(response, [xmlns=NS],	[element(ok, [],[])])).
 reply(failed_to_add_axiom(_URI, _Axioms), NS) :-
@@ -251,8 +301,6 @@ reply(failed_to_add_axiom(_URI, _Axioms), NS) :-
 reply(responses(Responses), NS) :-
 	create_responses(Responses, R),
 	send_xml(element(responses, [xmlns=NS], R)).
-
-
 
 
 

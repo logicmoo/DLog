@@ -26,6 +26,7 @@
 :- use_module('core/console', [console/0]).
 %:- use_module('interfaces/dig_reader', [read_dig/2]).
 :- use_module('interfaces/dig_iface', [execute_dig_file/2]).
+:- use_module('core/dlogger', [error/3, warning/3, info/3, detail/3]).
 
 :- target(swi) -> 
 	use_module(library('http/thread_httpd')),
@@ -65,8 +66,8 @@ create_binary :-
 
 
 %startup goal
-start_dlog :- 
-	print('Starting DLog server...\n'),
+start_dlog :-
+	info(dlog, start_dlog, 'Starting DLog server...'),
 	start_server,
 	console.
 
@@ -78,18 +79,16 @@ start_server :-
 		%workers(+N): hány szál (2)
 		%after(:Goal) -> válasz után feldolgozás/statisztika
 		%... (stack méret, ssl)
-	format('Server started on port ~d.~n', Port).
+	format(atom(M), 'Server started on port ~d.', Port),
+	info(dlog, start_server, M).
 
 %stop the server.
 stop_server :- 
 	get_dlog_option(server_port, Port), %TODO: mi van, ha változtattak rajta?
 	http_stop_server(Port, _Options), %TODO: exception
-	format('Server stopped on port ~d.~n', Port).
+	format(atom(M), 'Server stopped on port ~d.~n', Port),
+	info(dlog, stop_server, M).
 	
-
-%TODO: sebesség
-%TODO: összetett fogalmak ABoxban, kérdésben, összes szerep, fogalom, egyed
-
 
 %DIGF : file name or stream(Stream)
 % tell_dig('../examples/iocaste/c10.dig').

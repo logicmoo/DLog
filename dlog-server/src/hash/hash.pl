@@ -3,13 +3,15 @@
 		     check_anc/2,check_loop/2]).
 
 sicstus_init :-
-	ensure_loaded(hash_sicstus),
-	load_foreign_resource(hash_sicstus),
+	%disabled until hash is fixed
+	%ensure_loaded(hash_sicstus),
+	%load_foreign_resource(hash_sicstus),
 	use_module(library(lists), [member/2]),
 	use_module(library(terms), [term_hash/4]).
 
 swi_init :- 
-	initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
+	%disabled until hash is fixed
+	%initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
 	(open_resource(hash_swi, module, H) 
 	-> 
 		load_files(hash_swi, [stream(H)]),
@@ -32,15 +34,18 @@ swi_init :-
 	.
 
 
-
+%changed until hash is fixed
 init_state(LoopHash-AncList) :-
-	init_hash(LoopHash),
+	%init_hash(LoopHash),
+	LoopHash = [],
 	AncList = [].
 
-new_state(Goal, LH-AL0, LH-AL) :-
-	new_loop(Goal, LH-AL0, _),
+new_state(Goal, LH0-AL0, LH-AL) :-
+	new_loop(Goal, LH0-_, LH-_),
 	AL = [Goal|AL0].
 
+%enabled until hash is fixed
+new_loop(Goal, LH-AL, [Goal|LH]-AL).
 
 % new_loop(Goal, LH-AL, LH-AL) :-
 %	add_goal(Goal, LH).
@@ -63,15 +68,24 @@ new_anc(Goal, LH-AL0, LH-AL) :-
 check_anc(Goal, _-AL) :-
 	member(Goal, AL).
 
+
+%enabled until hash is fixed
+check_loop(Goal, LH-_) :-
+	memberchk(Goal, LH).
 % check_loop(Goal, LH-_) :-
 %	hash_elem(Goal, LH, Elem),
 %	membereq(Elem, Goal).
 
 % membereq(List, _) :- var(List), !, fail.
-% membereq([Y|_], X) :- X == Y.
-% membereq([_|List], X) :-
+% membereq([Y|_], X) :- 
+	% X == Y%, !
+	% . 
+% membereq([_|List], X) :- 
 	% membereq(List, X).
 
+
+%disabled until hash is fixed
+/*
 init_hash(Hash) :-
 	init_hash(200, 250, HashL),
 	Hash =.. [f|HashL].
@@ -108,4 +122,4 @@ betw(N, M, X) :-
 	N < M,
 	N1 is N+1,
 	betw(N1, M, X).
-
+*/

@@ -106,6 +106,8 @@ parse_console_command(end_of_file) :- !,
 	% parse_console_command(B).
 parse_console_command(help) :- !,
 	help.
+parse_console_command(prolog) :- !,
+	prolog.
 parse_console_command(A) :- 
 	format('Unknown command "~w".~n', A),
 	print('Type "quit." to quit, "help." for help.\n').

@@ -1,5 +1,5 @@
 :- module(kb_manager, [
-					new_kb/1, release_kb/1, add_axioms/2, run_query/3, %addTAxioms/2, addAAxioms/2 ?
+					new_kb/1, release_kb/1, add_axioms/2, run_query/3,
 					default_kb/1, clear_kb/1,
 					with_read_lock/2, with_write_lock/2
 					]).
@@ -10,11 +10,15 @@
 :- use_module('../prolog_translator/abox_signature', [abox_signature/3]).
 :- use_module('../prolog_translator/abox_translator', [abox2prolog/2]).
 :- use_module('../prolog_translator/tbox_translator', [tbox2prolog/3]).
+:- use_module(dlogger, [info/3, detail/3]).
 :- use_module(query, [query/4]).
 :- use_module(config, [target/1, default_kb/1, kb_uri/2, 
 				get_dlog_option/3, remove_dlog_options/1,
 				abox_module_name/2, tbox_module_name/2, 
 				abox_file_name/2, tbox_file_name/2]).
+
+:- use_module(library(listing), [portray_clause/1]).
+
 :- target(swi) -> 
 	use_module(library(memfile)),
 	use_module(core_swi_tools, [datime/1])
@@ -30,11 +34,13 @@
 
 %:- default_kb(Def), mutex_create(kb_count), mutex_create(Def).
 :- initialization
+		detail(kb_manager, initialization, 'KB manager initializing...'),
 		assert(kb_count(1)), 
 		default_kb(Def), 
 		mutex_create(kb_count), 
 		mutex_create(Def),
-		assert(current_kb(Def)). %initialization?
+		assert(current_kb(Def)),
+		info(kb_manager, initialization, 'KB manager initialized.').
 
 
 exists_kb(URI) :-
@@ -51,7 +57,8 @@ new_kb(URI) :-
 	)),
 	kb_uri(ID, URI),
 	mutex_create(URI),
-	assert(current_kb(URI)).
+	assert(current_kb(URI)),
+	info(kb_manager, new_kb(URI), 'New KB created.').
 
 release_kb(URI) :-
 	with_write_lock(URI,
@@ -59,9 +66,9 @@ release_kb(URI) :-
 		clear_kb(URI),
 		remove_dlog_options(URI), %beállítások törlése
 		retract(current_kb(URI))
-	))
+	)),
 	%,mutex_destroy(URI) %TODO
-	.
+	info(kb_manager, release_kb(URI), 'KB released.').
 
 clear_kb(URI) :- 
 	with_write_lock(URI,
@@ -69,10 +76,11 @@ clear_kb(URI) :-
 		tbox_module_name(URI, TB),
 		abox_module_name(URI, AB),
 		abolish_module(AB),
-		abolish_module(TB)		
+		abolish_module(TB)
 		%TODO file-ok törlése?
 		%, remove_dlog_options(URI) %TODO: beállítások törlése? -> csak default kb-nál
-	)).
+	)),
+	info(kb_manager, clear_kb(URI), 'KB cleared.').
 
 abolish_module(Module) :-
 	current_predicate(Module:P),
@@ -84,6 +92,8 @@ abolish_module(Module) :-
 abolish_module(_Module).
 
 add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni, hozzáadni
+	info(kb_manager, add_axioms(URI, ...), 'Adding axioms to KB.'),
+	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)), 'Axioms:'),
 	exists_kb(URI),
 	axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
 			  TBox_Clauses, IBox, HBox, _), %TODO
@@ -94,7 +104,8 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 	(	
 		add_abox(ATarget, URI, abox(ABoxStr)),
 		add_tbox(TTarget, URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature))
-	)).
+	)),
+	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
 
 add_abox(tempfile, URI, ABox) :-
 	new_memory_file(AMemFile),
@@ -170,13 +181,16 @@ add_tbox(assert, URI, TBox, ABox) :-
 	tbox2prolog(URI, TBox, ABox).
 
 
-run_query(Query, URI, Answer) :- 
+run_query(URI, Query, Answer) :- 
+	info(kb_manager, run_query(URI, ...), 'Querying KB.'),
+	detail(kb_manager, run_query(URI, Query, ...), 'Query:'),
 	with_read_lock(URI,
 	(
 		tbox_module_name(URI, TBox),
 		abox_module_name(URI, ABox),
 		query(Query, TBox, ABox, Answer)
-	)).
+	)),
+	detail(kb_manager, run_query(URI, Query, Answer), 'Query results:').
 
 
 write_tbox_header(URI) :-

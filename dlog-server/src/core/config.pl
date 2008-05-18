@@ -11,6 +11,8 @@
 % target(sicstus).
 target(swi).
 
+:- use_module(dlogger, [error/3, warning/3, info/3, detail/3]).
+
 
 %default_option(?Name, ?Value): compile time default preferences
 %%%%%%%%%%%% System Options %%%%%%%%%%%%
@@ -27,6 +29,9 @@ default_option(output_path, '../output/'). %Relative to base_path
 default_option(config_file, 'dlog.conf'). %Relative to base_path
 default_option(binary_name, '../bin/dlog'). %Relative to base_path
 default_option(lib_path, 'hash'). %Relative to base_path
+
+default_option(logging_detail, warning). %[detail, info, warning, error, silent]
+default_option(logfile, user_error). %open, writeable stream 
 
 
 %%%%%%%%%%%% Translator Options %%%%%%%%%%%%
@@ -166,9 +171,10 @@ load_config_file(File) :-
 			(open(File, read, S),
 			call_cleanup(read(S, T), close(S)),
 			set_dlog_options(T),
-			format('Config file (~a) loaded.\n', File)
+			info(config, load_config_file(File), 'Config file loaded.')
 			),
 			E,
-			format('Error loading config file (~a): ~w.\n', [File, E])
+			error(config, load_config_file(File) --> E, 'Error loading config file.')
 		)
-	;	format('Could not open config file (~a).\n', File).
+	;	error(config, load_config_file(File), 'Could not open config file.').
+
