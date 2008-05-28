@@ -10,14 +10,13 @@ sicstus_init :-
 	use_module(library(terms), [term_hash/4]).
 
 swi_init :- 
-	%disabled until hash is fixed
-	%initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
-	(open_resource(hash_swi, module, H) 
+	initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
+	(open_resource(hash_swi, module, _H) 
 	-> 
-		load_files(hash_swi, [stream(H)]),
+%		load_files(hash_swi, [stream(_H)]),
 		import(lists:member/2)
 	; 
-		use_module(hash_swi, [term_hash/4]),
+%		use_module(hash_swi, [term_hash/4]),
 		use_module(library(lists), [member/2])
 	).
 
@@ -34,18 +33,13 @@ swi_init :-
 	.
 
 
-%changed until hash is fixed
 init_state(LoopHash-AncList) :-
-	%init_hash(LoopHash),
-	LoopHash = [],
+	init_hash(LoopHash),
 	AncList = [].
 
 new_state(Goal, LH0-AL0, LH-AL) :-
-	new_loop(Goal, LH0-_, LH-_),
+	new_loop(Goal, LH0-_, LH-_), %TODO: csak LH-t átadni
 	AL = [Goal|AL0].
-
-%enabled until hash is fixed
-new_loop(Goal, LH-AL, [Goal|LH]-AL).
 
 % new_loop(Goal, LH-AL, LH-AL) :-
 %	add_goal(Goal, LH).
@@ -69,9 +63,6 @@ check_anc(Goal, _-AL) :-
 	member(Goal, AL).
 
 
-%enabled until hash is fixed
-check_loop(Goal, LH-_) :-
-	memberchk(Goal, LH).
 % check_loop(Goal, LH-_) :-
 %	hash_elem(Goal, LH, Elem),
 %	membereq(Elem, Goal).
@@ -84,7 +75,7 @@ check_loop(Goal, LH-_) :-
 	% membereq(List, X).
 
 
-%disabled until hash is fixed
+%disabled forever :P
 /*
 init_hash(Hash) :-
 	init_hash(200, 250, HashL),

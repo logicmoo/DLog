@@ -61,7 +61,7 @@ counter(orphancres).
 % statistics(no) : [yes, no] generates code that collects runtime statistics
 % orphan(priority) : [normal, priority] whether orphan calls are considered to be normal concept calls
 % decompose(yes) : [yes, no] whether to decompose the bodies into SCCs
-% allinone(no) : [yes, no] whether to generate all-in-one Prolog code
+% removed: allinone(no) : [yes, no] whether to generate all-in-one Prolog code
 % indexing(yes) : [yes, no] whether to generate inverses for roles for efficient indexes
 % projection(yes): [no, yes] whether to generate projection goals
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
@@ -623,9 +623,9 @@ write_clauses0([C|Cs]) :-
 	write_clauses0(Cs).
 
 helper_goal(Head0, Head1, Head2, Cat) :-
-	env_parameter(allinone, yes), !,
+%	env_parameter(allinone, yes), !,
 	helper_goal0(Head0, Head1, Head2, Cat).
-helper_goal(_, _, _, _).
+%helper_goal(_, _, _, _).
 
 helper_goal0(Head0, Head1, _Head2, Cat) :-
 	(env_parameter(ground_optim, yes); env_parameter(projection, yes)), !,
@@ -1686,7 +1686,7 @@ goal_present0([_|Gs], Goal) :-
 %%%%%%%%%%%%%%%%%%%%%%%
 
 write_statistics :-
-	env_parameter(allinone, yes),
+	%env_parameter(allinone, yes),
 	env_parameter(statistics, yes), !,
 	nl,
 	headwrite('Auxiliary predicates'),

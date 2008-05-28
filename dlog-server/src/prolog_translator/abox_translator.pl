@@ -13,7 +13,8 @@
 
 % Available options:
 % indexing(yes) : [yes, no] whether to generate inverses for roles for efficient indexes
-% generate_abox(no): [yes, no] whether to generate an ABox Prolog file
+% removed: generate_abox(no): [yes, no] whether to generate an ABox Prolog file
+% abox_target(assert): [assert, tempfile, allinonefile]
 abox2prolog(URI, abox(ABoxStr)) :-
 	generate_abox(URI, ABoxStr).
 
@@ -51,18 +52,30 @@ transformed_abox([], _Indexing, _ABox).
 transformed_abox([P-L|Ps], Indexing, ABox) :-
 	(
 	  L = [_-[*]|_] ->
-	  format('~n:- discontiguous(\'~w\'/1).~n',[P]),
+	  (
+		ABox == yes ->
+		format('~n:- discontiguous(\'~w\'/1).~n',[P])
+	  ; true
+	  ),
 	  transformed_abox_concept(L, P, ABox)
 	;
 	  Indexing == yes ->
 	  inverses(L, IL),
 	  atom_concat('idx_', P, IP),
-  	  format('~n:- discontiguous(\'~w\'/2).~n',[P]),
- 	  format(':- discontiguous(\'~w\'/2).~n',[IP]),
+  	  (
+		ABox == yes ->
+		format('~n:- discontiguous(\'~w\'/2).~n',[P]),
+ 	    format(':- discontiguous(\'~w\'/2).~n',[IP])
+	  ; true
+	  ),
 	  transformed_abox_idx_role(L, P, ABox),
 	  transformed_abox_idx_role(IL, IP, ABox)
 	;
-  	  format('~n:- discontiguous(\'~w\'/2).~n',[P]),
+	  (
+		ABox == yes ->
+  	    format('~n:- discontiguous(\'~w\'/2).~n',[P])
+	  ; true
+	  ),
 	  transformed_abox_noidx_role(L, P, ABox)
 	),
 	transformed_abox(Ps, Indexing, ABox).

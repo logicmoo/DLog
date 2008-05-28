@@ -17,7 +17,7 @@
 %register the server
 register_dig_server :- 
 	get_dlog_option(dig_server_path, Path),
-	get_dlog_option(dig_server_service_limit, Limit),
+	get_dlog_option(dig_server_service_limit, Limit), %seconds or 'infinite'
 	http_handler(Path, dig_server, [time_limit(Limit)]),
 	info(dig_iface, register_dig_server, 'DIG server registered.').
 

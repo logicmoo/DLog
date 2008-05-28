@@ -25,10 +25,10 @@ default_option(description, D) :-
 	get_dlog_option(server_port, P), 
 	format(atom(D), '~a ~a running on ~a:~d.', [N, V, H, P]).
 default_option(base_path, './').
-default_option(output_path, '../output/'). %Relative to base_path
-default_option(config_file, 'dlog.conf'). %Relative to base_path
-default_option(binary_name, '../bin/dlog'). %Relative to base_path
-default_option(lib_path, 'hash'). %Relative to base_path
+default_option(output_path, '../output/'). %Output directory (relative to base_path)
+default_option(config_file, 'dlog.conf'). %config file name (relative to base_path)
+default_option(binary_name, '../bin/dlog'). %binary directory (relative to base_path)
+default_option(lib_path, 'hash'). %library path (relative to base_path)
 
 default_option(logging_detail, warning). %[detail, info, warning, error, silent]
 default_option(logfile, user_error). %open, writeable stream 
@@ -48,17 +48,17 @@ default_option(q_elimination, no). %[yes, no]
 default_option(dl_calculus, no). %[yes, no]
 
 %assert: assert to module
-%tempfile: create to temporary memory/disk file, compile to module --> TODO: delete after compile/destroying KB
-%allinonefile: create standalone prolog file, ?compile to module? --> don't delete
-default_option(allinone, yes). %[yes, no]	%TODO
-default_option(abox_target, allinonefile). %[assert, tempfile, allinonefile]
-default_option(tbox_target, allinonefile). %[assert, tempfile, allinonefile]
+%tempfile: create temporary memory/disk file
+%allinonefile: create standalone prolog file
+%default_option(allinone, yes). %[yes, no]
+default_option(abox_target, assert). %[assert, tempfile, allinonefile]
+default_option(tbox_target, tempfile). %[tempfile, allinonefile]
 
 %%%%%%%%%%%% Server Options %%%%%%%%%%%%
 default_option(server_port, 8080).
 default_option(server_host, localhost).
-default_option(dig_server_path, '/'). %DIG server elérése
-default_option(dig_server_service_limit, 60). %a kiszolgálásra mennyit várjon
+default_option(dig_server_path, '/'). %path to DIG server
+default_option(dig_server_service_limit, 60). %time limit for servicing a request
 default_option(dig_reader_fault_tolerance, no). %[no, drop, yes] a nem támogatott fogalmakra dobjon-e hibát
 
 :- dynamic current_option/2.
@@ -66,7 +66,7 @@ default_option(dig_reader_fault_tolerance, no). %[no, drop, yes] a nem támogatot
 
 %get_dlog_option(+Name, ?Value): get non KB-specific options
 get_dlog_option(Name, Value) :-
-	current_option(Name, Val) -> Val=Value
+	current_option(Name, Val) -> Val = Value
 	; default_option(Name, Value).
 
 %get_dlog_option(+Name, +URI, ?Value): get KB-specific options
@@ -75,9 +75,9 @@ get_dlog_option(Name, URI, Value) :-
 	atom_concat('option_', URI, OptURI),
 	(
 		current_predicate(OptURI/2),
-		call(OptURI, Name, Val) -> Val=Value
+		call(OptURI, Name, Val) -> Val = Value
 	;
-		current_option(Name, Value) -> Val=Value
+		current_option(Name, Val) -> Val = Value
 	; 
 		default_option(Name, Value)
 	).

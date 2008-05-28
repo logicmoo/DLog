@@ -4,5 +4,10 @@ Sicstus:
 splfr hash_sicstus.c hash_sicstus.pl
 
 SWI:
-plld -shared hash_swi.c -o hash_swi
+windows:
+plld -shared -cc-options,/GR -cc-options,/W3 hash_swi.cpp Backtrackable_HashSet.cpp -o hash_swi pthreadVC.lib
+
+
+
+
 
