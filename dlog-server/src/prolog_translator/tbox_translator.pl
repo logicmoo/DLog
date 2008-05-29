@@ -10,12 +10,14 @@
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3]).
 
 :- use_module('../core/config').
+
 :- target(sicstus) -> 
 		use_module(library(lists),[memberchk/2]),
 		use_module(library(terms), [term_variables_bag/2]),
-		use_module(library(ugraphs), [reduce/2])
+		use_module(library(ugraphs), [reduce/2]),
+		use_module(prolog_translator_sicstus_tools, [(thread_local)/1])
 		; true.
-	 
+
 :- target(swi) -> 
 		use_module(library(listing), [portray_clause/1]), 
 		use_module(prolog_translator_swi_tools, [term_variables_bag/2, reduce/2, bb_put/2, bb_get/2])

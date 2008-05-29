@@ -2,15 +2,14 @@
 :- module(dig_reader,[read_dig/2]).
 
 :- use_module('../core/config', [target/1, get_dlog_option/2]).
-%:- use_module('../core/kb_manager', [default_kb/1]). %TODO ezt ne itt
 :- target(sicstus) -> 
-        use_module('xml_reader/xml_parser') %TODO
+        %use_module('xml_reader/xml_parser') %TODO
+		use_module(library(xml)) %TODO
         ; true.
 :- target(swi) ->
          use_module(library(sgml))
 	 ; true.
 :- use_module(library(lists)).
-%:- use_module('../tools/show').
 
 
 % read_dig(+DIG_Input,-Answer) throws 

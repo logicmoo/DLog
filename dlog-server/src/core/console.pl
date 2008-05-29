@@ -22,7 +22,7 @@ console :-
 	),
 	fail.
 
-help :-	
+dlog_help :-	
 	get_dlog_option(description, D),
 	format('~a~n~n', D),
 	% print('Commands can be separated with commas (,), and end with a dot (.).\n\n'),
@@ -105,7 +105,7 @@ parse_console_command(end_of_file) :- !,
 	% !, 
 	% parse_console_command(B).
 parse_console_command(help) :- !,
-	help.
+	dlog_help.
 parse_console_command(prolog) :- !,
 	prolog.
 parse_console_command(A) :- 

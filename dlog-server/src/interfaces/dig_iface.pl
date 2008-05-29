@@ -12,6 +12,9 @@
 		use_module(library(sgml_write), [xml_write/3]),
 		use_module(library(memfile))
 		; true.
+:- target(sicstus) -> 
+		use_module(dig_iface_sicstus_tools, [http_handler/3])
+		; true.
 
 
 %register the server
@@ -27,9 +30,11 @@ unregister_dig_server :-
 	http_delete_handler(Path),
 	info(dig_iface, register_dig_server, 'DIG server unregistered.').
 
-:- initialization 
-	info(dig_iface, initialization, 'DIG interface initializing...'),
-	register_dig_server.%TODO: option?
+:- target(swi) ->
+	initialization(
+		(info(dig_iface, initialization, 'DIG interface initializing...'),
+		register_dig_server)) %TODO: option?
+	;	true.
 
 %service requests
 dig_server(Request) :-
@@ -54,7 +59,7 @@ dig_server(Request) :-
 		),
 		E,
 		(
-			error(dig_iface, dig_server(...) --> E, 'Internal server error (exception).'),
+			error(dig_iface, (dig_server(...) --> E)), 'Internal server error (exception).',
 			throw(E)
 		)
 	).
@@ -62,7 +67,7 @@ dig_server(Request) :-
 process_request(Request) :-
 	format('Content-type: text/xml~n~n', []),
 	read_dig_from_request(Request, NS-DIG),
-	detail(dig_iface, process_request(...) --> NS-DIG, 'Request body:'),
+	detail(dig_iface, (process_request(...) --> NS-DIG), 'Request body:'),
 	(
 		nonvar(DIG) 
 	-> 
@@ -92,7 +97,7 @@ read_dig_from_request(Request, NS-DIG) :-
 				read_dig(stream(DIGFile), NS-DIG),
 				digerror(Code, Expl, Msg, NS),
 				(send_error(Code, Expl, Msg, NS),
-				info(dig_iface, read_dig_from_request(...) --> digerror(Code, Expl, Msg, NS), 'Error in DIG code.') %TODO: info/warning?
+				info(dig_iface, (read_dig_from_request(...) --> digerror(Code, Expl, Msg, NS)), 'Error in DIG code.') %TODO: info/warning?
 				)
 			),
 			close(DIGFile)
@@ -104,7 +109,7 @@ read_dig_from_request(Request, NS-DIG) :-
 %Read commands from DIGFile, execute them, and return the result in Reply
 execute_dig_file(DIGFile, Reply) :-
 	read_dig(DIGFile, _NS-DIG),
-	detail(dig_iface, execute_dig_file(DIGFile, ...) --> DIG, 'DIG content:'),
+	detail(dig_iface, (execute_dig_file(DIGFile, ...) --> DIG), 'DIG content:'),
 	execute(DIG, Reply).	
 
 

@@ -8,8 +8,16 @@
 					abox_file_name/2, tbox_file_name/2,
 					load_config_file/0, load_config_file/1]).
 
+target(T) :- current_prolog_flag(dialect, swi) -> T = swi ; T = sicstus.
 % target(sicstus).
-target(swi).
+% target(swi).
+
+:- target(sicstus) -> 
+	use_module(core_sicstus_tools, [abs_file_name/3])
+	; true.
+:- target(swi) -> 
+	use_module(core_swi_tools, [abs_file_name/3])
+	; true.
 
 :- use_module(dlogger, [error/3, warning/3, info/3, detail/3]).
 
@@ -23,7 +31,17 @@ default_option(description, D) :-
 	get_dlog_option(version, V), 
 	get_dlog_option(server_host, H), 
 	get_dlog_option(server_port, P), 
-	format(atom(D), '~a ~a running on ~a:~d.', [N, V, H, P]).
+	%TODO
+	atom_concat(N, ' ', A1),
+	atom_concat(A1, V, A2),
+	atom_concat(A2, ' running on ', A3),
+	atom_concat(A3, H, A4),
+	atom_concat(A4, ':', A5),
+	number_codes(P, PC),
+	atom_codes(PA, PC),
+	atom_concat(A5, PA, A6),
+	atom_concat(A6, ., D).
+	%format(atom(D), '~a ~a running on ~a:~d.', [N, V, H, P]).
 default_option(base_path, './').
 default_option(output_path, '../output/'). %Output directory (relative to base_path)
 default_option(config_file, 'dlog.conf'). %config file name (relative to base_path)
@@ -126,7 +144,14 @@ remove_dlog_options(URI) :-
 uri_prefix(U) :-
 	get_dlog_option(server_host, H), 
 	get_dlog_option(server_port, P), 
-	format(atom(U), 'http://~a:~d/', [H, P]).
+	%TODO
+	atom_concat('http://', H, A1),
+	atom_concat(A1, :, A2),
+	number_codes(P, PC),
+	atom_codes(PA, PC),
+	atom_concat(A2, PA, A3),
+	atom_concat(A3, /, U). 
+	%format(atom(U), 'http://~a:~d/', [H, P]).
 kb_uri(ID, URI) :- 
 	uri_prefix(Prefix),
 	atom_concat(Prefix, ID, URI).
@@ -148,7 +173,7 @@ abox_file_name(URI, File) :- %TODO: custom file name/KB
 	atom_concat(BP, OP, Path),
 	atom_concat('abox_', ID, F1),
 	atom_concat(F1, '.pl', F2),
-	absolute_file_name(F2, [relative_to(Path)], File).
+	abs_file_name(F2, [relative_to(Path)], File).
 
 tbox_file_name(URI, File) :-
 	kb_uri(ID, URI),
@@ -157,24 +182,25 @@ tbox_file_name(URI, File) :-
 	atom_concat(BP, OP, Path),
 	atom_concat('tbox_', ID, F1),
 	atom_concat(F1, '.pl', F2),
-	absolute_file_name(F2, [relative_to(Path)], File).
+	abs_file_name(F2, [relative_to(Path)], File).
 
 %load the config file
 load_config_file :-
 	get_dlog_option(base_path, P),
 	get_dlog_option(config_file, F),
-	absolute_file_name(F, [relative_to(P)], File),
+	abs_file_name(F, [relative_to(P)], File),
 	load_config_file(File).
 load_config_file(File) :-
-	access_file(File, read) 
+	%access_file(File, read)
+	abs_file_name(File, [access(read), file_errors(fail)], _)
 	-> 	catch(
-			(open(File, read, S),
-			call_cleanup(read(S, T), close(S)),
-			set_dlog_options(T),
-			info(config, load_config_file(File), 'Config file loaded.')
+			(	open(File, read, S),
+				call_cleanup(read(S, T), close(S)),
+				set_dlog_options(T),
+				info(config, load_config_file(File), 'Config file loaded.')
 			),
 			E,
-			error(config, load_config_file(File) --> E, 'Error loading config file.')
+			error(config, (load_config_file(File) --> E), 'Error loading config file.')
 		)
 	;	error(config, load_config_file(File), 'Could not open config file.').
 

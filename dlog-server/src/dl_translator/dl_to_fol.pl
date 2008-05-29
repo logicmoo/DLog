@@ -217,7 +217,8 @@ def2(AndOr,Prefix,Pol,Q1,Defs):-
 		  ), Cs
 	       ),
 	(
-	  ( Cs = [C,_|_], !; Cs = [C], Pol = -1) ->
+	  %( Cs = [C,_|_], !; Cs = [C], Pol = -1) -> %TODO: ez mi volt? :P
+	  ( Cs = [C,_|_]; Cs = [C], Pol = -1) ->
 	  select(C,L,Rest),
 	  def2(C,Prefix,Pol,Q2,CDefs),
 	  append(CDefs,RestDefs,Defs),

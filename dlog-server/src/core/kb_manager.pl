@@ -17,13 +17,17 @@
 				abox_module_name/2, tbox_module_name/2, 
 				abox_file_name/2, tbox_file_name/2]).
 
-:- use_module(library(listing), [portray_clause/1]).
 
 :- target(swi) -> 
 	use_module(library(memfile)),
-	use_module(core_swi_tools, [datime/1])
+	use_module(core_swi_tools, [datime/1]),
+	use_module(library(listing), [portray_clause/1])
 	; true.
-:- target(sicstus) -> use_module(library(system), [datime/1]) ; true.
+:- target(sicstus) -> 
+	use_module(library(system), [datime/1]),
+	use_module(core_sicstus_tools, [mutex_create/1, with_mutex/2, mutex_lock/1, mutex_unlock/1]),
+	use_module(library(system), [delete_file/2])
+	; true.
 
 
 :- dynamic current_kb/1,
@@ -107,78 +111,89 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 	)),
 	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
 
-add_abox(tempfile, URI, ABox) :-
-	new_memory_file(AMemFile),
+
+add_abox(assert, URI, ABox) :- !,
+	abox2prolog(URI, ABox). %TODO: finalize dynamic? (SWI)
+add_abox(Target, URI, ABox) :-
+	(	Target == tempfile,
+		target(swi)
+	->	new_memory_file(File),
+		open_memory_file(File, write, Stream)
+	;	abox_file_name(URI, File),
+		open(File, write, Stream)
+	),	
 	current_output(Out),
 	call_cleanup(
-		(
-			open_memory_file(AMemFile, write, AStream),
-			set_output(AStream),
-			call_cleanup(
-				abox2prolog(URI, ABox), %TODO 
-				(set_output(Out), close(AStream))
-			),
-			open_memory_file(AMemFile, read, AStream2),
+	(
+		set_output(Stream),
+		call_cleanup(
+			abox2prolog(URI, ABox), %TODO 
+			(set_output(Out), close(Stream))
+		),
+		(	Target == tempfile,
+			target(swi)
+		->	open_memory_file(File, read, Stream2),
 			abox_module_name(URI, AB),
 			call_cleanup(
-				load_files(AB, [stream(AStream2)]), %TODO
-				close(AStream2)
+				load_files(AB, [stream(Stream2)]), %TODO
+				close(Stream2)
 			)
-		),
-		free_memory_file(AMemFile)
-	).
-add_abox(allinonefile, URI, ABox) :-
-	abox_file_name(URI, AFile),
-	open(AFile, write, AStream),
-	current_output(Out),
-	set_output(AStream),
-	call_cleanup(
-		abox2prolog(URI, ABox), %TODO 
-		(set_output(Out), close(AStream))
+		;	load_files(File, []) %TODO
+		)
 	),
-	load_files(AFile, []). %TODO
-add_abox(assert, URI, ABox) :-
-	abox2prolog(URI, ABox).
+	(
+		(	Target == tempfile
+		->	(	target(swi)
+			->	free_memory_file(File)
+			;	delete_file(File, [])
+			)
+		;	true
+		)
+	)).
 
 
-add_tbox(tempfile, URI, TBox, ABox) :-
-	new_memory_file(TMemFile),
+add_tbox(assert, URI, TBox, ABox) :- !,
+	%throw(not_implemented), %TODO
+	tbox2prolog(URI, TBox, ABox). %TODO: finalize dynamic? (SWI)
+add_tbox(Target, URI, TBox, ABox) :-
+	(	Target == tempfile,
+		target(swi)
+	->	new_memory_file(File),
+		open_memory_file(File, write, Stream)
+	;	tbox_file_name(URI, File),
+		open(File, write, Stream)
+	),	
 	current_output(Out),
 	call_cleanup(
-		(
-			open_memory_file(TMemFile, write, TStream),
-			set_output(TStream),
-			call_cleanup(
-				(
-					write_tbox_header(URI),
-					tbox2prolog(URI, TBox, ABox)
-				),
-				(set_output(Out), close(TStream))
-			),
-			open_memory_file(TMemFile, read, TStream2),
+	(
+		set_output(Stream),
+		call_cleanup(
+			(
+				write_tbox_header(URI),
+				tbox2prolog(URI, TBox, ABox)
+			), 
+			(set_output(Out), close(Stream))
+		),
+		(	Target == tempfile,
+			target(swi)
+		->	open_memory_file(File, read, Stream2),
 			tbox_module_name(URI, TB),
 			call_cleanup(
-				load_files(TB, [stream(TStream2)]), %TODO
-				close(TStream2)
+				load_files(TB, [stream(Stream2)]), %TODO
+				close(Stream2)
 			)
-		),
-		free_memory_file(TMemFile)
-	).
-add_tbox(allinonefile, URI, TBox, ABox) :-
-	tbox_file_name(URI, TFile),
-	open(TFile, write, TStream),
-	current_output(Out),
-	set_output(TStream),
-	call_cleanup(
-		(
-			write_tbox_header(URI),
-			tbox2prolog(URI, TBox, ABox)
-		),
-		(set_output(Out), close(TStream))
+		;	load_files(File, []) %TODO
+		)
 	),
-	load_files(TFile, []). %TODO
-add_tbox(assert, URI, TBox, ABox) :-
-	tbox2prolog(URI, TBox, ABox).
+	(
+		(	Target == tempfile
+		->	(	target(swi)
+			->	free_memory_file(File)
+			;	delete_file(File, [])
+			)
+		;	true
+		)
+	)).
 
 
 run_query(URI, Query, Answer) :- 
@@ -208,6 +223,7 @@ write_tbox_header(URI) :-
 	portray_clause((
 		sicstus_init :-
 			use_module(library(lists), [member/2]),
+			%use_module(dlog_hash, dlog_hash, [init_state/1,new_state/3,new_anc/3,new_loop/3,check_anc/2,check_loop/2]) %TODO
 			use_module(hash))),
 	nl,
 	portray_clause((
