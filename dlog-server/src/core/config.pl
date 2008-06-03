@@ -13,10 +13,10 @@ target(T) :- current_prolog_flag(dialect, swi) -> T = swi ; T = sicstus.
 % target(swi).
 
 :- target(sicstus) -> 
-	use_module(core_sicstus_tools, [abs_file_name/3])
+	use_module(core_sicstus_tools, [abs_file_name/3, format_to_atom/3])
 	; true.
 :- target(swi) -> 
-	use_module(core_swi_tools, [abs_file_name/3])
+	use_module(core_swi_tools, [abs_file_name/3, format_to_atom/3])
 	; true.
 
 :- use_module(dlogger, [error/3, warning/3, info/3, detail/3]).
@@ -31,17 +31,7 @@ default_option(description, D) :-
 	get_dlog_option(version, V), 
 	get_dlog_option(server_host, H), 
 	get_dlog_option(server_port, P), 
-	%TODO
-	atom_concat(N, ' ', A1),
-	atom_concat(A1, V, A2),
-	atom_concat(A2, ' running on ', A3),
-	atom_concat(A3, H, A4),
-	atom_concat(A4, ':', A5),
-	number_codes(P, PC),
-	atom_codes(PA, PC),
-	atom_concat(A5, PA, A6),
-	atom_concat(A6, ., D).
-	%format(atom(D), '~a ~a running on ~a:~d.', [N, V, H, P]).
+	format_to_atom(D, '~a ~a running on ~a:~d.', [N, V, H, P]).
 default_option(base_path, './').
 default_option(output_path, '../output/'). %Output directory (relative to base_path)
 default_option(config_file, 'dlog.conf'). %config file name (relative to base_path)
@@ -68,7 +58,6 @@ default_option(dl_calculus, no). %[yes, no]
 %assert: assert to module
 %tempfile: create temporary memory/disk file
 %allinonefile: create standalone prolog file
-%default_option(allinone, yes). %[yes, no]
 default_option(abox_target, assert). %[assert, tempfile, allinonefile]
 default_option(tbox_target, tempfile). %[tempfile, allinonefile]
 
@@ -144,14 +133,7 @@ remove_dlog_options(URI) :-
 uri_prefix(U) :-
 	get_dlog_option(server_host, H), 
 	get_dlog_option(server_port, P), 
-	%TODO
-	atom_concat('http://', H, A1),
-	atom_concat(A1, :, A2),
-	number_codes(P, PC),
-	atom_codes(PA, PC),
-	atom_concat(A2, PA, A3),
-	atom_concat(A3, /, U). 
-	%format(atom(U), 'http://~a:~d/', [H, P]).
+	format_to_atom(U, 'http://~a:~d/', [H, P]).
 kb_uri(ID, URI) :- 
 	uri_prefix(Prefix),
 	atom_concat(Prefix, ID, URI).
@@ -159,14 +141,14 @@ default_kb(URI) :- %dig 1.0 KB
 	kb_uri('0', URI).
 
 
-%abox_module_name(+URI, -Module): URI-hoz tartozó ABox modul neve
+%abox_module_name(+URI, -Module): Module name for ABox of URI
 abox_module_name(URI, Module) :-
 	atom_concat(URI, '_abox', Module).
 
 tbox_module_name(URI, Module) :-
 	atom_concat(URI, '_tbox', Module).
 
-abox_file_name(URI, File) :- %TODO: custom file name/KB
+abox_file_name(URI, File) :- %TODO: custom file name/KB?
 	kb_uri(ID, URI),
 	get_dlog_option(base_path, BP),
 	get_dlog_option(output_path, OP),

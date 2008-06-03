@@ -26,7 +26,8 @@
 :- target(sicstus) -> 
 	use_module(library(system), [datime/1]),
 	use_module(core_sicstus_tools, [mutex_create/1, with_mutex/2, mutex_lock/1, mutex_unlock/1]),
-	use_module(library(system), [delete_file/2])
+	use_module(library(system), [delete_file/2]),
+	use_module('../hash/dlog_hash', [])
 	; true.
 
 
@@ -36,7 +37,6 @@
 :- volatile current_kb/1,
 			kb_count/1.
 
-%:- default_kb(Def), mutex_create(kb_count), mutex_create(Def).
 :- initialization
 		detail(kb_manager, initialization, 'KB manager initializing...'),
 		assert(kb_count(1)), 
@@ -68,7 +68,7 @@ release_kb(URI) :-
 	with_write_lock(URI,
 	(
 		clear_kb(URI),
-		remove_dlog_options(URI), %beállítások törlése
+		remove_dlog_options(URI), %remove KB-specific options
 		retract(current_kb(URI))
 	)),
 	%,mutex_destroy(URI) %TODO
@@ -81,8 +81,7 @@ clear_kb(URI) :-
 		abox_module_name(URI, AB),
 		abolish_module(AB),
 		abolish_module(TB)
-		%TODO file-ok törlése?
-		%, remove_dlog_options(URI) %TODO: beállítások törlése? -> csak default kb-nál
+		%, remove_dlog_options(URI) %TODO: remove options? -> only for default kb?
 	)),
 	info(kb_manager, clear_kb(URI), 'KB cleared.').
 
@@ -91,6 +90,7 @@ abolish_module(Module) :-
 	%\+ predicate_property(AB:AP, built_in),
 	%\+ predicate_property(AB:AP, imported_from(_Module)),
 	%\+ predicate_property(AB:AP, transparent),
+	%what can't be removed, stayes there
 	catch(abolish(Module:P), error(permission_error(_,_,_),_), fail),
 	fail.
 abolish_module(_Module).
@@ -223,17 +223,20 @@ write_tbox_header(URI) :-
 	portray_clause((
 		sicstus_init :-
 			use_module(library(lists), [member/2]),
-			%use_module(dlog_hash, dlog_hash, [init_state/1,new_state/3,new_anc/3,new_loop/3,check_anc/2,check_loop/2]) %TODO
-			use_module(hash))),
+			use_module(dlog_hash, dlog_hash, [init_state/1,new_state/3,new_anc/3,new_loop/3,check_anc/2,check_loop/2])
+			)),
 	nl,
 	portray_clause((
 		swi_init :-
 			open_resource(dlog_hash, module, H)
 			->
-			load_files(dlog_hash, [stream(H)]),
+			call_cleanup(
+				load_files(dlog_hash, [stream(H)]),
+				close(H)
+			),
 			import(lists:member/2)
 			;
-			use_module(hash),
+			use_module(dlog_hash),
 			use_module(library(lists), [member/2])
 		)),
 	nl,
@@ -251,7 +254,7 @@ write_tbox_header(URI) :-
 
 
 get_read_lock(URI) :-
-	exists_kb(URI), %don't create if not exists
+	exists_kb(URI), %don't create mutex if not exists
 	mutex_lock(URI),
 	exists_kb(URI). %check if still existing
 get_write_lock(URI) :-

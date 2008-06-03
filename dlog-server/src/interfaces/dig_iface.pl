@@ -59,7 +59,7 @@ dig_server(Request) :-
 		),
 		E,
 		(
-			error(dig_iface, (dig_server(...) --> E)), 'Internal server error (exception).',
+			error(dig_iface, (dig_server(...) --> E), 'Internal server error (exception).'),
 			throw(E)
 		)
 	).

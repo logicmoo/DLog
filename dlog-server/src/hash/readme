@@ -1,13 +1,10 @@
 To compile dlog_hash use:
 
-Sicstus:
-splfr hash_sicstus.c hash_sicstus.pl
-
+windows (VC 6.0):
 SWI:
-windows:
-plld -shared -cc-options,/GR -cc-options,/W3 hash_swi.cpp Backtrackable_HashSet.cpp -o hash_swi pthreadVC.lib
-
-
+plld -shared -cc-options,/GR -cc-options,/W3 dlog_hash.cpp Backtrackable_HashSet.cpp -o hash_swi pthreadVC.lib
+Sicstus:
+splfr dlog_hash.cpp Backtrackable_HashSet.cpp hash_sicstus.pl --cflag=/GR --cflag=-GX
 
 
 

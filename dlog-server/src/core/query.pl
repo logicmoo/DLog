@@ -1,5 +1,9 @@
 :- module(query, [query/4]).
 
+:- use_module(config, [target/1]).
+:- target(sicstus) -> use_module(core_sicstus_tools, [call/2, call/3])
+	; true.
+
 %query(Query, TBox, ABox, Answer).
 query(allConceptNames, _TBox, _ABox, conceptSet(_Answer)). %TODO feldolgozás során lementeni? vagy itt összeszedni?
 			%[[Concept, ...], ...]
