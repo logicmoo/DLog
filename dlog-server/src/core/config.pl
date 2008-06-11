@@ -55,6 +55,8 @@ default_option(filter_duplicates, no). %[yes, no]
 default_option(q_elimination, no). %[yes, no]
 default_option(dl_calculus, no). %[yes, no]
 
+default_option(unfold, no). %[no, ?]
+
 %assert: assert to module
 %tempfile: create temporary memory/disk file
 %allinonefile: create standalone prolog file

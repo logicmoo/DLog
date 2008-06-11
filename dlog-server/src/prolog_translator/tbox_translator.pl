@@ -8,8 +8,9 @@
 
 :- use_module(library(lists), [append/3, member/2, last/2, select/3]).
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3]).
+:- use_module('../unfold/unfold_main', [unfold_predicates/2]).
 
-:- use_module('../core/config').
+:- use_module('../core/config', [target/1, abox_module_name/2, get_dlog_option/3, get_dlog_option/2]).
 
 :- target(sicstus) -> 
 		use_module(library(lists),[memberchk/2]),
@@ -71,8 +72,12 @@ counter(orphancres).
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
 tbox2prolog(URI, tbox(TBox, _IBox, HBox), abox(Signature)) :-
 	init(URI),
-	dl_preds(TBox, Preds),
-	preprocessing(Preds, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
+	dl_preds(TBox, Preds0),
+	(get_dlog_option(unfold, no) -> Preds1 = Preds0
+	; unfold_predicates(Preds0, Preds1) -> true
+	; Preds1 = Preds0
+	),
+	preprocessing(Preds1, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
 	headwrite('Transformed TBox clauses'),
 	transformed_kb(DepGraph, Signature).
