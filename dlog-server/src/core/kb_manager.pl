@@ -101,12 +101,15 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 	exists_kb(URI),
 	axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
 			  TBox_Clauses, IBox, HBox, _), %TODO
+	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
 	abox_signature(ABox, ABoxStr, Signature),
+	detail(kb_manager, add_axioms(URI, ...), 'ABox signature ready.'),
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
 	with_write_lock(URI, 
 	(	
 		add_abox(ATarget, URI, abox(ABoxStr)),
+		detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
 		add_tbox(TTarget, URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature))
 	)),
 	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
@@ -172,7 +175,7 @@ add_tbox(Target, URI, TBox, ABox) :-
 				write_tbox_header(URI),
 				tbox2prolog(URI, TBox, ABox)
 			), 
-			(set_output(Out), close(Stream))
+			(set_output(Out), close(Stream)) %close_memory_file?
 		),
 		(	Target == tempfile,
 			target(swi)

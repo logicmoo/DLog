@@ -74,7 +74,9 @@ tbox2prolog(URI, tbox(TBox, _IBox, HBox), abox(Signature)) :-
 	init(URI),
 	dl_preds(TBox, Preds0),
 	(get_dlog_option(unfold, no) -> Preds1 = Preds0
-	; unfold_predicates(Preds0, Preds1) -> true
+	; unfold_main:annotated_preds(Preds0, APreds),
+	  %open('dump.txt', write, D), writeq(D, prog(APreds, Signature, all)), close(D),
+	  unfold_predicates(prog(APreds, Signature, all), Preds1) -> true
 	; Preds1 = Preds0
 	),
 	preprocessing(Preds1, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
@@ -198,6 +200,18 @@ hbox_edges0([], []).
 hbox_edges0([subrole(arole(R1),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	abox_inverse_name(R1, IR1),
 	abox_inverse_name(R2, IR2),
+	hbox_edges0(Rs, Es).
+hbox_edges0([subrole(inv(arole(R1)),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
+	IR1 = R1,
+	abox_inverse_name(R2, IR2),
+	hbox_edges0(Rs, Es).
+hbox_edges0([subrole(arole(R1),inv(arole(R2)))|Rs], [R1-R2, IR1-IR2|Es]) :-
+	abox_inverse_name(R1, IR1),
+	IR2 = R2,
+	hbox_edges0(Rs, Es).
+hbox_edges0([subrole(inv(arole(R1)),inv(arole(R2)))|Rs], [R1-R2, IR1-IR2|Es]) :-
+	IR1 = R1,
+	IR2 = R2,
 	hbox_edges0(Rs, Es).
 
 asserted_hierarchy_info([]).
@@ -872,7 +886,7 @@ transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature) :-
 	    global_projection(PredHead, Projection, Signature, DepGraph)->
 	    bb_put(projection, success)
 	  ;
-	    bb_put(projection, failed),
+	    bb_put(projection, failed), %TODO: fix
 	    asserta(env_user:projection(no)) % temporarily turn off projection
 	  )
 	;

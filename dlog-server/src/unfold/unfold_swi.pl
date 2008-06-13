@@ -37,6 +37,24 @@ ord_intersection2(N, Sets0, Intersection, Sets) :-
 	ord_intersection2(Z, Sets1, Y, Sets),
 	ord_intersection(X, Y, Intersection).
 
+ord_union(ListOfSets, Union) :-
+	length(ListOfSets, NumberOfSets),
+	ord_union_3(NumberOfSets, ListOfSets, Union, []).
+
+ord_union_3(0, R, [], R) :- !.
+ord_union_3(1, [U|R], U, R) :- !.
+ord_union_3(2, [A,B|R], U, R) :- !,
+	ord_union(A, B, U).
+ord_union_3(N, R0, U, R) :-
+	P is N>>1,	% |first  half of list|
+	Q is N- P,	% |second half of list|
+	ord_union_3(P, R0, A, R1),
+	ord_union_3(Q, R1, B, R),
+	ord_union(A, B, U).
+
+% findall(X, Goal, L, Tail) :-
+	% findall(X, Goal, L0),
+	% append(L0, Tail, L).
 
 % needed only for unfold_test.pl
 %target(swi).

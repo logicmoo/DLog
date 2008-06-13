@@ -134,6 +134,8 @@ failing_preds(Prog0, DefPNames, CalledPNames, ABoxPNames, FailingPNames) :-
 	defined_preds_doomed_to_fail(NonABoxPNames, FailingPNames1),
 	ord_union(FailingPNames0, FailingPNames1, FailingPNames).
 
+:- dynamic ainterp:acl/3.
+
 assert_ainterp_program0(Prog0, ABoxPNames, NonABoxPNames) :-
 	retractall(ainterp:acl(_,_,_)),
 	aclause_in_program(Prog0, ABoxPNames, NonABoxPNames, ACl),
