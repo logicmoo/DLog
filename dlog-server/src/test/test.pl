@@ -1,25 +1,26 @@
-% :- use_module('../dlog').
+:- use_module('../dlog', [execute_dig_file/2,set_dlog_option/2]).
+:- use_module('../interfaces/dig_reader', [read_dig/2]).
 :- use_module('../dl_translator/show').
-:- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6,temp/2]).
-:- use_module('../core/config',[set_dlog_option/2]).
+:- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6]).
 % :- set_prolog_flag(unknown, fail).
 
-
-
-compare(X):-
-	atom_concat(sample,X,Y),
-	set_dlog_option(dl_calculus,yes),
-	nl, print('Uj szamitas: '), nl,
-	call(Y),	
-	set_dlog_option(dl_calculus,no),
-	nl, print('Regi szamitas: '), nl,	
-	call(Y).
+compare(File, Option):-
+	set_dlog_option(dig_reader_fault_tolerance,drop),
+	set_dlog_option(calculus,Option),
+	atom_concat('d:/Logic/ontology/',File,Path1),
+	atom_concat(Path1,'.dig',Path),
+	load(Path,TBox,_),
+	statistics(runtime, [T0,_]),	
+	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
+	statistics(runtime, [T1,_]),TA is T1-T0,
+	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]).
+	% nl, print('Eredeti TBox'), nl, show(TBox),	
+	% nl, print('Eredo TBox'), nl, show(TBox_Clauses).
 	
 
 test(TBox):-
-	statistics(runtime, [T0,_]),
-	temp(TBox,TBox_Clauses),
-	% axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
+	statistics(runtime, [T0,_]),	
+	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
 	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]),
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl
@@ -29,14 +30,18 @@ test(TBox):-
 	nl, print('Eredo TBox'), nl, show(TBox_Clauses),
 	true.
 
+load(File,[CI,RI,Tr],Abox):-
+	read_dig(File,_-tells(_,axioms(CI,RI,Tr,Abox))).
+
 
 lubm(N):-
-	set_dlog_option(dl_calculus,yes),
+	set_dlog_option(calculus,dl),
 	set_dlog_option(dig_reader_fault_tolerance,drop),
-	( N == 1 -> tell_dig('d:/Logic/ontology/lubm1.dig')
-	; N == 2 -> tell_dig('d:/Logic/ontology/lubm2.dig')
-	; N == 3 -> tell_dig('d:/Logic/ontology/lubm3.dig')
+	( N == 1 -> execute_dig_file('d:/Logic/ontology/lubm1b.dig',_)
+	; N == 2 -> load('d:/Logic/ontology/lubm2.dig',Tbox,Abox)
+	; N == 3 -> load('d:/Logic/ontology/lubm3.dig',Tbox,Abox)
 	).
+
 /*
 	( Q == 1 -> solve('a:Chair')
 	; Q == 2 -> solve_n((X,Y), ('a:Chair'(X),'a:worksFor'(X,Y),'a:Department'(Y), 'a:subOrganizationOf'(Y,'p25:www.University0.edu')))
@@ -87,9 +92,7 @@ semintec_ford(Q):-
 	print(B).
 
 wine:-
-	set_dlog_option(dl_calculus,yes),
-	set_dlog_option(dig_reader_fault_tolerance,drop),
-	tell_dig('d:/Logic/ontology/wine_0.dig').
+	compare('wine',dl).
 
 % solve('AmericanWine').
 
@@ -312,6 +315,41 @@ sample17:-
 		      implies(top,atmost(4,arole(r),top))
 		     ],
 	test([CInclusion, [], []]).
+
+sample18:-
+	CInclusion = [
+		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(c))),
+		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(d))),
+		      implies(and([aconcept(a),aconcept(c)]),not(aconcept(d))),
+		      implies(and([aconcept(b),aconcept(c)]),not(aconcept(d))),
+
+		      implies(top,atleast(3,arole(r),aconcept(a))),
+		      implies(top,atleast(3,arole(r),aconcept(b))),
+		      implies(top,atleast(3,arole(r),aconcept(c))),
+		      implies(top,atleast(3,arole(r),aconcept(d))),
+
+		      implies(top,atmost(5,arole(r),top))
+		     ],
+	test([CInclusion, [], []]).
+
+sample19:-
+	CInclusion = [
+		      implies(top, atleast(2,arole(gyereke),aconcept(a))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(b))),		      
+		      implies(top, atleast(2,arole(gyereke),aconcept(c))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(d))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(e))),
+
+		      implies(and([aconcept(a),aconcept(b),aconcept(c),aconcept(d)]),not(aconcept(e))),
+% 		      implies(and([aconcept(a),aconcept(b),aconcept(c)]),not(aconcept(e))),
+% 		      implies(and([aconcept(a),aconcept(b),aconcept(d)]),not(aconcept(e))),
+% 		      implies(and([aconcept(a),aconcept(c),aconcept(d)]),not(aconcept(e))),
+% 		      implies(and([aconcept(b),aconcept(c),aconcept(d)]),not(aconcept(e))),
+
+
+		      implies(top, atmost(3, arole(gyereke),top))
+		     ],
+	test([CInclusion, [],[]]).
 
 
 

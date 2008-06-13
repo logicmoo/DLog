@@ -8,10 +8,7 @@
 
 
 toClause_list(L,R):-
-	toFOL_list(L,L2),
-
-	% nl, print('FOL alak'), nl, show(L2), nl,	
-	
+	toFOL_list(L,L2), !,
 	findall(C, (
 		     member(A,L2),
 		     one_conjunct(A,B),

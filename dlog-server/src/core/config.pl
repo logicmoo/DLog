@@ -53,7 +53,7 @@ default_option(ground_optim, yes). %[yes, no]
 default_option(filter_duplicates, no). %[yes, no]
 
 default_option(q_elimination, no). %[yes, no]
-default_option(dl_calculus, no). %[yes, no]
+default_option(calculus, dl). %[dl, fol, old]
 
 default_option(unfold, no). %[no, ?]
 

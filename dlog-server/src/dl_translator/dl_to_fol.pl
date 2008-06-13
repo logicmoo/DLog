@@ -185,12 +185,14 @@ def2(C,Prefix,Pol,Q,Defs):-
 		       C = or(Cs) -> Defs = [or([not(Q)|Cs])], !
 		     ; Defs = [or([not(Q),C])]
 		     )
-	; Pol = -1 -> (
-			C = or(Cs) ->
-			Defs = [or([Q,and(NCs)])],
-			neglist(Cs,NCs)
-		      ; neg(C,NC), Defs = [or([Q,NC])]
-		      )
+	; (
+	    C = and(Cs) ->
+	    neg(C,or(NC)), Defs = [or([Q|NC])]
+	  ; C = or(Cs) ->
+	    Defs = [or([Q,and(NCs)])],
+	    neglist(Cs,NCs)
+	  ; neg(C,NC), Defs = [or([Q,NC])]
+	  )
 	).
 def2(atleast(N,R,C,Sel),Prefix,Pol,Q1,[D|Defs]):-
 	def2(C,Prefix,Pol,Q2,Defs),

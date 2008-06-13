@@ -1,10 +1,14 @@
-:- module(saturate,[saturate/3,simplifyConcept/2]).
+:- module(saturate,[saturate/3,saturate_partially/4,saturate_cross/4,simplifyConcept/2]).
 
+:- use_module(show).
 :- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).
 :- use_module('transitive', [inv/2]).
 :- use_module('selectResolvable', [selectResolvableList/2, selectResolvable/2, greater/2]).
+:- use_module('struct', [contains_struct/2]).	    
 :- use_module(library(lists),[append/3,member/2,select/3,delete/3]).
 :- use_module(library(ordsets),[list_to_ord_set/2,ord_subset/2]).
+
+% :- use_module('../prolog_translator/prolog_translator_swi_tools', [bb_put/2, bb_get/2]).
 
 /*********************** Fogalomhalmaz telitese **************************/
 
@@ -16,6 +20,32 @@ saturate(W,RInclusion,S):-
 	selectResolvableList(W2,Selected),
 	saturate([],Selected,RInclusion,S).
 
+% saturate_partially(+W1,+W2,+RInclusion,+S):-
+% Telitjuk W1 unio W2-t, de ugy, hogy W1 belieket nem rezolvalunk egymassal
+% az eredmeny S
+saturate_partially(W1,W2,RInclusion,S):-
+	simplifyConcepts(W2,Simplified),
+	selectResolvableList(Simplified,Selected),
+	saturate(W1,Selected,RInclusion,S).
+
+
+% saturate_cross(+W1,+W2,+RInclusion,+S):-
+% Telitjuk W1 unio W2-t, ugy, hogy W1 belit nem rezolvalunk W1 belivel, illetve
+% W2 belit nem rezolvalunk W2 belivel
+% az eredmeny S
+saturate_cross(W1,W2,RInclusion,S):-
+	findall(R, (
+		     member(A,W1),
+		     member(B,W2),
+		     resolve(A,B,R1),
+		     simplifyConcept(R1,R2),
+		     selectResolvable(R2,R)
+		   ), Rs
+	       ),
+	append(W1,W2,W),
+	saturate(W,Rs,RInclusion,S).
+
+
 
 /********************************saturation*****************************/
 
@@ -23,7 +53,7 @@ saturate(W,RInclusion,S):-
 % es RInclusion tartalmazza a szerephierarchiat. S-t W1 es W2
 % telitesevel nyerjuk ugy hogy W1 es W2-beli fogalmakat, valamint W2-W2-beli
 % fogalmakat rezolvalunk egymassal
-saturate(W1,[],_,W1).
+saturate(W1,[],_,W1):- !.
 saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
 	% nl, print('---- ') ,print(C), print('---- redundans'),
@@ -48,6 +78,7 @@ saturate(W1,[C|W2],RInclusion,S):-
 	saturate([C|EW1],EW2,RInclusion,S).
 
 
+
 /******************** Redundans klozok elhagyasa ***********************/
 
 % redundant(+C, +Concepts): igaz, ha van C-nel szukebb fogalom a Concepts
@@ -55,43 +86,50 @@ saturate(W1,[C|W2],RInclusion,S):-
 redundant(C,[D|Ds]):-
 	(
 	  includes(C,D), !
-	  % nl, nl, print('redu: '), print(C), nl, print('from: '), print(D), nl,nl
 	; redundant(C,Ds)
 	).
+
 
 % includes(+C,+D): C fogalom tartalmazza D-t, azaz C redundans D miatt
 includes(_,bottom):- !.
 includes(top,_):- !.
 includes(X,X):- !.
-includes(aconcept(C), and(D)):- !,
-	member(aconcept(C),D).
-includes(not(aconcept(C)), and(D)):- !,
-	member(not(aconcept(C)),D).
-includes(nconcept(C), and(D)):- !,
-	member(nconcept(C),D).
-includes(not(nconcept(C)), and(D)):- !,
-	member(not(nconcept(C)),D).
 
-includes(and(C),and(D)):- !,
-	list_to_ord_set(C,OC),
-	list_to_ord_set(D,OD),
-	ord_subset(OC,OD).
-includes(atmost(N,R,C,L),atmost(K,R,D,L)):-
+includes(and([C]),and(D)):- !,
+	member(C,D).
+includes(and([C|Cs]),and(D)):- !,
+	append(_,[C|DRest],D),
+	includes(and(Cs),and(DRest)).
+includes(C,and(Ds)):- !,
+	member(C,Ds).
+	
+includes(atmost(N,R,C,L),atmost(K,R,D,L)):- !,
 	K =< N,
 	includes(D,C).
-includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):-
+includes(atleast(N,R,C,Sel1),atleast(K,R,D,Sel2)):- !,
 	(
-	  Sel2 = [_], append(Sel2,_,Sel1)
+	  Sel1 = Sel2
+	; Sel2 = [_], append(Sel2,_,Sel1), !
 	; Sel2 = [Original,Num,skolem], Sel1 = [Original,Num]
 	),
 	N =< K,
 	includes(C,D).
 
+includes(or(_),or([])):- !.
+includes(or(C),or([D|Ds])):- !,
+	member(X,C),
+	includes(X,D), !,
+	includes(or(C),or(Ds)).
+includes(or(C),D):- !,
+	member(X,C),
+	includes(X,D).
+
+/*
 includes(or(C),or(D)):- !,
 	includes_list_list(C,D).
 includes(or(C),D):- !,
 	includes_list(C,D,_).
-
+*/
 % includes_list_list(+Cs,+Ds): Ds lista minden eleme megfeleltetheto
 % Cs lista valamelyik elemenek
 includes_list_list(_,[]):- !.
@@ -146,21 +184,15 @@ resolve_alone(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or(ResList)):-
 	; Res = or(L) -> append(L,Rest,ResList)
 	).
 
-resolve_alone(or(List),_,or([atmost(0,R,AllC,L)|Rest])):-
-	List = [atmost(0,R,_,L)|_],
-	findall( C, (
-		      member(X,List),
-		      X = atmost(0,R,C,L)
-		    ), Cs
-	       ),
-	Cs = [_,_|_],
-	boolinter(Cs,AllC),
-	      
-	findall( C, (
-		      member(C,List),
-		      \+ C = atmost(0,R,_,L)
-		    ), Rest
-	       ).
+resolve_alone(or([atmost(0,R,C1,L1),atmost(0,R,C2,L2)|Rest]),_,Res):-
+	boolinter([C1,C2],C3),
+	selectResolvable(C3,C),
+	append(L1,L2,L),
+
+	(
+	  Rest = [] -> Res = atmost(0,R,C,L)
+	; Res = or([atmost(0,R,C,L)|Rest])
+	).
 	
 
 % number_between(+Min,+Max,-Num):- Min =< Num =< Max
@@ -218,7 +250,8 @@ resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel)):-
 	   ; D = or([atleast(_,_,_,_)|_])
 	   ; D = or([atmost(_,_,_,_)|_])
 	   ), !,
-	resolve(C,D,CD).
+	resolve(C,D,CD2),
+	boolinter([C,CD2],CD).
 
 % 3., 4. szabaly
 resolve(atleast(K,R,D,Sel),atmost(N,R,C,L),Res):- !,
@@ -227,6 +260,7 @@ resolve(atleast(K,R,D,Sel),atmost(N,R,C,L),Res):- !,
 	boolneg(C,NotC),
 	boolneg(D,NotD),
 	boolinter([C,NotD],CNotD),
+	boolinter([D,NotC],DNotC),
 	
 	(
 	  L = [] -> K1 = K
@@ -238,14 +272,14 @@ resolve(atleast(K,R,D,Sel),atmost(N,R,C,L),Res):- !,
 	),
 	
 	(
-	  N = 0 ->
-	  Res = atleast(K,R,NotC,[Original])
+	  N = 0 -> Original = D,
+	  Res = atleast(K,R,DNotC,[Original])
 	; K1 > N ->
 	  N1 is K - N,
-	  Res = atleast(N1,R,NotC,[Original,K])
+	  Res = atleast(N1,R,DNotC,[Original,K])
 	; N1 is N - K1,
 	  K2 is K - K1 + 1,
-	  Res = or([atleast(K2,R,NotC,[Original,K]),atmost(N1,R,CNotD,[Original])])
+	  Res = or([atleast(K2,R,DNotC,[Original,K]),atmost(N1,R,CNotD,[Original])])
 	).
 
 % 7. szabaly
@@ -253,20 +287,14 @@ resolve(atleast(_,S,_,[_]),atmost(0,R,C,_),Res):- !,
 	inv(R,S),
 	boolneg(C,Res).
 
-resolve(atleast(K,S,_,[Original]),or(Cs),Res):-
-	Cs = [atmost(0,R,_,_)|_], inv(R,S), !,
-	findall( C, (
-		      member(atmost(0,R,C1,_),Cs),
-		      boolneg(C1,C)
-		    ), Ci
-	       ),	
-	findall( D, (
-		      member(D,Cs),
-		      \+ D = atmost(_,_,_,_)
-		    ), Ds
-	       ),
-	boolunion(Ds,D2),
-	boolunion([atleast(K,S,D2,[Original])|Ci],Res).
+resolve(atleast(K,S,E,[Original]),or([atmost(0,R,C,_)|Rest]),Res):-
+	inv(R,S), !,
+	\+ contains_struct(Rest,atmost(_,_,_,_)),
+	boolneg(C,NC),
+
+	boolunion(Rest,RestUnion),
+	boolinter([E,RestUnion],New),
+	boolunion([atleast(K,S,New,[Original]),NC],Res).
 
 
 resolve(or(Cs),or([atleast(K,S,D,Sel)|Ds]),or(Res)):- !,
@@ -322,8 +350,7 @@ simplifyConcept(or(C),Simplified):-
 	(
 	  member(top,C2) -> Simplified = top
 	; member(A,C2), member(not(A),C2) -> Simplified = top
-	; sort(C2,C3),
-	  simplifyDisjunction(C3,C4),
+	; simplifyDisjunction(C2,C3), sort(C3,C4),
 	  (
 	    C4 = [] -> Simplified = bottom
 	  ; C4 = [X] -> Simplified = X
@@ -337,8 +364,7 @@ simplifyConcept(and(C),Simplified):-
 	(
 	  member(bottom,C2) -> Simplified = bottom
 	; member(A,C2), member(not(A),C2) -> Simplified = bottom
-	; sort(C2,C3),
-	  delete(C3,top,C4),
+	; delete(C2,top,C3), sort(C3,C4),
 	  (
 	    C4 = [] -> Simplified = top
 	  ; C4 = [X] -> Simplified = X
@@ -353,16 +379,18 @@ simplifyConcept(C,C).
 simplifyDisjunction(Cs,Rs):-
 	simplifyDisjunction(Cs,[],Rs).
 
-simplifyDisjunction([],Rs,Rs).
+simplifyDisjunction([],Ls,Rs):- !,
+	reverse(Ls,Rs).
 simplifyDisjunction([C|Cs],L,Rs):-
 	(
 	  member(X,L), includes(X,C) -> simplifyDisjunction(Cs,L,Rs)
 	; member(X,Cs), includes(X,C) -> simplifyDisjunction(Cs,L,Rs)
 	; simplifyDisjunction(Cs,[C|L],Rs)
 	).
-
+/*
 % sameSelector(+Sel1,+Sel2,-Sel): Sel1 es Sel2 azonos egyedeket is
 % tartalmazo szelektorok es Sel a ketto kozul a szukebb
 sameSelector(X,X,X).
 sameSelector([X],[X,K,skolem],[X,K,skolem]):- !.
 sameSelector([X,K,skolem],[X],[X,K]):- !.
+*/
