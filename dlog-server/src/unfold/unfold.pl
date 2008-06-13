@@ -51,19 +51,45 @@ unfold_predicates1(InputProg, Options, UnfoldedProg) :-
 	UnfoldedProg = uprog(UProgram,PredInfo),
 	keysort(Program0, Program1),
 	entry_pred_spec(EntryPredSpec, Program1, EntryPs0),
-	sort(ABoxSignature0, ABoxSignature),
-	remove_unused_clauses(Program1, ABoxSignature, Options, Program2, FailingPs),
+	sort(ABoxSignature0, ABoxSignature1),
+	remove_unused_clauses(Program1, ABoxSignature1, Options, Program2, FailingPs),
+	treat_binaries_as_abox_preds(Program2, ABoxSignature1, Program, ABoxSignature, BinPreds),
 	ord_subtract(EntryPs0, FailingPs, EntryPs1),
-	anc_dependencies_of_program(Program2, AncDeps),
-	program_to_dprogram(Program2, AncDeps, ABoxSignature, DProgram0),
+	anc_dependencies_of_program(Program, AncDeps),
+	program_to_dprogram(Program, AncDeps, ABoxSignature, DProgram0),
 	list_to_dict(DProgram0, Dictionary),
 	order_clause_bodies_program(DProgram0, Dictionary, DProgram1),
 	unfold_entry_preds(DProgram1, EntryPs1, Options, UProgram0, _CQPs),
 	mark_recursive_predicates(UProgram0, UProgram1, Options, RecursivePs, DescGraph),
 	include_entry_preds(UProgram1, EntryPs0, UProgram2),
-	sort(UProgram2, UProgram3),
-	calculate_predinfo(UProgram3, ABoxSignature, EntryPs0, DescGraph, RecursivePs, QPs, PredInfo),
-	simplify_query_preds(UProgram3, QPs, UProgram).
+	restore_binaries(BinPreds, UProgram2, UProgram3),
+	sort(UProgram3, UProgram4),
+	calculate_predinfo(UProgram4, ABoxSignature1, EntryPs0, DescGraph, RecursivePs, QPs, PredInfo),
+	simplify_query_preds(UProgram4, QPs, UProgram).
+
+treat_binaries_as_abox_preds(Program0, ABoxSignature0, Program, ABoxSignature, BinPreds) :-
+	remove_binaries(Program0, Program, BinPreds),
+	unzip1(BinPreds, BinPs),
+	ord_union(ABoxSignature0, BinPs, ABoxSignature).
+
+remove_binaries([], [], []).
+remove_binaries([Pred0|Preds0], Preds, BPreds) :-
+	(   Pred0 = _/2-_ -> BPreds = [Pred0|BPreds1],
+	    remove_binaries(Preds0, Preds, BPreds1)
+	;   Preds = [Pred0|Preds1],
+	    remove_binaries(Preds0, Preds1, BPreds)
+	).
+
+restore_binaries([], Prog, Prog).
+restore_binaries([BPred|BPreds], [Pred0|Preds0], [Pred|Preds]) :-
+	(   same_pred_func(BPred, Pred0) ->
+	    Pred = BPred,
+	    restore_binaries(BPreds, Preds0, Preds)
+	;   Pred = Pred0,
+	    restore_binaries([BPred|BPreds], Preds0, Preds)
+	).
+
+same_pred_func(Func-_, Func-_).
 
 entry_pred_spec(EntryPredSpec, Program, EntryPs) :-
 	entry_pred_spec1(EntryPredSpec, Program, EntryPs0),

@@ -473,7 +473,7 @@ interp_abox(Head, ABox) :-
 	memberchk(Name/Arity-Cls, ABox),
 	member(Head, Cls).
 
-print_query_results(true, OFile, QRs) :-
+print_query_results(true, OFile, QRs) :- !,
 	current_output(Stream),
 	tell(OFile),
 	call_cleanup(print_query_results(QRs),
