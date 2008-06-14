@@ -12,7 +12,9 @@
 
 % translate_axioms([+CInclusion, +RInclusion, +Transitive],-Clauses,-RInclusion,-Transitive):-
 % elso argumentum egy harmas lista: [CInclusion, RInclusion, Transitive], mely egy SHIQ KB-t ir le
-translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion,Transitive):-
+translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transitive):-
+	% ideiglenes inverz konverzio
+	replace_inverse(RInclusion,RInclusion2),
 
 	% belsosites es negacios normalformara hozas
 	axiomsToNNFConcepts(CInclusion,NNF),
@@ -88,6 +90,16 @@ filter([L|Ls],Type1,[L|Rest]):-
 filter([L|Ls],[L|Type1],Rest):-
 	filter(Ls,Type1,Rest).
 
+
+% ideiglenes inverz konverzio
+replace_inverse([],[]).
+replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
+	replace_inverse(R,R1),
+	replace_inverse(S,S1),
+	replace_inverse(Ls,Ls1).
+replace_inverse(arole(R),arole(R)):- !.
+replace_inverse(inv(arole(R)),arole(R1)):-
+	atom_concat('inv_',R,R1).
 
 
 filter2(L,R):-
