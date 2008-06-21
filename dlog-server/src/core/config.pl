@@ -52,8 +52,8 @@ default_option(preprocessing, yes). %[yes, no]
 default_option(ground_optim, yes). %[yes, no]
 default_option(filter_duplicates, no). %[yes, no]
 
-default_option(q_elimination, no). %[yes, no]
 default_option(calculus, dl). %[dl, fol, old]
+default_option(logic_unfold, no). %[yes, no]
 
 default_option(unfold, no). %[no, ?]
 

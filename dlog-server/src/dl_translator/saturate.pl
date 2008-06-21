@@ -272,8 +272,7 @@ resolve(atleast(K,R,D,Sel),atmost(N,R,C,L),Res):- !,
 	),
 	
 	(
-	  N = 0 -> Original = D,
-	  Res = atleast(K,R,DNotC,[Original])
+	  N = 0 -> Res = atleast(K,R,DNotC,[Original])
 	; K1 > N ->
 	  N1 is K - N,
 	  Res = atleast(N1,R,DNotC,[Original,K])

@@ -2,23 +2,26 @@
 :- use_module('../interfaces/dig_reader', [read_dig/2]).
 :- use_module('../dl_translator/show').
 :- use_module('../dl_translator/axioms_to_clauses',[axioms_to_clauses/6]).
+:- use_module('../dl_translator/logic_unfold', [logic_unfold/2]).
 % :- set_prolog_flag(unknown, fail).
 
-compare(File, Option):-
+test(File, Option):-
 	set_dlog_option(dig_reader_fault_tolerance,drop),
-	set_dlog_option(calculus,Option),
+	set_dlog_option(logic_unfold,Option),
 	atom_concat('d:/Logic/ontology/',File,Path1),
 	atom_concat(Path1,'.dig',Path),
 	load(Path,TBox,_),
 	statistics(runtime, [T0,_]),	
 	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
-	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]).
+	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]),
 	% nl, print('Eredeti TBox'), nl, show(TBox),	
-	% nl, print('Eredo TBox'), nl, show(TBox_Clauses).
+	nl, print('Eredo TBox'), nl, show(TBox_Clauses).
+	
+	
 	
 
-test(TBox):-
+test_sample(TBox):-
 	statistics(runtime, [T0,_]),	
 	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
@@ -26,9 +29,10 @@ test(TBox):-
 	( member([],TBox_Clauses) -> nl, nl, write('Inconsistent TBox'), nl, nl
 	; true
 	),
-	nl, print('Eredeti TBox'), nl, show(TBox),	
-	nl, print('Eredo TBox'), nl, show(TBox_Clauses),
-	true.
+	nl, nl, print('Eredeti TBox'), nl, show(TBox),
+	nl, nl, print('Eredo TBox'), nl, show(TBox_Clauses),
+	logic_unfold(TBox_Clauses,Unfolded),
+	nl, nl, print('Unfold utan'), nl, show(Unfolded).
 
 load(File,[CI,RI,Tr],Abox):-
 	read_dig(File,_-tells(_,axioms(CI,RI,Tr,Abox))).
@@ -114,7 +118,7 @@ sample1:-
 		      implies(top,some(arole(gyereke),aconcept(boldog))),
 		      implies(some(arole(gyereke),and([aconcept(gazdag),aconcept(boldog)])),aconcept(query))						
 		     ],
-	test([CInclusion,[],[]]).
+	test_sample([CInclusion,[],[]]).
 
 sample2:-
 	CInclusion = [
@@ -129,7 +133,7 @@ sample2:-
 		      subrole(arole(rr),arole(tt)),
 		      subrole(arole(ss),arole(tt))
 		     ],			
-	test([CInclusion,RInclusion,[]]).
+	test_sample([CInclusion,RInclusion,[]]).
 
 sample3:-
 	CInclusion = [
@@ -139,7 +143,7 @@ sample3:-
 		      implies(top,atmost(1,arole(gyereke),aconcept(kover))),
 		      implies(top,or([aconcept(magas),aconcept(kover)]))
 		     ],
-	test([CInclusion, [],[]]).
+	test_sample([CInclusion, [],[]]).
 		
 sample4:-
 	CInclusion = [
@@ -153,7 +157,7 @@ sample4:-
 	Transitive = [
 		      arole(hasDescendant)
 		     ],
-	test([CInclusion, RInclusion, Transitive]).
+	test_sample([CInclusion, RInclusion, Transitive]).
 
 sample5:-
 	CInclusion = [
@@ -164,7 +168,7 @@ sample5:-
 		      subrole(arole(hasChild),arole(hasDescendant))
 		     ],
 	Transitive = [],
-	test([CInclusion, RInclusion, Transitive]).
+	test_sample([CInclusion, RInclusion, Transitive]).
 
 sample6:-
 	CInclusion = [
@@ -175,20 +179,20 @@ sample6:-
 		      subrole(arole(hasChild),arole(hasDescendant))
 		     ],
 	Transitive = [],
-	test([CInclusion, RInclusion, Transitive]).
+	test_sample([CInclusion, RInclusion, Transitive]).
 	
 sample7:-
 	CInclusion  = [
 		       implies(some(arole(gyereke),and([aconcept(apagyilkos), some(arole(gyereke),not(aconcept(apagyilkos)))])), aconcept(iokaszte_szeru))
 		      ],
-	test([CInclusion,[],[]]).
+	test_sample([CInclusion,[],[]]).
 
 sample8:-
 	CInclusion  = [
 		       implies(aconcept(n), atleast(2, arole(r),top)),
 		       implies(atleast(2, arole(r),top), aconcept(t))
 		      ],
-	test([CInclusion,[],[]]).
+	test_sample([CInclusion,[],[]]).
 	
 sample9:-
 	CInclusion  = [
@@ -215,7 +219,7 @@ sample9:-
 	Transitive = [
 		      arole(contains)		 
 		     ],
-	test([CInclusion,RInclusion,Transitive]).
+	test_sample([CInclusion,RInclusion,Transitive]).
 
 sample10:-
 	CInclusion = [
@@ -224,14 +228,14 @@ sample10:-
 		      implies(top,atleast(2,arole(gyereke),aconcept(ravasz))),
 		      implies(some(arole(gyereke),aconcept(ravasz)),aconcept(szerencses))
 		     ],
-	test([CInclusion,[],[]]).
+	test_sample([CInclusion,[],[]]).
 
 sample11:-
 	CInclusion = [
 		      implies(top,some(arole(gyereke),aconcept(okos))),		
 		      implies(top,atmost(1,arole(gyereke),top))
 		     ],
-	test([CInclusion,[],[]]).
+	test_sample([CInclusion,[],[]]).
 
 sample12:-
 	CInclusion = [
@@ -243,7 +247,7 @@ sample12:-
 		     ],
 	RInclusion = [],
 	Transitive = [],
-	test([CInclusion, RInclusion, Transitive]).
+	test_sample([CInclusion, RInclusion, Transitive]).
 
 
 sample13:-
@@ -255,7 +259,7 @@ sample13:-
 		     ],
 	RInclusion = [],
 	Transitive = [],
-	test([CInclusion, RInclusion, Transitive]).
+	test_sample([CInclusion, RInclusion, Transitive]).
 
 sample14:-
 	CInclusion = [
@@ -272,7 +276,7 @@ sample14:-
 		      %implies(top, atleast(1,aconcept(gyereke),or([not(aconcept(a)),not(aconcept(b)),not(aconcept(c))]))),
 		      implies(top, atmost(3, arole(gyereke),top))
 		     ],
-	test([CInclusion, [],[]]).
+	test_sample([CInclusion, [],[]]).
 
 sample15:-
 	CInclusion = [
@@ -283,7 +287,7 @@ sample15:-
 		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(c))),
 		      implies(top, atmost(3, arole(gyereke),top))
 		     ],
-	test([CInclusion, [],[]]).
+	test_sample([CInclusion, [],[]]).
 
 sample16:-
 	CInclusion = [
@@ -302,7 +306,7 @@ sample16:-
 
 		      implies(top, atmost(3, arole(gyereke),top))
 		     ],
-	test([CInclusion, [],[]]).
+	test_sample([CInclusion, [],[]]).
 
 sample17:-
 	CInclusion = [
@@ -314,7 +318,7 @@ sample17:-
 		      
 		      implies(top,atmost(4,arole(r),top))
 		     ],
-	test([CInclusion, [], []]).
+	test_sample([CInclusion, [], []]).
 
 sample18:-
 	CInclusion = [
@@ -330,7 +334,7 @@ sample18:-
 
 		      implies(top,atmost(5,arole(r),top))
 		     ],
-	test([CInclusion, [], []]).
+	test_sample([CInclusion, [], []]).
 
 sample19:-
 	CInclusion = [
@@ -349,29 +353,39 @@ sample19:-
 
 		      implies(top, atmost(3, arole(gyereke),top))
 		     ],
-	test([CInclusion, [],[]]).
+	test_sample([CInclusion, [],[]]).
 
 
-
-
-/*
-sample11:-
-	Tbox = [
-		equiv(aconcept(anya),and([aconcept(ember),aconcept(nonemu),some(arole(gyereke),top)])),
-		equiv(and([aconcept(ember),aconcept(nonemu)]),aconcept(no)),		
-		equiv(and([aconcept(ember),not(aconcept(nonemu))]),aconcept(ferfi)),
-		equiv(and([aconcept(ember),some(arole(gyereke),top)]),aconcept(szulo)),		
-		equiv(and([aconcept(ferfi),aconcept(szulo)]),aconcept(apa))
+sample20:-
+	CInclusion = [
+		      implies(aconcept(anya),and([aconcept(ember),aconcept(nonemu),some(arole(gyereke),top)])),
+		      implies(and([aconcept(ember),aconcept(nonemu),some(arole(gyereke),top)]),aconcept(anya)),
+		      implies(and([aconcept(ember),aconcept(nonemu)]),aconcept(no)),
+		      implies(aconcept(no),and([aconcept(ember),aconcept(nonemu)])),
+		      implies(and([aconcept(ember),not(aconcept(nonemu))]),aconcept(ferfi)),
+		      implies(aconcept(ferfi),and([aconcept(ember),not(aconcept(nonemu))])),
+		      implies(and([aconcept(ember),some(arole(gyereke),top)]),aconcept(szulo)),
+		      implies(aconcept(szulo),and([aconcept(ember),some(arole(gyereke),top)])),
+		      implies(and([aconcept(ferfi),aconcept(szulo)]),aconcept(apa)),
+		      implies(aconcept(apa),and([aconcept(ferfi),aconcept(szulo)])),
 		
-		% implies(and([aconcept(sikeres),not(aconcept(boldog))]),aconcept(gazdag)),
-		% implies(aconcept(gazdag),aconcept(sikeres)),
-		% implies(aconcept(boldog),aconcept(sikeres)),
+		      implies(and([aconcept(sikeres),not(aconcept(boldog))]),aconcept(gazdag)),
+		      implies(aconcept(gazdag),aconcept(sikeres)),
+		      implies(aconcept(boldog),aconcept(sikeres)),
 		
-		% implies(and([some(inv(arole(testvere)),top),not(aconcept(no))]),aconcept(ferfi)),
-		% implies(all(arole(gyereke),aconcept(boldog)),aconcept(joszulo)),
-		% implies(some(arole(gyereke),top),aconcept(szep)),
-		% implies(aconcept(buszke),some(arole(testvere),aconcept(gazdag)))
-	       ],
-	test(TBox).
+		      implies(and([some(inv(arole(testvere)),top),not(aconcept(no))]),aconcept(ferfi)),
+		      implies(all(arole(gyereke),aconcept(boldog)),aconcept(joszulo)),
+		      implies(some(arole(gyereke),top),aconcept(szep)),
+		      implies(aconcept(buszke),some(arole(testvere),aconcept(gazdag)))
+		     ],
+	test_sample([CInclusion,[],[]]).
 
-*/
+
+sample21:-
+	CInclusion = [
+		      implies(aconcept(alcoholic), or([not(aconcept(happy)),not(aconcept(worried))])),
+		      implies(and([aconcept(worried),some(arole(hasFriend),top)]),aconcept(happy)),
+		      implies(not(aconcept(happy)),aconcept(worried)),
+		      implies(some(arole(hasFriend),aconcept(alcoholic)),aconcept(worried))
+		     ],
+	test_sample([CInclusion,[],[]]).

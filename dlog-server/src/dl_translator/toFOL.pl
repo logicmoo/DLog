@@ -1,4 +1,4 @@
-:- module(toFOL, [toClause_list/2]).
+:- module(toFOL, [toClause_list/2, redundant/2, elim_reds/3]).
 
 :- use_module(library(lists)).
 :- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).

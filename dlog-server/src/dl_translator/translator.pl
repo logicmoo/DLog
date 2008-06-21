@@ -17,6 +17,7 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transi
 	replace_inverse(RInclusion,RInclusion2),
 
 	% belsosites es negacios normalformara hozas
+
 	axiomsToNNFConcepts(CInclusion,NNF),
 	
 	removeTransitive(NNF,RInclusion,Transitive,TransNNF),
