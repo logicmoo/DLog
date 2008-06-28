@@ -1,4 +1,4 @@
-:- module(axioms_to_clauses, [axioms_to_clauses/6]).
+:- module(axioms_to_clauses, [axioms_to_clauses/6,satisfiable/2]).
 :- use_module('translator', [translate_axioms/4]).
 :- use_module('fol/translator_fol', [translate_axioms_fol/4]).
 :- use_module('old/translator_old', [translate_axioms_old/4]).
@@ -29,3 +29,10 @@ axioms_to_clauses(_URI, SHIQAxioms,Clauses,_Ibox,Hbox,Transitive):-
 	  logic_unfold(Clauses2,Clauses)
 	; Clauses = Clauses2
 	).
+
+% satisfiable(+Axioms, +Query):-
+% Query fogalom kielegitheto Axioms T-doboz mellett
+satisfiable(Axioms,Query):-
+	NewAxiom = implies(top,some(arole('$newrole$'),Query)),
+	axioms_to_clauses(_,[NewAxiom|Axioms],Clauses,_,_,_),
+	\+ member([],Clauses).
