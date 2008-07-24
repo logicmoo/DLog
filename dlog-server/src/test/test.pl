@@ -7,7 +7,8 @@
 
 test(File, Option):-
 	set_dlog_option(dig_reader_fault_tolerance,drop),
-	set_dlog_option(logic_unfold,Option),
+	set_dlog_option(logic_unfold,no),
+	set_dlog_option(calculus,Option),
 	atom_concat('d:/Logic/ontology/',File,Path1),
 	atom_concat(Path1,'.dig',Path),
 	load(Path,TBox,_),
@@ -22,6 +23,7 @@ test(File, Option):-
 	
 
 test_sample(TBox):-
+	set_dlog_option(calculus,pure),
 	statistics(runtime, [T0,_]),	
 	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
@@ -309,6 +311,24 @@ sample16:-
 	test_sample([CInclusion, [],[]]).
 
 sample17:-
+	CInclusion = [
+		      implies(top, atleast(2,arole(gyereke),aconcept(a))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(b))),		      
+		      implies(top, atleast(2,arole(gyereke),aconcept(c))),
+		      implies(top, atleast(2,arole(gyereke),aconcept(d))),
+
+		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(d))),
+		      implies(and([aconcept(a),aconcept(c)]),not(aconcept(d))),
+		      implies(and([aconcept(b),aconcept(c)]),not(aconcept(d))),
+
+
+		      implies(top, atmost(3, arole(gyereke),top))
+		     ],
+	test_sample([CInclusion, [],[]]).
+
+
+
+sample27:-
 	CInclusion = [
 		      implies(and([aconcept(a),aconcept(b)]),not(aconcept(c))),
 

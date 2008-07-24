@@ -1,4 +1,7 @@
+%TODO: szerepek hogyan befolyasoljak a sorrendezest????
+
 :- module(selectResolvable, [selectResolvableList/2, selectResolvable/2, greater/2]).
+
 
 :- use_module(library(lists), [select/3, append/3]).
 
@@ -15,15 +18,7 @@ selectResolvableList([C|Cs],[OC|OCs]):-
 % literal elorehozasaval kapjuk OC-t
 selectResolvable(or(L),or([Greatest|Rest])):- !,
 	getGreatest(L,Greatest1,Rest),
-	(
-	  Greatest1 = atmost(N,R,C,L) ->
-	  selectResolvable(C,C2),
-	  Greatest = atmost(N,R,C2,L)
-	; Greatest1 = atleast(N,R,C,Sel) ->
-	  selectResolvable(C,C2),
-	  Greatest = atleast(N,R,C2,Sel)
-	; Greatest = Greatest1
-	).
+	selectResolvable(Greatest1,Greatest).
 selectResolvable(atmost(N,R,C,L),atmost(N,R,C2,L)):- !,
 	selectResolvable(C,C2).
 selectResolvable(atleast(N,R,C,Sel),atleast(N,R,C2,Sel)):- !,
@@ -37,7 +32,7 @@ selectResolvable(C,C).
 getGreatest(List,Greatest,Rest):-
 	getGreatest(List,[],Greatest,Rest).
 
-% getGreatest(+List,+Smaller,-Greatest, Rest)
+% getGreatest(+List,+Smaller,-Greatest, -Rest)
 % List fogalmak listaja listaja, melynek
 % legnagyobb eleme Greatest, Rest pedig a tobbihez hozzafuzve
 % Smaller elemeit
@@ -57,32 +52,48 @@ greater(A,B):-
 % greatness(+L,-G)
 % L egy DL kifejezes, melyhez hozzarendelunk egy G
 % atomot, hogy tudjuk a kifejezeseket rendezni
-greatness(atleast(_,_,_,[_]),'50'):- !.
-greatness(atleast(_,_,_,[_,_]),'51'):- !.
-greatness(atleast(_,_,_,[_,_,_]),'52'):- !.
+greatness(atleast(_,_,_,[_,_,_]),'9'):- !. % maximum 1 skolem fogalom szerepelhet, es az mindig maximalis
+greatness(atleast(_,R,C,[Original,K]),G):- !,
+	greatness(R,GR),
+	atom_concat('8',GR,G1),
+	greatness(Original,GO),
+	atom_concat(G1,GO,G2),
+	atom_concat(G2,K,G3),
+	greatness(C,GC),
+	atom_concat(G3,GC,G).
+greatness(atleast(_,_,_,[_]),'7'):- !. % maximum 1 ilyen lehet
 
 greatness(atmost(N,R,C,_),G):-
 	greatness(R,GR),
 	greatness(C,GC),
-	atom_concat('3',GR,G1),
+	atom_concat('6',GR,G1),
 	atom_concat(G1,N,G2),
 	atom_concat(G2,GC,G).
 
 greatness(and(L),G):-
-	getGreatest(L,Greatest,_),
-	greatness(Greatest,G).
+	getGreatest(L,Greatest,Rest),
+	greatness(Greatest,G1),
+	(
+	  Rest = [] -> G = G1
+	; greatness(and(Rest),GRest),
+	  atom_concat(G1,GRest,G)
+	).
+
 greatness(or(L),G):-
 	getGreatest(L,Greatest,_),
 	greatness(Greatest,G).
+
 greatness(not(C),G):-
 	greatness(C,G1),
-	atom_concat(G1,'2',G).
+	atom_concat(G1,'5',G).
+
 greatness(aconcept(C),G):-
-	atom_concat('1',C,G).
+	atom_concat('4',C,G).
 greatness(nconcept(C),G):-
-	atom_concat('0',C,G).
-greatness(top,'0').
-greatness(bottom,'0').
+	atom_concat('3',C,G).
+greatness(top,'2').
+greatness(bottom,'1').
+
 greatness(arole(R),G):-
 	atom_concat(R,'0',G).
 greatness(inv(arole(R)),G):-

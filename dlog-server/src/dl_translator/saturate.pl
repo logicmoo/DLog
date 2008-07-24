@@ -1,4 +1,4 @@
-:- module(saturate,[saturate/3,saturate_partially/4,saturate_cross/4,simplifyConcept/2]).
+:- module(saturate,[saturate/3,saturate_partially/4,saturate_cross/4,simplifyConcept/2, proba/0]).
 
 :- use_module(show).
 :- use_module('bool', [boolneg/2, boolinter/2, boolunion/2]).
@@ -37,9 +37,13 @@ saturate_cross(W1,W2,RInclusion,S):-
 	findall(R, (
 		     member(A,W1),
 		     member(B,W2),
+		     % nl, print(' 1: '), print(A),
+		     % nl, print(' 2: '), print(B),
 		     resolve(A,B,R1),
-		     simplifyConcept(R1,R2),
-		     selectResolvable(R2,R)
+		     simplifyConcept(R1,R2),		     
+		     selectResolvable(R2,R),
+		     % nl, print(' =: '), print(R),
+		     true
 		   ), Rs
 	       ),
 	append(W1,W2,W),
@@ -63,13 +67,13 @@ saturate(W1,[C|W2],RInclusion,S):-
 	findall(R,(
 		   (
 		     member(A,W1),
-		     resolve(A,C,R1),
-		     % nl, print('  + '), print(A),
-		     true
-		   ; resolve_alone(C,RInclusion,R1)
+		     resolve(A,C,R1)
+		   ; resolve_hierarchy(C,RInclusion,R1)
 		   ),		     
 		   simplifyConcept(R1,R2),
-		   selectResolvable(R2,R),
+		   selectResolvable(R2,R3),
+		   resolve_further(R3,R4),
+		   selectResolvable(R4,R),
 		   % nl, print('  = '), print(R),
 		   true
 		  ), Rs),
@@ -124,12 +128,6 @@ includes(or(C),D):- !,
 	member(X,C),
 	includes(X,D).
 
-/*
-includes(or(C),or(D)):- !,
-	includes_list_list(C,D).
-includes(or(C),D):- !,
-	includes_list(C,D,_).
-*/
 % includes_list_list(+Cs,+Ds): Ds lista minden eleme megfeleltetheto
 % Cs lista valamelyik elemenek
 includes_list_list(_,[]):- !.
@@ -157,41 +155,72 @@ elim_reds([A|Rest],C,[A|Reduced]):-
 	elim_reds(Rest,C,Reduced).
 
 /******************* Alap szuperpozicios kovetkeztetesi lepes *********************/
-% resolve_alone(+C,+RInclusion,-R1):- C fogalom rezolvalhato az egyik RInclusion-beli
-% szereptartalmazasi axiomaval
-resolve_alone(atleast(N,R,C,Sel),RInclusion,atleast(N,S,C,Sel)):-
-	member(subrole(R,S),RInclusion).
 
-resolve_alone(atleast(1,R,C,[Original,1]),_,atleast(1,R,C,[Original,1,skolem])):- !.
-resolve_alone(atleast(1,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,N,skolem]),atleast(1,R,C,[Original,N1])])):- !,
+resolve_further(C,R):-
+	(
+	  resolve_alone(C,C1) -> resolve_further(C1,R)
+	; R = C
+	).
+
+% resolve_hierarchy(+C,+RInclusion,-Res):- C fogalom rezolvalhato az egyik RInclusion-beli
+% szereptartalmazasi axiomaval. Az eredmeny Res.
+resolve_hierarchy(atleast(N,R,C,Sel),RInclusion,atleast(N,S,C,Sel)):-
+	(
+	  member(subrole(R,S),RInclusion), !
+	; member(subrole(R1,S1),RInclusion),
+	  inv(R1,R), inv(S1,S)
+	).
+resolve_hierarchy(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or(ResList)):-
+	resolve_hierarchy(atleast(N,R,C,Sel),RInclusion,Res),
+	(
+	  Res = atleast(_,_,_,_) -> ResList = [Res|Rest]
+	; Res = or(L) -> append(L,Rest,ResList)
+	).
+
+
+% resolve_alone(+C,-Res):- C egymagaban rezolvalhato Res fogalomma
+resolve_alone(atleast(1,R,C,[Original,1]),atleast(1,R,C,[Original,1,skolem])):- !.
+resolve_alone(atleast(1,R,C,[Original,N]),or([atleast(1,R,C,[Original,N,skolem]),atleast(1,R,C,[Original,N1])])):- !,
 	N > 1,
 	N1 is N - 1.
 
-resolve_alone(atleast(K,R,C,[Original,N]),_,or([atleast(1,R,C,[Original,X,skolem]),atleast(K1,R,C,[Original,N1])])):-
+resolve_alone(atleast(K,R,C,[Original,N]),or([atleast(1,R,C,[Original,X,skolem]),atleast(K1,R,C,[Original,N1])])):-
 	N > K, !,
 	Min is N - K + 1,
 	number_between(Min,N,X),
 	K1 is K - N + X,
 	N1 is X - 1.
 
-resolve_alone(atleast(N,R,C,[Original,N]),_,atleast(1,R,C,[Original,K,skolem])):-
+resolve_alone(atleast(N,R,C,[Original,N]),atleast(1,R,C,[Original,K,skolem])):-
 	number_between(1,N,K).
 
-resolve_alone(or([atleast(N,R,C,Sel)|Rest]),RInclusion,or(ResList)):-
-	resolve_alone(atleast(N,R,C,Sel),RInclusion,Res),
+resolve_alone(or([atleast(N,R,C,Sel)|Rest]),or(ResList)):-
+	resolve_alone(atleast(N,R,C,Sel),Res),
 	(
 	  Res = atleast(_,_,_,_) -> ResList = [Res|Rest]
 	; Res = or(L) -> append(L,Rest,ResList)
 	).
 
-resolve_alone(or([atmost(0,R,C1,L1),atmost(0,R,C2,L2)|Rest]),_,Res):-
-	boolinter([C1,C2],C3),
-	selectResolvable(C3,C),
+% ez most csak hatekonysagnovelesi kiserlet, valoszinuleg nem kell
+resolve_alone(or([atleast(1,R,C,[Original,1,skolem])|Rest]),Res):-
+	select(atleast(1,R,D,[Original,1]),Rest,Rest2), !,
+	boolunion([C,D],CD),
+
+	(
+	  Rest2 = [] -> Res = atleast(1,R,CD,[Original,1,skolem])
+	; Res = or([atleast(1,R,CD,[Original,1,skolem])|Rest2])
+	).
+
+
+
+resolve_alone(or([atmost(0,R,C1,L1)|Rest]),Res):-
+	select(atmost(0,R,C2,L2),Rest,Rest2), !,
+	boolinter([C1,C2],C),
 	append(L1,L2,L),
 
 	(
-	  Rest = [] -> Res = atmost(0,R,C,L)
-	; Res = or([atmost(0,R,C,L)|Rest])
+	  Rest2 = [] -> Res = atmost(0,R,C,L)
+	; Res = or([atmost(0,R,C,L)|Rest2])
 	).
 	
 
@@ -222,7 +251,7 @@ resolve(D,and(Cs),bottom):-
 	boolneg(C,D), !.
 
 
-% 5. szabaly
+% 3. szabaly
 resolve(atleast(N,R,C,Sel1),atleast(K,S,D,Sel2),atleast(M,R,CD,Sel)):- !,
 	R = S,
 	
@@ -233,16 +262,17 @@ resolve(atleast(N,R,C,Sel1),atleast(K,S,D,Sel2),atleast(M,R,CD,Sel)):- !,
 	; Sel2 = [Original], Sel1 = [Original,_,_] -> Sel = Sel1
 	),
 	M is min(N,K),
-	resolve(C,D,CD).
+	resolve(C,D,CD2),
+	boolinter([C,D,CD2],CD).
 
 
-% atleast mindig elolre kerul
+% atleast mindig elore kerul
 resolve(D,atleast(N,R,C,Sel),Res):- !,
 	resolve(atleast(N,R,C,Sel),D,Res).
 
 % 2. szabaly
 resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel)):-
-	( Sel = [_] ; Sel = [_,_,_] ),
+	\+ Sel = [_,_],
 	
 	\+ (
 	     D = atleast(_,_,_,_)
@@ -253,7 +283,8 @@ resolve(atleast(N,R,C,Sel),D,atleast(N,R,CD,Sel)):-
 	resolve(C,D,CD2),
 	boolinter([C,CD2],CD).
 
-% 3., 4. szabaly
+
+% 4., 5., 6. szabaly
 resolve(atleast(K,R,D,Sel),atmost(N,R,C,L),Res):- !,
 	Sel = [Original],
 	
@@ -296,6 +327,7 @@ resolve(atleast(K,S,E,[Original]),or([atmost(0,R,C,_)|Rest]),Res):-
 	boolunion([atleast(K,S,New,[Original]),NC],Res).
 
 
+% diszjunktiv fogalmak kezelese
 resolve(or(Cs),or([atleast(K,S,D,Sel)|Ds]),or(Res)):- !,
 	resolve(atleast(K,S,D,Sel),or(Cs),R),
 	(
@@ -318,6 +350,8 @@ resolve(D,or([C|Cs]),or(R)):- !,
 	  append(CDRES1,Cs,R)
 	; R = [CDRES|Cs]
 	).
+
+
 
 simplifyConcepts([],[]).
 simplifyConcepts([C|Cs],[R|Rs]):-
@@ -393,3 +427,17 @@ sameSelector(X,X,X).
 sameSelector([X],[X,K,skolem],[X,K,skolem]):- !.
 sameSelector([X,K,skolem],[X],[X,K]):- !.
 */
+
+proba:-
+	A = or([
+		atleast(1,arole(gyereke), and([aconcept(a),aconcept(e)]),[aconcept(a), 1, skolem]),
+		atleast(1,arole(gyereke), and([aconcept(a),aconcept(d)]),[aconcept(a), 1]),
+		atleast(1,arole(gyereke), and([aconcept(a),aconcept(c)]),[aconcept(a), 1])
+		]),
+	B = or([not(aconcept(e)),not(aconcept(c)),not(aconcept(b)),not(aconcept(a))]),
+	resolve(A,B,C),
+	nl, print(C),
+	resolve_alone(C,C2),
+	nl, print(C2),
+	resolve_alone(C2,C3),
+	nl, print(C3).

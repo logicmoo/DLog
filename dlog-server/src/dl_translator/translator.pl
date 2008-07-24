@@ -8,8 +8,6 @@
 :- use_module(show).
 :- use_module(struct,[omit_structs/3, contains_struct/2]).
 
-:- use_module('../prolog_translator/prolog_translator_swi_tools', [bb_put/2, bb_get/2]).
-
 % translate_axioms([+CInclusion, +RInclusion, +Transitive],-Clauses,-RInclusion,-Transitive):-
 % elso argumentum egy harmas lista: [CInclusion, RInclusion, Transitive], mely egy SHIQ KB-t ir le
 translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transitive):-
@@ -33,20 +31,16 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transi
 	% nl,print('Strukturalis transzformacio utan'),nl, show(AllDefs),nl,
 
 	% szerepeket tartalmazo klozok levalasztasa
-	filter(AllDefs,Type1,Rest),
+	separate(AllDefs,Type1,Rest),
 
-	% bb_put(time,0),	
-
-	
 	% klozhalmaz telitese alap-szuperpozicioval
-	% statistics(runtime, [T0,_]),
+	statistics(runtime, [T0,_]),
 	saturate(Type1,RInclusion,Saturated1),
 	% statistics(runtime, [T1,_]),
 	% TA is T1-T0,
 	
-	% nl,print('Elso telites utan'),nl, % show(Saturated1),nl,
+	% nl,print('Elso telites utan'),nl, show(Saturated1),nl,
 	% format('Saturation in ~t~20|~t~3d sec ~n', [TA]),
-	% nl, bb_get(time,Time1), print('Red time: '), write(Time1), nl,	
 	
 	% show(Rest),
 	
@@ -55,9 +49,8 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transi
 	% statistics(runtime, [TT1,_]),
 	% TTA is TT1-TT0,
 	
-	% nl,print('Masodik telites utan'),nl, % show(Saturated2),nl,
+	% nl,print('Masodik telites utan'),nl, show(Saturated2),nl,
 	% format('Saturation in ~t~20|~t~3d sec ~n', [TTA]),
-	% nl, bb_get(time,Time2), print('Red time: '), write(Time2), nl,
 
 	% filter2(Saturated2,Filtered2),
 
@@ -65,13 +58,12 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transi
 
 	% statistics(runtime, [TTT0,_]),
 	saturate_cross(Saturated1,Saturated2,RInclusion,Saturated),
-	% statistics(runtime, [TTT1,_]),
-	% TTTA is TTT1-TTT0,
+	statistics(runtime, [TTT1,_]),
+	TTTA is TTT1-T0,
 	
-	% nl,print('Harmadik telites utan'),nl, show(Saturated),nl,
+	% nl,print('Harmadik telites utan'),nl, show(Saturated),nl,	
 
 	% format('Saturation in ~t~20|~t~3d sec ~n', [TTTA]),
-	% nl, bb_get(time,Time3), print('Red time: '), write(Time3), nl,
 
 	omit_structs(Saturated,atleast(_,_,_,_),FunFree),
 
@@ -84,14 +76,15 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transi
 
 
 % szerepeket tartalmazo klozok levalasztasa
-filter([],[],[]).
-filter([L|Ls],Type1,[L|Rest]):-
+separate([],[],[]).
+separate([L|Ls],Type1,[L|Rest]):-
 	contains_struct(L,arole(_)), !,
-	filter(Ls,Type1,Rest).
-filter([L|Ls],[L|Type1],Rest):-
-	filter(Ls,Type1,Rest).
+	separate(Ls,Type1,Rest).
+separate([L|Ls],[L|Type1],Rest):-
+	separate(Ls,Type1,Rest).
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ideiglenes inverz konverzio
 replace_inverse([],[]).
 replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
@@ -101,6 +94,34 @@ replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
 replace_inverse(arole(R),arole(R)):- !.
 replace_inverse(inv(arole(R)),arole(R1)):-
 	atom_concat('inv_',R,R1).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+collect(List):-
+	collect(List,[aconcept(a),1,skolem]), nl, nl,
+	collect(List,[aconcept(a),2,skolem]), nl, nl,
+	collect(List,[aconcept(b),1,skolem]), nl, nl,
+	collect(List,[aconcept(b),2,skolem]), nl, nl,
+	collect(List,[aconcept(c),1,skolem]), nl, nl,
+	collect(List,[aconcept(c),2,skolem]), nl, nl,
+	collect(List,[aconcept(d),1,skolem]), nl, nl,
+	collect(List,[aconcept(d),2,skolem]), nl, nl,
+	collect(List,[aconcept(e),1,skolem]), nl, nl,
+	collect(List,[aconcept(e),2,skolem]), nl, nl.
+
+collect([],_).
+collect([Head|Rest],Sel):-
+	theSelected(Head,Sel), !,
+	nl, print(Head),
+	collect(Rest,Sel).
+collect([_|Rest],Sel):-
+	collect(Rest,Sel).
+
+theSelected(atleast(N,R,C,Sel),Sel):- !.
+%	nl, print(atleast(N,R,C,Sel)).
+theSelected(atleast(N,R,C,[Original]),[Original,_,_]):- !.
+%	nl, print(atleast(N,R,C,[Original])).
+theSelected(or([X|_]),Sel):-
+	theSelected(X,Sel).
 
 
 filter2(L,R):-
