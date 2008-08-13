@@ -25,7 +25,7 @@
 	; true.
 :- target(sicstus) -> 
 	use_module(library(system), [datime/1]),
-	use_module(core_sicstus_tools, [mutex_create/1, with_mutex/2, mutex_lock/1, mutex_unlock/1]),
+	use_module(core_sicstus_tools, [mutex_create/1, with_mutex/2, mutex_lock/1, mutex_unlock/1, setup_and_call_cleanup/3]),
 	use_module(library(system), [delete_file/2]),
 	use_module('../hash/dlog_hash', [])
 	; true.
@@ -117,59 +117,88 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni
 
 add_abox(assert, URI, ABox) :- !,
 	abox2prolog(URI, ABox). %TODO: finalize dynamic? (SWI)
-add_abox(Target, URI, ABox) :-
-	(	Target == tempfile,
-		target(swi)
-	->	new_memory_file(File),
-		open_memory_file(File, write, Stream)
-	;	abox_file_name(URI, File),
-		open(File, write, Stream)
-	),	
+add_abox(allinonefile, URI, ABox) :-
 	current_output(Out),
-	call_cleanup(
-	(
-		set_output(Stream),
-		call_cleanup(
-			abox2prolog(URI, ABox), %TODO 
-			(set_output(Out), close(Stream))
+	abox_file_name(URI, FileName),
+	setup_and_call_cleanup( 
+		open(FileName, write, Stream),
+		setup_and_call_cleanup(
+			set_output(Stream),
+			abox2prolog(URI, ABox),
+			set_output(Out)
 		),
-		(	Target == tempfile,
-			target(swi)
-		->	open_memory_file(File, read, Stream2),
-			abox_module_name(URI, AB),
-			call_cleanup(
-				load_files(AB, [stream(Stream2)]), %TODO
-				close(Stream2)
-			)
-		;	load_files(File, []) %TODO
-		)
+		close(Stream)	
 	),
-	(
-		(	Target == tempfile
-		->	(	target(swi)
-			->	free_memory_file(File)
-			;	delete_file(File, [])
+	load_files(FileName, []).
+%%add_abox(Target, URI, ABox) :-
+add_abox(tempfile, URI, ABox) :-
+	setup_and_call_cleanup(
+		( %setup file
+			abox_file_name(URI, FileName),
+			(	%%Target == tempfile,
+				target(swi)
+			->	new_memory_file(MemFile)
+			;	true
 			)
-		;	true
+		),
+		( %call (main body)
+			current_output(Out),
+			setup_and_call_cleanup(
+				( %setup output stream
+					(	%%Target == tempfile,
+						target(swi)
+					->	open_memory_file(MemFile, write, Stream)
+					;	open(FileName, write, Stream)
+					)
+				),
+				setup_and_call_cleanup( % write ABox
+					set_output(Stream),
+					abox2prolog(URI, ABox),
+					set_output(Out)
+				), 
+				close(Stream)
+			),
+			(	%load ABox
+				%%Target == tempfile,
+				target(swi)
+			->	%abox_module_name(URI, AB),
+				setup_and_call_cleanup(
+					open_memory_file(MemFile, read, Stream2),
+					load_files(FileName, [stream(Stream2)]), %TODO
+					close(Stream2)
+				)
+			;	load_files(FileName, []) %TODO
+			)
+		),
+		( %cleanup temp file
+			%%(	Target == tempfile
+			%%->	
+				(	target(swi)
+				->	free_memory_file(MemFile)
+				;	delete_file(FileName, [])
+				)
+			%%;	true
+			%%)
 		)
-	)).
-
+	).
 
 add_tbox(assert, URI, TBox, ABox) :- !,
 	%throw(not_implemented), %TODO
 	tbox2prolog(URI, TBox, ABox). %TODO: finalize dynamic? (SWI)
 add_tbox(allinonefile, URI, TBox, ABox) :-
 	current_output(Out),
-	setup_and_call_cleanup( %todo: 2 call_cleanup
-		(	tbox_file_name(URI, FileName),
-			open(FileName, write, Stream),
-			set_output(Stream)
+	tbox_file_name(URI, FileName),
+	setup_and_call_cleanup( 
+		open(FileName, write, Stream),
+		setup_and_call_cleanup(
+			set_output(Stream),
+			(
+				write_tbox_header(URI),
+				tbox2prolog(URI, TBox, ABox)
+			), 
+			set_output(Out)
 		),
-		(
-			write_tbox_header(URI),
-			tbox2prolog(URI, TBox, ABox)
-		), 
-		(set_output(Out), close(Stream))
+		close(Stream)	
 	),
 	load_files(FileName, []).
 %%add_tbox(Target, URI, TBox, ABox) :-
