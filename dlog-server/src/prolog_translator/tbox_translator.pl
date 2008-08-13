@@ -36,7 +36,9 @@
 	hierarchy/2, % ket fo szinonima kozti hierarchia
 	roleeq/2, % egy szerep fo szinonimaja
 	role_component/1, % a szerepek kozti ekvivalenciaosztalyok
-	symmetric/1. % szimmetrikus komponensek
+	symmetric/1, % szimmetrikus komponensek
+	projection_temporarily_disabled/0. %projekcio nem sikerult 
+		%TODO: pass state to all goals, use config directly
 
 :- thread_local
 	predicate/2,
@@ -49,7 +51,8 @@
 	hierarchy/2, % ket fo szinonima kozti hierarchia
 	roleeq/2, % egy szerep fo szinonimaja
 	role_component/1, % a szerepek kozti ekvivalenciaosztalyok
-	symmetric/1. % szimmetrikus komponensek
+	symmetric/1, % szimmetrikus komponensek
+	projection_temporarily_disabled/0. %projekcio nem sikerult
 
 counter(loop).
 counter(ancres).
@@ -201,6 +204,7 @@ hbox_edges0([subrole(arole(R1),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	abox_inverse_name(R1, IR1),
 	abox_inverse_name(R2, IR2),
 	hbox_edges0(Rs, Es).
+/* %most Zsolt megcsinalja, valasztasi pontot hagyott!
 hbox_edges0([subrole(inv(arole(R1)),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	IR1 = R1,
 	abox_inverse_name(R2, IR2),
@@ -213,6 +217,7 @@ hbox_edges0([subrole(inv(arole(R1)),inv(arole(R2)))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	IR1 = R1,
 	IR2 = R2,
 	hbox_edges0(Rs, Es).
+*/
 
 asserted_hierarchy_info([]).
 asserted_hierarchy_info([[P|Rs]-Es|Cs]) :-
@@ -886,8 +891,8 @@ transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature) :-
 	    global_projection(PredHead, Projection, Signature, DepGraph)->
 	    bb_put(projection, success)
 	  ;
-	    bb_put(projection, failed), %TODO: fix
-	    asserta(env_user:projection(no)) % temporarily turn off projection
+	    bb_put(projection, failed), 
+	    asserta(projection_temporarily_disabled) % temporarily turn off projection
 	  )
 	;
 	  bb_put(projection, notneeded)
@@ -903,7 +908,7 @@ transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature) :-
 	write_generated_clauses(GClauses, OGClauses), % write abox and other clauses
 	(
 	  bb_get(projection, failed) ->
-	  retractall(env_user:projection(no)) % switch back projection on
+	  retractall(projection_temporarily_disabled) % switch back projection on
 	;
 	  true
 	).
@@ -1815,6 +1820,10 @@ flat_goals([G|Gs], (G, Gs0)) :-
 % 	  Value == Value0
 % 	).
 
+
+env_parameter(projection, Value) :-
+	projection_temporarily_disabled, !,
+	Value = no.
 env_parameter(Name, Value) :-
 	bb_get(uri, URI),
 	get_dlog_option(Name, URI, Value).

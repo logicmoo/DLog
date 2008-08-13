@@ -158,45 +158,74 @@ add_abox(Target, URI, ABox) :-
 add_tbox(assert, URI, TBox, ABox) :- !,
 	%throw(not_implemented), %TODO
 	tbox2prolog(URI, TBox, ABox). %TODO: finalize dynamic? (SWI)
-add_tbox(Target, URI, TBox, ABox) :-
-	(	Target == tempfile,
-		target(swi)
-	->	new_memory_file(File),
-		open_memory_file(File, write, Stream)
-	;	tbox_file_name(URI, File),
-		open(File, write, Stream)
-	),	
+add_tbox(allinonefile, URI, TBox, ABox) :-
 	current_output(Out),
-	call_cleanup(
-	(
-		set_output(Stream),
-		call_cleanup(
-			(
-				write_tbox_header(URI),
-				tbox2prolog(URI, TBox, ABox)
-			), 
-			(set_output(Out), close(Stream)) %close_memory_file?
+	setup_and_call_cleanup( %todo: 2 call_cleanup
+		(	tbox_file_name(URI, FileName),
+			open(FileName, write, Stream),
+			set_output(Stream)
 		),
-		(	Target == tempfile,
-			target(swi)
-		->	open_memory_file(File, read, Stream2),
-			tbox_module_name(URI, TB),
-			call_cleanup(
-				load_files(TB, [stream(Stream2)]), %TODO
-				close(Stream2)
-			)
-		;	load_files(File, []) %TODO
-		)
+		(
+			write_tbox_header(URI),
+			tbox2prolog(URI, TBox, ABox)
+		), 
+		(set_output(Out), close(Stream))
 	),
-	(
-		(	Target == tempfile
-		->	(	target(swi)
-			->	free_memory_file(File)
-			;	delete_file(File, [])
+	load_files(FileName, []).
+%%add_tbox(Target, URI, TBox, ABox) :-
+add_tbox(tempfile, URI, TBox, ABox) :-
+	setup_and_call_cleanup(
+		( %setup file
+			tbox_file_name(URI, FileName),
+			(	%%Target == tempfile,
+				target(swi)
+			->	new_memory_file(MemFile)
+			;	true
 			)
-		;	true
+		),
+		( %call (main body)
+			current_output(Out),
+			setup_and_call_cleanup(
+				( %setup output stream
+					(	%%Target == tempfile,
+						target(swi)
+					->	open_memory_file(MemFile, write, Stream)
+					;	open(FileName, write, Stream)
+					)
+				),
+				setup_and_call_cleanup( % write TBox
+					set_output(Stream),
+					(
+						write_tbox_header(URI),
+						tbox2prolog(URI, TBox, ABox)
+					),
+					set_output(Out)
+				), 
+				close(Stream)
+			),
+			(	%load TBox
+				%%Target == tempfile,
+				target(swi)
+			->	%tbox_module_name(URI, TB),
+				setup_and_call_cleanup(
+					open_memory_file(MemFile, read, Stream2),
+					load_files(FileName, [stream(Stream2)]), %TODO
+					close(Stream2)
+				)
+			;	load_files(FileName, []) %TODO
+			)
+		),
+		( %cleanup temp file
+			%%(	Target == tempfile
+			%%->	
+				(	target(swi)
+				->	free_memory_file(MemFile)
+				;	delete_file(FileName, [])
+				)
+			%%;	true
+			%%)
 		)
-	)).
+	).
 
 
 run_query(URI, Query, Answer) :- 
