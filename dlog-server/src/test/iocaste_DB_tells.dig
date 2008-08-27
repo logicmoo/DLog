@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tells xmlns="http://dl.kr.org/dig/lang">
+    <defconcept name="Patricide"/>
+    <defconcept name="Good"/>
+    <equalc>
+        <catom name="Good"/>
+        <and>
+            <some>
+                <ratom name="hasChild"/>
+                <and>
+                    <catom name="Patricide"/>
+                    <some>
+                        <ratom name="hasChild"/>
+                        <not>
+                          <catom name="Patricide"/>
+                        </not>
+                    </some>
+                </and>
+            </some>
+        </and>
+    </equalc>
+
+    <defrole name="hasChild"/>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i2"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i3"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i4"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i5"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i6"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i7"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i8"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i9"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i10"/>
+</related>
+<related>
+<individual name="i1"/>
+<ratom name="hasChild"/>
+<individual name="i11"/>
+</related>
+<related>
+<individual name="i2"/>
+<ratom name="hasChild"/>
+<individual name="i3"/>
+</related>
+<related>
+<individual name="i3"/>
+<ratom name="hasChild"/>
+<individual name="i4"/>
+</related>
+<related>
+<individual name="i4"/>
+<ratom name="hasChild"/>
+<individual name="i5"/>
+</related>
+<related>
+<individual name="i5"/>
+<ratom name="hasChild"/>
+<individual name="i6"/>
+</related>
+<related>
+<individual name="i6"/>
+<ratom name="hasChild"/>
+<individual name="i7"/>
+</related>
+<related>
+<individual name="i7"/>
+<ratom name="hasChild"/>
+<individual name="i8"/>
+</related>
+<related>
+<individual name="i8"/>
+<ratom name="hasChild"/>
+<individual name="i9"/>
+</related>
+<related>
+<individual name="i9"/>
+<ratom name="hasChild"/>
+<individual name="i10"/>
+</related>
+<related>
+<individual name="i10"/>
+<ratom name="hasChild"/>
+<individual name="i11"/>
+</related>
+<related>
+<individual name="i11"/>
+<ratom name="hasChild"/>
+<individual name="i12"/>
+</related>
+<instanceof>
+  <individual name="i2"/>
+  <catom name="Patricide"/>
+</instanceof>
+<instanceof>
+  <individual name="i12"/>
+  <not>
+    <catom name="Patricide"/>
+  </not>
+</instanceof>
+
+<related>
+<individual name="hasChild"/>
+<ratom name="$connectionOfRole$"/>
+<individual name="IODB"/>
+</related>
+<value>
+<individual name="hasChild"/>
+<attribute name="$queryOfRole$"/>
+<sval>SELECT parent, child FROM haschild</sval>
+</value>
+<related>
+<individual name="Patricide"/>
+<feature name="$connectionOfConcept$"/>
+<individual name="IODB"/>
+</related>
+<value>
+<individual name="Patricide"/>
+<attribute name="$queryOfConcept$"/>
+<sval>SELECT name FROM people WHERE patricide = 1</sval>
+</value>
+
+<related>
+<individual name="Patricide"/>
+<feature name="$connectionOfNegConcept$"/>
+<individual name="IODB"/>
+</related>
+<value>
+<individual name="Patricide"/>
+<attribute name="$queryOfNegConcept$"/>
+<sval>SELECT name FROM people WHERE patricide = 0</sval>
+</value>
+
+
+<value>
+<individual name="IODB"/>
+<attribute name="$connectionDSN$"/>
+<sval>mysql:localhost:1234</sval>
+</value>
+
+
+</tells>

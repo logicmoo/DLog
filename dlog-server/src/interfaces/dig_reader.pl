@@ -19,7 +19,7 @@
 %			digerror(103, 'Unsupported Operation', Elem, NS) -- csak tells
 % beolvassa a DIG_Input DIG file tartalmát
 % Answer: 
-%	tells(ID, (ImpliesCL, InvRL, ImpliesRL, TransL, ABox))
+%	tells(ID, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)) %TODO: explain
 %	asks(ID, (...))
 %	newKB
 %	releaseKB(ID)
@@ -31,7 +31,6 @@ read_dig(DIG_Input, NS-Answer) :-
 		dialect(xmlns),
 		space(remove),
 		%number(integer),
-		qualify_attributes(true),
 		call(urlns, dig_reader:xmlns), 
 		call(error, dig_reader:xmlerror)
 	]) %TODO: még elfogad 2 gyökér elemet, és idézöjel nélküli attribútumot
@@ -39,7 +38,7 @@ read_dig(DIG_Input, NS-Answer) :-
 	; throw(digerror(102, 'Malformed Request (XML error)', '', 
 		'http://dl.kr.org/dig/2003/02/lang')) %no way to decide -> dig 1.1
 	),
-	memberchk((dig:xmlns=NS), Atts),
+	memberchk(xmlns=NS, Atts),
 	%assertion(NS=='http://dl.kr.org/dig/2003/02/lang' 
 	%			; NS == 'http://dl.kr.org/dig/lang'),
 	catch(
@@ -57,23 +56,29 @@ xmlerror(_Severity, Message, _Parser) :-
 %parse(+Root, +Atts, +Elems, -Answer).
 parse(newKB, _Atts, _Elems, newKB) :- !.
 parse(clearKB, Atts, _Elems, clearKB(URI)) :- !,
-	(memberchk((dig:uri=URI),Atts) -> true
+	(memberchk(uri=URI,Atts) -> true
 	; true). % uninstantiated
 	%; default_kb(URI)). %dig1.0
 parse(releaseKB, Atts, _Elems, releaseKB(URI)) :- !,
-	memberchk(dig:uri=URI,Atts).
+	memberchk(uri=URI,Atts).
 parse(getIdentifier, _Atts, _Elems, getIdentifier).
 parse(tells, Atts, Elems, Req) :- !,
-	(memberchk((dig:uri=URI),Atts) -> true
+	(memberchk((uri=URI),Atts) -> true
 	; true), % uninstantiated
 	%; default_kb(URI)), %dig 1.0
 	catch(
-		(phrase(parse_tells(Elems), axioms([], [], [], []), Axioms), Req = tells(URI, Axioms)),
+		(
+			phrase(parse_tells(Elems), 
+			%axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)
+					axioms([], [],        [],    [],    [],      [],     [],            []), 
+				Axioms), 
+			Req = tells(URI, Axioms)
+		),
 		clearKB,
 		Req = clearKBW(URI)
 	).
 parse(asks, Atts, Elems, asks(URI, Asks)) :- !,
-	(memberchk((dig:uri=URI),Atts) -> true
+	(memberchk((uri=URI),Atts) -> true
 	; true), % uninstantiated
 	%; default_kb(URI)), %dig 1.0
 	phrase(parse_asks(Elems), Asks).
@@ -197,7 +202,7 @@ parse_tell(instanceof, _Atts,
 			[element(dig:individual, AttsI, _ElemsI), 
 			 element(dig:ConceptType, AttsC, ElemsC)]) -->
 	{parse_concept(ConceptType, AttsC, ElemsC, Concept),
-	memberchk((dig:name=I1), AttsI)}, 
+	memberchk((name=I1), AttsI)}, 
 	add_ABox(cassertion(Concept, I1)).
 
 parse_tell(related, _Atts, 
@@ -205,34 +210,84 @@ parse_tell(related, _Atts,
 			 element(dig:RoleType, AttsR, ElemsR), 
 			 element(dig:individual, AttsI2, _ElemsI2)]) --> 
 	{parse_role(RoleType, AttsR, ElemsR, Role),
-	memberchk((dig:name=I1), AttsI1),
-	memberchk((dig:name=I2), AttsI2)}, 
-	add_ABox(rassertion(Role, I1, I2)).
+	memberchk((name=I1), AttsI1),
+	memberchk((name=I2), AttsI2)},
+	(
+		{Role == arole('$connectionOfRole$')}
+	->	add_DBPredicate(I1, 2, I2, _)
+	;	{Role == arole('$connectionOfConcept$')}
+	->	add_DBPredicate(I1, 1, I2, _)
+	;	{Role == arole('$connectionOfNegConcept$')}
+	->	{atom_concat('not_', I1, Not_I1)}, %TODO: _
+		add_DBPredicate(Not_I1, 1, I2, _)
+	;	add_ABox(rassertion(Role, I1, I2))
+	).
 
 parse_tell(value, Atts, 
 			[element(dig:individual, AttsI, ElemsI), 
 			 element(dig:AttributeType, AttsA, ElemsA), 
 			 element(dig:ValueType, AttsV, [ElemsV])]) -->
 	{parse_attribute(AttributeType, AttsA, ElemsA, Attribute),
-	memberchk((dig:name=I), AttsI), 
+	memberchk((name=I), AttsI), 
 	(
 		ValueType == sval -> Value = ElemsV %SPEC
 	;	ValueType == ival, atom_codes(ElemsV,NC), number_codes(Value,NC)
 	)}, 
-	add_ABox(avalue(I, Attribute, Value)), %SPEC
-	{throw_tell_error(element(dig:value, Atts, [element(dig:individual, AttsI, ElemsI), 
-							  element(dig:AttributeType, AttsA, ElemsA), 
-							  element(dig:ValueType, AttsV, [ElemsV])]))}.
+	(
+		{Attribute == arole('$connectionDSN$')}
+	->	add_DBConnection(I, Value)
+	;	{Attribute == arole('$queryOfRole$')}
+	->	add_DBPredicate(I, 2, _, Value)
+	;	{Attribute == arole('$queryOfConcept$')}
+	->	add_DBPredicate(I, 1, _, Value)
+	;	{Attribute == arole('$queryOfNegConcept$')}
+	->	{atom_concat('not_', I, Not_I)}, %TODO: _
+		add_DBPredicate(Not_I, 1, _, Value)
+	;	add_ABox(avalue(I, Attribute, Value)), %SPEC
+		{throw_tell_error(element(dig:value, Atts, [element(dig:individual, AttsI, ElemsI), 
+								element(dig:AttributeType, AttsA, ElemsA), 
+								element(dig:ValueType, AttsV, [ElemsV])]))}
+	).
 
 
-parse_tell(defconcept, _Atts, _Elems) --> []. %TODO ezekkel valamit?
-parse_tell(defrole, _Atts, _Elems) --> [].
+parse_tell(defconcept, Atts, _Elems) -->
+	{memberchk((name=Concept), Atts)},
+	add_concept(Concept).	
+parse_tell(defrole, Atts, _Elems) -->
+	{memberchk((name=Role), Atts)},
+	(	{Role == '$connectionOfRole$'}
+	->	[]
+	;	{Role == '$connectionOfConcept$'}
+	->	[]
+	;	{Role == '$connectionOfNegConcept$'}
+	->	[]
+	;	add_role(Role)
+	).
 parse_tell(deffeature, Atts, _Elems) --> 
-	{memberchk((dig:name=Role), Atts)},
-	add_impliesc(top, atmost(1, arole(Role), top)).
-parse_tell(defattribute , Atts, Elems) --> %=?= int/string functional role
-	{throw_tell_error(element(dig:defattribute , Atts, Elems))}.
-parse_tell(defindividual , _Atts, _Elems) --> [].
+	{memberchk((name=Role), Atts)},
+	(	{Role == '$connectionOfRole$'}
+	->	[]
+	;	{Role == '$connectionOfConcept$'}
+	->	[]
+	;	{Role == '$connectionOfNegConcept$'}
+	->	[]
+	;	add_impliesc(top, atmost(1, arole(Role), top)),
+		add_role(Role)
+	).
+parse_tell(defattribute, Atts, Elems) --> 
+	{memberchk((name=Attribute), Atts)},
+	(
+		{Attribute == '$connectionDSN$'}
+	->	[]
+	;	{Attribute == '$queryOfRole$'}
+	->	[]
+	;	{Attribute == '$queryOfConcept$'}
+	->	[]
+	;	{Attribute == '$queryOfNegConcept$'}
+	->	[]
+	;	{throw_tell_error(element(dig:defattribute , Atts, Elems))}
+	).
+parse_tell(defindividual , _Atts, _Elems) --> []. %TODO ezzel valamit?
 
 parse_tell(clearKB , _Atts, _Elems) --> {throw(clearKB)}.
 
@@ -245,22 +300,42 @@ throw_tell_error(Elem) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add Tell Axioms %%%%%%%%%%%%%%%%%%%
 add_impliesc(Concept1, Concept2,
-			axioms(ImpliesCL, ImpliesRL, TransL, ABox),
-			axioms([implies(Concept1, Concept2)| ImpliesCL], ImpliesRL, TransL, ABox)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms([implies(Concept1, Concept2)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)).
 add_disjoints([]) --> [].
 add_disjoints([_]) --> [].
 add_disjoints([Concept, D|Disjoints]) --> %TODO ok? 1 elemü or()?; 0 elemü or/and
 	add_impliesc(and([Concept, or([D|Disjoints])]), bottom),
 	add_disjoints([D|Disjoints]).
 add_impliesr(Role1, Role2,
-			axioms(ImpliesCL, ImpliesRL, TransL, ABox),
-			axioms(ImpliesCL, [subrole(Role1, Role2)| ImpliesRL], TransL, ABox)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, [subrole(Role1, Role2)| ImpliesRL], TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)).
 add_transitive(Role,
-			axioms(ImpliesCL, ImpliesRL, TransL, ABox),
-			axioms(ImpliesCL, ImpliesRL, [Role| TransL], ABox)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, [Role| TransL], ABox, Concepts, Roles, DBConnections, DBPredicates)).
 add_ABox(Axiom,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox),
-		axioms(ImpliesCL, ImpliesRL, TransL, [Axiom|ABox])).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, [Axiom|ABox], Concepts, Roles, DBConnections, DBPredicates)).
+add_concept(Concept,
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, [Concept|Concepts], Roles, DBConnections, DBPredicates)).
+add_role(Role, 
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, [Role|Roles], DBConnections, DBPredicates)).
+add_DBConnection(DB, DSN,
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, [DB-DSN|DBConnections], DBPredicates)).
+add_DBPredicate(Name, Arity, Connection, Query,
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates1)) :-
+	Functor =.. [/, Name, Arity],
+	(	memberchk(Functor-Connection1-Query1, DBPredicates)
+	->	Connection1 = Connection,
+		Query1 = Query,
+		DBPredicates1 = DBPredicates
+	;	DBPredicates1 = [Functor-Connection-Query|DBPredicates]
+	).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                           ASKS                                 %
@@ -273,14 +348,14 @@ parse_asks([element(dig:AskType, Atts, Elems)|Asks], State0, State) :- %exceptio
 		parse_ask(AskType, Atts, Elems, State0, State1), 
 		digerror(103, _, _), %nem támogatott concept
 		(
-			( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+			( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 			State1 = [ID-unsupported(element(dig:AskType, Atts, Elems)) | State0]
 		)
 	),  !,
 	parse_asks(Asks, State1, State).
 parse_asks([A|Asks]) --> 
 	{( 
-		A = element(dig:_AskType, Atts, _Elems), memberchk((dig:id=ID0), Atts) 
+		A = element(dig:_AskType, Atts, _Elems), memberchk((id=ID0), Atts) 
 		-> ID=id(ID0) 
 		; ID=noid %TODO
 	)},
@@ -290,115 +365,115 @@ parse_asks([A|Asks]) -->
 
 
 parse_ask(allConceptNames, Atts, _Elems) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid )}, %TODO ha nincs ID, hiba?
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid )}, %TODO ha nincs ID, hiba?
 	[ID-allConceptNames]. %SPEC
 parse_ask(allRoleNames, Atts, _Elems) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid )},
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid )},
 	[ID-allRoleNames].
 parse_ask(allIndividuals, Atts, _Elems) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid )},
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid )},
 	[ID-allIndividuals].
 parse_ask(satisfiable, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)},	
 	[ID-satisfiable(Concept)].
 parse_ask(subsumes, Atts, 
 		[element(dig:ConceptType1, AttsC1, ElemsC1),
 		 element(dig:ConceptType2, AttsC2, ElemsC2)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType1, AttsC1, ElemsC1, Concept1),
 	parse_concept(ConceptType2, AttsC2, ElemsC2, Concept2)},	
 	[ID-subsumes(Concept1, Concept2)].
 parse_ask(disjoint, Atts, 
 		[element(dig:ConceptType1, AttsC1, ElemsC1),
 		 element(dig:ConceptType2, AttsC2, ElemsC2)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType1, AttsC1, ElemsC1, Concept1),
 	parse_concept(ConceptType2, AttsC2, ElemsC2, Concept2)},	
 	[ID-disjoint(Concept1, Concept2)].
 parse_ask(parents, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)},	
 	[ID-parents(Concept)].
 parse_ask(children, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)},	
 	[ID-children(Concept)].
 parse_ask(ancestors, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)},	
 	[ID-ancestors(Concept)].
 parse_ask(descendants, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)},	
 	[ID-descendants(Concept)].
 parse_ask(equivalents, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)},	
 	[ID-equivalents(Concept)].
 
 parse_ask(rparents, Atts, 
 		[element(dig:RoleType, AttsR, ElemsR)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_role(RoleType, AttsR, ElemsR, Role)},	
 	[ID-rparents(Role)].
 parse_ask(rchildren, Atts, 
 		[element(dig:RoleType, AttsR, ElemsR)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_role(RoleType, AttsR, ElemsR, Role)},	
 	[ID-rchildren(Role)].
 parse_ask(rancestors, Atts, 
 		[element(dig:RoleType, AttsR, ElemsR)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_role(RoleType, AttsR, ElemsR, Role)},	
 	[ID-rancestors(Role)].
 parse_ask(rdescendants, Atts, 
 		[element(dig:RoleType, AttsR, ElemsR)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_role(RoleType, AttsR, ElemsR, Role)}, 
 	[ID-rdescendants(Role)].
 
 parse_ask(instances, Atts, 
 		[element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)}, 
 	[ID-instances(Concept)].
 parse_ask(instance, Atts, 
 		[element(dig:individual, AttsI, _ElemsI),
 		 element(dig:ConceptType, AttsC, ElemsC)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
-	memberchk((dig:name=Name), AttsI),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	memberchk((name=Name), AttsI),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)}, 
 	[ID-instance(Name, Concept)].
 parse_ask(roleFillers, Atts, 
 		[element(dig:individual, AttsI, _ElemsI),
 		 element(dig:RoleType, AttsR, ElemsR)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
-	memberchk((dig:name=Name), AttsI),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	memberchk((name=Name), AttsI),
 	parse_role(RoleType, AttsR, ElemsR, Role)}, 
 	[ID-roleFillers(Name, Role)].
 parse_ask(relatedIndividuals, Atts, 
 		[element(dig:RoleType, AttsR, ElemsR)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 	parse_role(RoleType, AttsR, ElemsR, Role)}, 
 	[ID-relatedIndividuals(Role)].
 parse_ask(toldValues, Atts, 
 		[element(dig:individual, AttsI, _ElemsI),
 		 element(dig:AttributeType, AttsA, ElemsA)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
-	memberchk((dig:name=Name), AttsI),
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	memberchk((name=Name), AttsI),
 	parse_attribute(AttributeType, AttsA, ElemsA, Attribute)}, 
 	[ID-toldValues(Name, Attribute)].
 parse_ask(types, Atts, 
 		[element(dig:individual, AttsI, _ElemsI)]) --> 
-	{( memberchk((dig:id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
-	memberchk((dig:name=Name), AttsI)}, 
+	{( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
+	memberchk((name=Name), AttsI)}, 
 	[ID-types(Name)].
 
 
@@ -412,9 +487,9 @@ parse_ask(types, Atts,
 
 %parse_role(+RoleType, +Atts, +Elems, -Role)
 parse_role(ratom, Atts, _Elems, arole(Role)) :- 
-	memberchk((dig:name=Role), Atts), !.
+	memberchk((name=Role), Atts), !.
 parse_role(feature, Atts, _Elems, arole(Feature)) :- 
-	memberchk((dig:name=Feature), Atts), !.
+	memberchk((name=Feature), Atts), !.
 parse_role(inverse, _Atts, [element(dig:RoleType, Atts, Elems)], Role) :- 
 	% Role = inv(Role1), %TODO attribute, chain?
 	% parse_role(RoleType, Atts, Elems, Role1), !.
@@ -432,15 +507,15 @@ parse_role(AttributeType, Atts, Elems, Attribute) :-
 
 %parse_attribute(+AttributeType, +Atts, +Elems, -Attribute)	
 parse_attribute(attribute, Atts, _Elems, arole(Attribute)) :-
-	memberchk((dig:name=Attribute), Atts).
+	memberchk((name=Attribute), Atts).
 parse_attribute(chain, _Atts, Elems, achain(Chain)) :- %SPEC
 	parse_chain(Elems, Chain).
 
 %parse_chain(+Elems, -Chain)
 parse_chain([element(dig:attribute, Atts, _Elems)], [arole(Attribute)]) :- %SPEC arole kell?
-	memberchk((dig:name=Attribute), Atts).
+	memberchk((name=Attribute), Atts).
 parse_chain([element(dig:feature, Atts, _Elems), Next| Elems], [arole(Feature)| Chain]) :-
-	memberchk((dig:name=Feature), Atts), 
+	memberchk((name=Feature), Atts), 
 	parse_chain([Next|Elems], Chain).
 
 
@@ -448,7 +523,7 @@ parse_chain([element(dig:feature, Atts, _Elems), Next| Elems], [arole(Feature)| 
 parse_concept(top, _Atts, _Elems, top).
 parse_concept(bottom, _Atts, _Elems, bottom).
 parse_concept(catom, Atts, _Elems, aconcept(Concept)) :- 
-	memberchk((dig:name=Concept), Atts). 
+	memberchk((name=Concept), Atts). 
 
 parse_concept(and, _Atts, Elems, and(Concepts)) :- 
 	parse_concepts(Elems, Concepts).
@@ -481,14 +556,14 @@ parse_concept(atmost, Atts,
 			atmost(N, Role, Concept)) :- 
 	parse_role(RoleType, AttsR, ElemsR, Role), 
 	parse_concept(ConceptType, AttsC, ElemsC, Concept),
-	memberchk((dig:num=NA),Atts),
+	memberchk((num=NA),Atts),
 	atom_codes(NA,NC), number_codes(N,NC).
 parse_concept(atleast, Atts,
 			[element(dig:RoleType, AttsR, ElemsR), element(dig:ConceptType, AttsC, ElemsC)], 
 			atleast(N, Role, Concept)) :- 
 	parse_role(RoleType, AttsR, ElemsR, Role),
 	parse_concept(ConceptType, AttsC, ElemsC, Concept),
-	memberchk((dig:num=NA),Atts),
+	memberchk((num=NA),Atts),
 	atom_codes(NA,NC), number_codes(N,NC).
 
 parse_concept(iset, Atts, Elems, or(Individuals)) :- %SPEC
@@ -502,57 +577,57 @@ parse_concept(defined, Atts, [element(dig:AttributeType, AttsA, Elems)], some(At
 	throw_concept_error(element(dig:defined, Atts, [element(dig:AttributeType, Atts, Elems)])).
 parse_concept(stringmin, Atts, [element(dig:AttributeType, AttsA, Elems)], stringmin(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts), 
+	memberchk((val=Val),Atts), 
 	throw_concept_error(element(stringmin, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(stringmax, Atts, [element(dig:AttributeType, AttsA, Elems)], stringmax(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts), 
+	memberchk((val=Val),Atts), 
 	throw_concept_error(element(dig:stringmax, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 % parse_concept(stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)], stringequals(Val, Attribute)) :- %TODO így vagy úgy? 
 	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	% memberchk((dig:val=Val),Atts), 
+	% memberchk((val=Val),Atts), 
 	% throw_concept_error(element(dig:stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(stringequals, Atts, [element(dig:AttributeType, AttsA, Elems)], 
 		and([stringmin(Val, Attribute), stringmax(Val, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts).
+	memberchk((val=Val),Atts).
 % parse_concept(stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)], stringrange(Min, Max, Attribute)) :-
 	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	% memberchk((dig:min=Min),Atts), 
-	% memberchk((dig:max=Max),Atts), 
+	% memberchk((min=Min),Atts), 
+	% memberchk((max=Max),Atts), 
 	% throw_concept_error(element(dig:stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(stringrange, Atts, [element(dig:AttributeType, AttsA, Elems)], 
 		and([stringmin(Min, Attribute), stringmax(Max, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:min=Min),Atts), 
-	memberchk((dig:max=Max),Atts).
+	memberchk((min=Min),Atts), 
+	memberchk((max=Max),Atts).
 parse_concept(intmin, Atts, [element(dig:AttributeType, AttsA, Elems)], intmin(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:min=Val),Atts), 
+	memberchk((min=Val),Atts), 
 	throw_concept_error(element(dig:intmin, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(intmax, Atts, [element(dig:AttributeType, AttsA, Elems)], intmax(Val, Attribute)) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:max=Val),Atts),  
+	memberchk((max=Val),Atts),  
 	throw_concept_error(element(dig:intmax, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 % parse_concept(intequals, Atts, [element(dig:AttributeType, AttsA, Elems)], intequals(Val, Attribute)) :-
 	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	% memberchk((dig:val=Val),Atts),  
+	% memberchk((val=Val),Atts),  
 	% throw_concept_error(element(dig:intequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(intequals, Atts, [element(dig:AttributeType, AttsA, Elems)], 
 		and([intmin(Val, Attribute), intmax(Val, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:val=Val),Atts),  
+	memberchk((val=Val),Atts),  
 	throw_concept_error(element(dig:intequals, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 % parse_concept(intrange, Atts, [element(dig:AttributeType, AttsA, Elems)], intrange(Min, Max, Attribute)) :-
 	% parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	% memberchk((dig:min=Min),Atts), 
-	% memberchk((dig:max=Max),Atts),  
+	% memberchk((min=Min),Atts), 
+	% memberchk((max=Max),Atts),  
 	% throw_concept_error(element(dig:intrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 parse_concept(intrange, Atts, [element(dig:AttributeType, AttsA, Elems)], 
 		and([intmin(Min, Attribute), intmax(Max, Attribute)])) :-
 	parse_attribute(AttributeType, AttsA, Elems, Attribute), 
-	memberchk((dig:min=Min),Atts), 
-	memberchk((dig:max=Max),Atts), 
+	memberchk((min=Min),Atts), 
+	memberchk((max=Max),Atts), 
 	throw_concept_error(element(dig:intrange, Atts, [element(dig:AttributeType, AttsA, Elems)])).
 
 %parse_concepts(+Elems, -Concepts)
@@ -568,7 +643,7 @@ throw_concept_error(Elem) :-
 
 %parse_individuals(+Elems, -Individuals)
 parse_individuals([element(dig:individual, Atts, _Elems)|Elems], [iconcept(Individual)|Individuals]) :-
-	memberchk((dig:name=Individual), Atts),
+	memberchk((name=Individual), Atts),
 	parse_individuals(Elems, Individuals).
 parse_individuals([], []).
 

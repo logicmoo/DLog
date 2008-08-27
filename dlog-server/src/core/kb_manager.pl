@@ -7,10 +7,10 @@
 :- use_module(library(lists)).
 
 :- use_module('../dl_translator/axioms_to_clauses', [axioms_to_clauses/6]).
-:- use_module('../prolog_translator/abox_signature', [abox_signature/3]).
+:- use_module('../prolog_translator/abox_signature', [abox_signature/5]).
 :- use_module('../prolog_translator/abox_translator', [abox2prolog/2]).
 :- use_module('../prolog_translator/tbox_translator', [tbox2prolog/3]).
-:- use_module(dlogger, [info/3, detail/3]).
+:- use_module(dlogger, [info/3, detail/3, warning/3]).
 :- use_module(query, [query/4]).
 :- use_module(config, [target/1, default_kb/1, kb_uri/2, 
 				get_dlog_option/3, remove_dlog_options/1,
@@ -21,7 +21,8 @@
 :- target(swi) -> 
 	use_module(library(memfile)),
 	use_module(core_swi_tools, [datime/1]),
-	use_module(library(listing), [portray_clause/1])
+	use_module(library(listing), [portray_clause/1]),
+	use_module(library(odbc), [odbc_disconnect/1])
 	; true.
 :- target(sicstus) -> 
 	use_module(library(system), [datime/1]),
@@ -79,11 +80,25 @@ clear_kb(URI) :-
 	(
 		tbox_module_name(URI, TB),
 		abox_module_name(URI, AB),
+		%TODO: close database connections
+		close_DB_connections(AB),
 		abolish_module(AB),
 		abolish_module(TB)
 		%, remove_dlog_options(URI) %TODO: remove options? -> only for default kb?
 	)),
 	info(kb_manager, clear_kb(URI), 'KB cleared.').
+
+close_DB_connections(AB) :-
+	info(kb_manager, close_DB_connections(AB), 'Closing DB connections'),
+	current_predicate(AB:'$dlog_open_DB_connection$'/1),
+	AB:'$dlog_open_DB_connection$'(Connection),
+	catch(
+		odbc_disconnect(Connection),
+		error(existence_error(odbc_connection, _), _), 
+		fail),
+	fail.
+close_DB_connections(_).
+	
 
 abolish_module(Module) :-
 	current_predicate(Module:P),
@@ -95,20 +110,20 @@ abolish_module(Module) :-
 	fail.
 abolish_module(_Module).
 
-add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)) :- %TODO: eltárolni, hozzáadni
+add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)) :- %TODO: eltárolni, hozzáadni
 	info(kb_manager, add_axioms(URI, ...), 'Adding axioms to KB.'),
-	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox)), 'Axioms:'),
+	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)), 'Axioms:'),
 	exists_kb(URI),
 	axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
-			  TBox_Clauses, IBox, HBox, _), %TODO
+			  TBox_Clauses, IBox, HBox, _), %TODO!
 	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
-	abox_signature(ABox, ABoxStr, Signature),
-	detail(kb_manager, add_axioms(URI, ...), 'ABox signature ready.'),
+	abox_signature(ABox, DBPredicates, ABoxData, Signature, DBPredicates1),
+	detail(kb_manager, add_axioms(URI, ...) -> Signature, 'ABox signature: '),
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
 	with_write_lock(URI, 
 	(	
-		add_abox(ATarget, URI, abox(ABoxStr)),
+		add_abox(ATarget, URI, abox(ABoxData, DBConnections, DBPredicates1)),
 		detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
 		add_tbox(TTarget, URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature))
 	)),
@@ -129,7 +144,7 @@ add_abox(allinonefile, URI, ABox) :-
 		),
 		close(Stream)	
 	),
-	load_files(FileName, []).
+	load_files(FileName, []). %TODO: module?
 %%add_abox(Target, URI, ABox) :-
 add_abox(tempfile, URI, ABox) :-
 	setup_and_call_cleanup(
