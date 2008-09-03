@@ -34,36 +34,17 @@ translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transi
 	separate(AllDefs,Type1,Rest),
 
 	% klozhalmaz telitese alap-szuperpozicioval
-	statistics(runtime, [T0,_]),
 	saturate(Type1,RInclusion,Saturated1),
-	% statistics(runtime, [T1,_]),
-	% TA is T1-T0,
 	
 	% nl,print('Elso telites utan'),nl, show(Saturated1),nl,
-	% format('Saturation in ~t~20|~t~3d sec ~n', [TA]),
-	
-	% show(Rest),
-	
-	% statistics(runtime, [TT0,_]),
+
 	saturate(Rest,RInclusion,Saturated2),
-	% statistics(runtime, [TT1,_]),
-	% TTA is TT1-TT0,
 	
 	% nl,print('Masodik telites utan'),nl, show(Saturated2),nl,
-	% format('Saturation in ~t~20|~t~3d sec ~n', [TTA]),
 
-	% filter2(Saturated2,Filtered2),
-
-	% nl, print('Fogalmas: '), nl, show(Filtered2), nl,
-
-	% statistics(runtime, [TTT0,_]),
 	saturate_cross(Saturated1,Saturated2,RInclusion,Saturated),
-	statistics(runtime, [TTT1,_]),
-	TTTA is TTT1-T0,
 	
 	% nl,print('Harmadik telites utan'),nl, show(Saturated),nl,	
-
-	% format('Saturation in ~t~20|~t~3d sec ~n', [TTTA]),
 
 	omit_structs(Saturated,atleast(_,_,_,_),FunFree),
 
@@ -116,9 +97,9 @@ collect([Head|Rest],Sel):-
 collect([_|Rest],Sel):-
 	collect(Rest,Sel).
 
-theSelected(atleast(N,R,C,Sel),Sel):- !.
+theSelected(atleast(_N,_R,_C,Sel),Sel):- !.
 %	nl, print(atleast(N,R,C,Sel)).
-theSelected(atleast(N,R,C,[Original]),[Original,_,_]):- !.
+theSelected(atleast(_N,_R,_C,[Original]),[Original,_,_]):- !.
 %	nl, print(atleast(N,R,C,[Original])).
 theSelected(or([X|_]),Sel):-
 	theSelected(X,Sel).

@@ -15,9 +15,10 @@ test(File, Option):-
 	statistics(runtime, [T0,_]),	
 	axioms_to_clauses(_,TBox,TBox_Clauses,_,_,_),
 	statistics(runtime, [T1,_]),TA is T1-T0,
-	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]),
 	% nl, print('Eredeti TBox'), nl, show(TBox),	
-	nl, print('Eredo TBox'), nl, show(TBox_Clauses).
+	nl, print('Eredo TBox'), nl, show(TBox_Clauses),
+	format(' Axioms tested in ~t~20|~t~3d sec ~n', [TA]).
+
 	
 	
 	
@@ -37,7 +38,7 @@ test_sample(TBox):-
 	nl, nl, print('Unfold utan'), nl, show(Unfolded).
 
 load(File,[CI,RI,Tr],Abox):-
-	read_dig(File,_-tells(_,axioms(CI,RI,Tr,Abox))).
+	read_dig(File,_-tells(_,axioms(CI,RI,Tr,Abox,_,_,_,_))).
 
 
 lubm(N):-
