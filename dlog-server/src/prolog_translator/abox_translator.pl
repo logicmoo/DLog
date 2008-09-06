@@ -53,7 +53,7 @@ transformed_DBConnections( [Alias-DSN | DBConnections], Target, Module) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Transformations: atomic
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-transformed_abox([], [], _Module, _Indexing, _Target).
+transformed_abox([], [], _Module, _Indexing, _Target) :- !.
 transformed_abox([], [P/A-Connection-Query | DBPreds], Module, Indexing, Target) :- %DB-only preds
 	(	A == 1
 	->	transformed_DBConcept(P, Connection, Query, Target, Module)

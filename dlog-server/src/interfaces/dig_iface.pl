@@ -46,7 +46,8 @@ dig_server(Request) :-
 	->  
 		%throw(http_reply(cgi_stream(+Stream, +Len))) %?
 		warning(dig_iface, dig_server([method(Method), ...]), 'Method Not Allowed.'),
-		throw(http_reply(forbidden('anything with GET method'), ['Allow'('POST')])) %TODO
+		throw(http_reply(forbidden('anything with GET method'), ['Allow'('POST')])) 
+		%TODO: nicely formatted HTML with server details/statistics?
 		%format('Allow: POST~n~n') %405 Method Not Allowed
 	;	true
 	),

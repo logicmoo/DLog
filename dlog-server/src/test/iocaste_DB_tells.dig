@@ -21,7 +21,7 @@
     </equalc>
 
     <defrole name="hasChild"/>
-<related>
+<!--related>
 <individual name="i1"/>
 <ratom name="hasChild"/>
 <individual name="i2"/>
@@ -130,7 +130,7 @@
   <not>
     <catom name="Patricide"/>
   </not>
-</instanceof>
+</instanceof-->
 
 <related>
 <individual name="hasChild"/>
@@ -140,7 +140,7 @@
 <value>
 <individual name="hasChild"/>
 <attribute name="$queryOfRole$"/>
-<sval>SELECT parent, child FROM haschild</sval>
+<sval>SELECT parent, child FROM hasChild</sval>
 </value>
 <related>
 <individual name="Patricide"/>
@@ -150,7 +150,7 @@
 <value>
 <individual name="Patricide"/>
 <attribute name="$queryOfConcept$"/>
-<sval>SELECT name FROM people WHERE patricide = 1</sval>
+<sval>SELECT name FROM people WHERE patricide</sval>
 </value>
 
 <related>
@@ -161,14 +161,14 @@
 <value>
 <individual name="Patricide"/>
 <attribute name="$queryOfNegConcept$"/>
-<sval>SELECT name FROM people WHERE patricide = 0</sval>
+<sval>SELECT name FROM people WHERE NOT patricide</sval>
 </value>
 
 
 <value>
 <individual name="IODB"/>
 <attribute name="$connectionDSN$"/>
-<sval>mysql:localhost:1234</sval>
+<sval>iocaste</sval>
 </value>
 
 

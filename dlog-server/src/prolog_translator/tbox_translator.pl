@@ -204,7 +204,7 @@ hbox_edges0([subrole(arole(R1),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	abox_inverse_name(R1, IR1),
 	abox_inverse_name(R2, IR2),
 	hbox_edges0(Rs, Es).
-/* %most Zsolt megcsinalja, valasztasi pontot hagyott!
+/* %most Zsolt megcsinalja, valasztasi pontot hagyott! (es amugy is hulyeseg?)
 hbox_edges0([subrole(inv(arole(R1)),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	IR1 = R1,
 	abox_inverse_name(R2, IR2),
