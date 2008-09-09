@@ -118,7 +118,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBCo
 			  TBox_Clauses, IBox, HBox, _), %TODO!
 	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
 	abox_signature(ABox, DBPredicates, ABoxData, Signature, DBPredicates1),
-	detail(kb_manager, add_axioms(URI, ...) -> Signature, 'ABox signature: '),
+	detail(kb_manager, (add_axioms(URI, ...) -> Signature), 'ABox signature: '),
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
 	with_write_lock(URI, 

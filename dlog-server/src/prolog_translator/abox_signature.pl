@@ -55,7 +55,7 @@ database_signature([Functor-Connection-Query | DBPreds0], Signature0, Signature,
 		DBPreds = [Functor-Connection-Query | DBPreds1]
 	;	Signature1 = Signature0, %Connection or query missing -> ignoring
 		DBPreds = DBPreds1,
-		warning(kb_manager, database_signature(...) -> Functor-Connection-Query, 'Incompletely defined DB access.')
+		warning(abox_signature, (database_signature(...) -> Functor-Connection-Query), 'Incompletely defined DB access.')
 	),
 	database_signature(DBPreds0, Signature1, Signature, DBPreds1).
 
