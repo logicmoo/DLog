@@ -1,4 +1,4 @@
-:- module(prolog_translator_swi_tools, [term_variables_bag/2, bb_put/2, bb_get/2, reduce/2]).
+:- module(prolog_translator_swi_tools, [term_variables_bag/2, bb_put/2, bb_get/2, reduce/2, datime/1]).
 
 :- use_module(library(assoc), [get_assoc/3, get_assoc/5, ord_list_to_assoc/2]).
 
@@ -9,6 +9,12 @@ bb_put(X,Y) :- nb_setval(X,Y).
 bb_get(X,Y) :- catch(nb_getval(X,Y), _E, fail).
 
 
+datime(datime(Year,Month,Day,Hour,Min,Sec)) :-
+	get_time(TimeStamp),
+	stamp_date_time(TimeStamp, date(Year,Month,Day,Hour,Min,Sec1,_Off,_TZ,_DST), local),
+	Sec is floor(Sec1).
+
+%TODO!
 %   reduce(+Graph, -Reduced)
 %   is true if Reduced is the reduced graph for Graph. The vertices of
 %   the reduced graph are the strongly connected components of Graph.
