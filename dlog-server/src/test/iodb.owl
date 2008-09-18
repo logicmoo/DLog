@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:protege="http://protege.stanford.edu/plugins/owl/protege#"
+    xmlns="http://www.cs.bme.hu/vima9000#"
+    xmlns:xsp="http://www.owl-ontologies.com/2005/08/07/xsp.owl#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:dlog="http://www.cs.bme.hu/dlogDB#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:swrl="http://www.w3.org/2003/11/swrl#"
+    xmlns:swrlb="http://www.w3.org/2003/11/swrlb#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xml:base="http://www.cs.bme.hu/vima9000">
+  <owl:Ontology rdf:about=""/>
+  <owl:Class rdf:about="http://www.cs.bme.hu/dlogDB#DBAccesses">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://www.cs.bme.hu/dlogDB#DBConcepts"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Patricide"/>
+  <owl:Class rdf:about="http://www.cs.bme.hu/dlogDB#DBroles">
+    <rdfs:subClassOf rdf:resource="http://www.cs.bme.hu/dlogDB#DBConcepts"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Good">
+    <owl:equivalentClass>
+      <owl:Restriction>
+        <owl:onProperty>
+          <owl:ObjectProperty rdf:ID="hasChild"/>
+        </owl:onProperty>
+        <owl:someValuesFrom>
+          <owl:Class>
+            <owl:intersectionOf rdf:parseType="Collection">
+              <owl:Class rdf:about="#Patricide"/>
+              <owl:Restriction>
+                <owl:onProperty rdf:resource="#hasChild"/>
+                <owl:someValuesFrom>
+                  <owl:Class>
+                    <owl:complementOf rdf:resource="#Patricide"/>
+                  </owl:Class>
+                </owl:someValuesFrom>
+              </owl:Restriction>
+            </owl:intersectionOf>
+          </owl:Class>
+        </owl:someValuesFrom>
+      </owl:Restriction>
+    </owl:equivalentClass>
+  </owl:Class>
+  <owl:FunctionalProperty rdf:about="http://www.cs.bme.hu/dlogDB#hasPassword">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:FunctionalProperty>
+  <owl:FunctionalProperty rdf:about="http://www.cs.bme.hu/dlogDB#hasConnection">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+  </owl:FunctionalProperty>
+  <owl:FunctionalProperty rdf:about="http://www.cs.bme.hu/dlogDB#hasNegQuery">
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:FunctionalProperty>
+  <owl:FunctionalProperty rdf:about="http://www.cs.bme.hu/dlogDB#hasUserName">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:FunctionalProperty>
+  <owl:FunctionalProperty rdf:about="http://www.cs.bme.hu/dlogDB#hasQuery">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:FunctionalProperty>
+  <owl:FunctionalProperty rdf:about="http://www.cs.bme.hu/dlogDB#hasDSN">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:FunctionalProperty>
+  <Patricide rdf:about="http://www.cs.bme.hu/dlogDB#Patricide">
+    <dlog:hasConnection>
+      <dlog:DBAccesses rdf:about="http://www.cs.bme.hu/dlogDB#iodb">
+        <dlog:hasDSN rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+        >iocaste</dlog:hasDSN>
+      </dlog:DBAccesses>
+    </dlog:hasConnection>
+    <dlog:hasQuery rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >SELECT name FROM people WHERE patricide</dlog:hasQuery>
+    <dlog:hasNegQuery rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >SELECT name FROM people WHERE NOT patricide</dlog:hasNegQuery>
+  </Patricide>
+  <dlog:DBroles rdf:about="http://www.cs.bme.hu/dlogDB#hasChild">
+    <dlog:hasQuery rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >SELECT parent, child FROM hasChild</dlog:hasQuery>
+    <hasChild rdf:resource="http://www.cs.bme.hu/dlogDB#hasChild"/>
+    <dlog:hasConnection rdf:resource="http://www.cs.bme.hu/dlogDB#iodb"/>
+  </dlog:DBroles>
+</rdf:RDF>
+
+<!-- Created with Protege (with OWL Plugin 3.4, Build 506)  http://protege.stanford.edu -->

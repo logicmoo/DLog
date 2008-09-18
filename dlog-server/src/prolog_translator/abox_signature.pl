@@ -1,15 +1,15 @@
-:- module(abox_signature,[abox_signature/5]).
+:- module(abox_signature,[abox_signature/4]).
 
 :- use_module(library(lists)).
 
-abox_signature(ABox, DBPredicates0, ABoxData, Signature, DBPredicates) :-
+abox_signature(ABox, DBPredicates, ABoxData, Signature) :-
 	(
 	  abox_preds(ABox, ABoxData)->
 	  abox_signature(ABoxData, Signature0)
 	;
 	  ABoxData = [], Signature0 = []
 	),
-	database_signature(DBPredicates0, Signature0, Signature, DBPredicates).
+	database_signature(DBPredicates, Signature0, Signature).
 
 % SzP: Ha az abox_axiom(ABox, P, A, B) nem adhat vissza ket azonso <P,A,B>
 % harmast, akkor itt egy kicsit gyorsitani lehet azzal, hogy setof helyett
@@ -41,21 +41,13 @@ abox_signature([P-L|As], [S|Ss]) :-
 	abox_signature(As, Ss).
 
 
-%database_signature(DBPreds0, Signature0, Signature, DBPreds):
+%database_signature(DBPreds, Signature0, Signature):
 %add the concepts/roles defined in databases in DBPreds0 to Signature, 
-%remove any incompletely defined DB predicates
-database_signature([], Signature, Signature, []).
-database_signature([Functor-Connection-Query | DBPreds0], Signature0, Signature, DBPreds) :-
-	(	nonvar(Connection),
-		nonvar(Query)
-	->	(	memberchk(Functor, Signature0) %correct query
-		->	Signature1 = Signature0 %predicate has other ABox clauses
-		;	Signature1 = [Functor|Signature0] %predicate is DB only
-		),
-		DBPreds = [Functor-Connection-Query | DBPreds1]
-	;	Signature1 = Signature0, %Connection or query missing -> ignoring
-		DBPreds = DBPreds1,
-		warning(abox_signature, (database_signature(...) -> Functor-Connection-Query), 'Incompletely defined DB access.')
+database_signature([], Signature, Signature).
+database_signature([access(Functor, _Connection, _Access) | DBPreds], Signature0, Signature) :-
+	(	memberchk(Functor, Signature0)
+	->	Signature1 = Signature0 %predicate has other ABox clauses
+	;	Signature1 = [Functor|Signature0] %predicate is DB only
 	),
-	database_signature(DBPreds0, Signature1, Signature, DBPreds1).
+	database_signature(DBPreds, Signature1, Signature).
 

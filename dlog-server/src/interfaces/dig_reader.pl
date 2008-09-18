@@ -2,6 +2,7 @@
 :- module(dig_reader,[read_dig/2]).
 
 :- use_module('../core/config', [target/1, get_dlog_option/2]).
+:- use_module('../core/dlogger', [warning/3]).
 :- target(sicstus) -> 
         %use_module('xml_reader/xml_parser') %TODO
 		use_module(library(xml)) %TODO
@@ -19,7 +20,7 @@
 %			digerror(103, 'Unsupported Operation', Elem, NS) -- csak tells
 % beolvassa a DIG_Input DIG file tartalmát
 % Answer: 
-%	tells(ID, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)) %TODO: explain
+%	tells(ID, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates))
 %	asks(ID, (...))
 %	newKB
 %	releaseKB(ID)
@@ -69,8 +70,8 @@ parse(tells, Atts, Elems, Req) :- !,
 	catch(
 		(
 			phrase(parse_tells(Elems), 
-			%axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)
-					axioms([], [],        [],    [],    [],      [],     [],            []), 
+			%axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)
+					axioms([], [],        [],    [],    [],      [],     [],            [],         []), 
 				Axioms), 
 			Req = tells(URI, Axioms)
 		),
@@ -91,13 +92,28 @@ parse(Req, Atts, Elems, _) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-% parse_tell(+DIG_Axioms, +axioms(ImpliesCL0, ImpliesRL0, TransL0, ABox0), -axioms(ImpliesCL, ImpliesRL, TransL, ABox)):
-%	1. lista: fogalomtartalmazasi axiomak:
-%	   implies(C1,C2), ahol C1 es C2 szerepek
-%	2. lista: szereptartalmazasi axiomak:
-%	   subrole(R, S), ahol R es S szerepek
-%	3. lista: tranzitiv szerepek
-%	   R, azaz egyszeruen szerepek listaja
+% parse_tell(+DIG_Axioms, 
+%	+axioms(ImpliesCL0, ImpliesRL0, TransL0, ABox0, Concepts0, Roles0, DBConnections0, DBAccesses0, DBPredicates0),
+%	-axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)):
+%	1. ImpliesCL: concept inclusion axioms:
+%	   implies(C1,C2), where C1 and C2 are concepts
+%	2. ImpliesRL: role inclusion axioms:
+%	   subrole(R, S), where R and S are roles
+%	3. TransL: list of transitive roles
+%	4. ABox: list of ABox axioms 
+%	5. Concepts: list of all concepts
+%	6. Roles: list of all roles
+%	7. DBConnections: list of connection(CName, DSN, User, Pass)
+%		where CName is the individual representing the connection
+%	8a. DBAccesses: list of access(AName, CName, Access, NegAccess)
+%		where AName is the individual representing the access
+%		Access and NegAccess are query(Query) OR table(Table, Col) OR table(Table, Col1-Col2)
+%		Query, Table and Cols are atoms.
+%	9a. DBPredicates: list of ConceptName/1-AName or RoleName/2-AName
+%		where AName is the individual representing the access 
+%	8-9b. DBPredicates: list of 8a and 9a paired up to the format 
+%		access(Functor, Connection, Access) and
+%		access(NegFunctor, Connection, NegAccess)
 %
 %	Egy r szerep szintaxisa: arole(r) --> rassertion(r, i1, i2) --> inv(r)? TODO: feature, attribute
 %	Egy c atomi fogalom: aconcept(c) --> cassertion(c, i1)
@@ -110,7 +126,7 @@ parse(Req, Atts, Elems, _) :-
 %	legfeljebb N R-kovetoje C: atmost(N,R,C)
 %	top, bottom
 %
-parse_tells([]) --> [].
+parse_tells([]) --> clearDBaccesses.
 parse_tells([element(dig:AxiomType, Atts, Elems)|Axioms]) -->
 	parse_tell(AxiomType, Atts, Elems), !,
 	parse_tells(Axioms).
@@ -120,7 +136,7 @@ parse_tells([E|Axioms]) -->
 	parse_tells(Axioms).
 
 
-%parse_tell(+Axiom, +Atts, +Elems, +axioms(ImpliesCL, ImpliesRL, TransL, ABox), -axioms(ImpliesCL1, ImpliesRL1, TransL1, ABox1)):
+%parse_tell(+Axiom, +Atts, +Elems, +Axioms0, -Axioms):
 %
 %Concept axioms
 parse_tell(impliesc, _Atts, 
@@ -171,7 +187,6 @@ parse_tell(range, _Atts,
 			 element(dig:ConceptType, AttsC, ElemsC)]) -->
 	{parse_role(RoleType, AttsR, ElemsR, Role), 
 	parse_concept(ConceptType, AttsC, ElemsC, Concept)}, 
-	%add_impliesc(some(inv(Role), top), Concept).
 	add_impliesc(top, all(Role, Concept)).
 
 parse_tell(rangeint, Atts,
@@ -180,11 +195,14 @@ parse_tell(rangeint, Atts,
 	add_impliesc(top, all(Role, domain(int))), %SPEC
 	{throw_tell_error(element(rangeint , Atts, [element(dig:AttributeType, AttsA, ElemsA)]))}.
 
-parse_tell(rangestring, Atts,
+parse_tell(rangestring, Atts, 
 			[element(dig:AttributeType, AttsA, ElemsA)]) -->
 	{parse_attribute(AttributeType, AttsA, ElemsA, Role)},  
-	add_impliesc(top, all(Role, domain(string))), %SPEC
-	{throw_tell_error(element(rangestring , Atts, [element(dig:AttributeType, AttsA, ElemsA)]))}.
+	(	{dbRoleName(Role, _)}
+	->	{true}
+	;	add_impliesc(top, all(Role, domain(string))), %SPEC
+		{throw_tell_error(element(rangestring , Atts, [element(dig:AttributeType, AttsA, ElemsA)]))}
+	).
 
 parse_tell(transitive, _Atts, 
 			[element(dig:RoleType, AttsR, ElemsR)]) -->
@@ -194,7 +212,10 @@ parse_tell(transitive, _Atts,
 parse_tell(functional, _Atts, 
 			[element(dig:RoleType, AttsR, ElemsR)]) -->
 	{parse_role(RoleType, AttsR, ElemsR, Role)}, 
-	add_impliesc(top, atmost(1, Role, top)).
+	(	{dbRoleName(Role, _)}
+	->	{true}
+	;	add_impliesc(top, atmost(1, Role, top))
+	).
 
 
 %ABox axioms
@@ -202,8 +223,11 @@ parse_tell(instanceof, _Atts,
 			[element(dig:individual, AttsI, _ElemsI), 
 			 element(dig:ConceptType, AttsC, ElemsC)]) -->
 	{parse_concept(ConceptType, AttsC, ElemsC, Concept),
-	memberchk((name=I1), AttsI)}, 
-	add_ABox(cassertion(Concept, I1)).
+	memberchk((name=IN), AttsI)}, 
+	(	{atom_concat('http://www.cs.bme.hu/dlogDB#', A, IN)}
+	->	add_DBPredicate(Concept, A) %DB access
+	;	add_ABox(cassertion(Concept, IN))
+	).
 
 parse_tell(related, _Atts, 
 			[element(dig:individual, AttsI1, _ElemsI1), 
@@ -212,14 +236,12 @@ parse_tell(related, _Atts,
 	{parse_role(RoleType, AttsR, ElemsR, Role),
 	memberchk((name=I1), AttsI1),
 	memberchk((name=I2), AttsI2)},
-	(
-		{Role == arole('$connectionOfRole$')}
-	->	add_DBPredicate(I1, 2, I2, _)
-	;	{Role == arole('$connectionOfConcept$')}
-	->	add_DBPredicate(I1, 1, I2, _)
-	;	{Role == arole('$connectionOfNegConcept$')}
-	->	{atom_concat('not_', I1, Not_I1)}, %TODO: _
-		add_DBPredicate(Not_I1, 1, I2, _)
+	(	{Role == arole('http://www.cs.bme.hu/dlogDB#hasConnection')}
+	->	{atom_concat('http://www.cs.bme.hu/dlogDB#', A, I1)},
+		{atom_concat('http://www.cs.bme.hu/dlogDB#', C, I2)},
+		add_DBAccess(A, C, _, _) 	
+	;	{atom_concat('http://www.cs.bme.hu/dlogDB#', A, I1)}
+	->	add_DBPredicate(Role, A)
 	;	add_ABox(rassertion(Role, I1, I2))
 	).
 
@@ -234,58 +256,62 @@ parse_tell(value, Atts,
 	;	ValueType == ival, atom_codes(ElemsV,NC), number_codes(Value,NC)
 	)}, 
 	(
-		{Attribute == arole('$connectionDSN$')}
-	->	add_DBConnection(I, Value)
-	;	{Attribute == arole('$queryOfRole$')}
-	->	add_DBPredicate(I, 2, _, Value)
-	;	{Attribute == arole('$queryOfConcept$')}
-	->	add_DBPredicate(I, 1, _, Value)
-	;	{Attribute == arole('$queryOfNegConcept$')}
-	->	{atom_concat('not_', I, Not_I)}, %TODO: _
-		add_DBPredicate(Not_I, 1, _, Value)
+		{dbRoleName(Attribute, AN)}
+	->	{atom_concat('http://www.cs.bme.hu/dlogDB#', IN, I)},
+		(	{AN == hasDSN}
+		->	add_DBConnection(IN, Value, _user, _pass)
+		;	{AN == hasUserName}
+		->	add_DBConnection(IN, _dsn, Value, _pass)
+		;	{AN == hasPassword}
+		->	add_DBConnection(IN, _dsn, _user, Value)
+		;	{AN == hasQuery}
+		->	add_DBAccess(IN, _conn, query(Value), _negA)
+		;	{AN == hasNegQuery}
+		->	add_DBAccess(IN, _conn, _a, query(Value))
+		;	{AN == hasTable}
+		->	add_DBAccess(IN, _conn, table(Value, _col), _negA)
+		;	{AN == hasColumn}
+		->	add_DBAccess(IN, _conn, table(_table, Value), _negA)
+		;	{AN == hasLHS}
+		->	add_DBAccess(IN, _conn, table(_table, Value-_), _negA)
+		;	{AN == hasRHS}
+		->	add_DBAccess(IN, _conn, table(_table, _-Value), _negA)
+		;	{AN == hasNegTable}
+		->	add_DBAccess(IN, _conn, _a, table(Value, _col))
+		;	{AN == hasNegColumn}
+		->	add_DBAccess(IN, _conn, _a, table(_table, Value))
+		)
 	;	add_ABox(avalue(I, Attribute, Value)), %SPEC
 		{throw_tell_error(element(dig:value, Atts, [element(dig:individual, AttsI, ElemsI), 
 								element(dig:AttributeType, AttsA, ElemsA), 
 								element(dig:ValueType, AttsV, [ElemsV])]))}
 	).
 
-
 parse_tell(defconcept, Atts, _Elems) -->
 	{memberchk((name=Concept), Atts)},
-	add_concept(Concept).	
-parse_tell(defrole, Atts, _Elems) -->
+	({atom_concat('http://www.cs.bme.hu/dlogDB#', _, Concept)} 
+	-> {true} %concepts defined in the DB namespace are ignored -> TODO?
+	; add_concept(Concept)
+	).	
+parse_tell(defrole, Atts, _Elems) --> 
 	{memberchk((name=Role), Atts)},
-	(	{Role == '$connectionOfRole$'}
-	->	[]
-	;	{Role == '$connectionOfConcept$'}
-	->	[]
-	;	{Role == '$connectionOfNegConcept$'}
+	(	{Role == 'http://www.cs.bme.hu/dlogDB#hasConnection'}
 	->	[]
 	;	add_role(Role)
 	).
 parse_tell(deffeature, Atts, _Elems) --> 
 	{memberchk((name=Role), Atts)},
-	(	{Role == '$connectionOfRole$'}
-	->	[]
-	;	{Role == '$connectionOfConcept$'}
-	->	[]
-	;	{Role == '$connectionOfNegConcept$'}
+	(	{Role == 'http://www.cs.bme.hu/dlogDB#hasConnection'}
 	->	[]
 	;	add_impliesc(top, atmost(1, arole(Role), top)),
 		add_role(Role)
 	).
 parse_tell(defattribute, Atts, Elems) --> 
 	{memberchk((name=Attribute), Atts)},
-	(
-		{Attribute == '$connectionDSN$'}
+	(	{dbRoleName(arole(Attribute), _)}
 	->	[]
-	;	{Attribute == '$queryOfRole$'}
-	->	[]
-	;	{Attribute == '$queryOfConcept$'}
-	->	[]
-	;	{Attribute == '$queryOfNegConcept$'}
-	->	[]
-	;	{throw_tell_error(element(dig:defattribute , Atts, Elems))}
+	;	add_role(Attribute), %SPEC
+		{throw_tell_error(element(dig:defattribute , Atts, Elems))}
 	).
 parse_tell(defindividual , _Atts, _Elems) --> []. %TODO ezzel valamit?
 
@@ -298,43 +324,141 @@ throw_tell_error(Elem) :-
 	; throw(digerror(301, 'Unsupported Tell Operation', Elem)).
 
 
+dbRoleName(arole(QN), N) :- 
+	atom_concat('http://www.cs.bme.hu/dlogDB#', N, QN),
+	dbRoleName1(N). %TODO: check this?
+
+%attributes
+dbRoleName1(hasDSN).
+dbRoleName1(hasUserName).
+dbRoleName1(hasPassword).
+dbRoleName1(hasQuery).
+dbRoleName1(hasNegQuery).
+dbRoleName1(hasTable).
+dbRoleName1(hasColumn).
+dbRoleName1(hasLHS).
+dbRoleName1(hasRHS).
+dbRoleName1(hasNegTable).
+dbRoleName1(hasNegColumn).
+%role
+dbRoleName1(hasConnection).
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add Tell Axioms %%%%%%%%%%%%%%%%%%%
 add_impliesc(Concept1, Concept2,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms([implies(Concept1, Concept2)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms([implies(Concept1, Concept2)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)).
 add_disjoints([]) --> [].
 add_disjoints([_]) --> [].
 add_disjoints([Concept, D|Disjoints]) --> %TODO ok? 1 elemü or()?; 0 elemü or/and
 	add_impliesc(and([Concept, or([D|Disjoints])]), bottom),
 	add_disjoints([D|Disjoints]).
 add_impliesr(Role1, Role2,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, [subrole(Role1, Role2)| ImpliesRL], TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, [subrole(Role1, Role2)| ImpliesRL], TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)).
 add_transitive(Role,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, ImpliesRL, [Role| TransL], ABox, Concepts, Roles, DBConnections, DBPredicates)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, [Role| TransL], ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)).
 add_ABox(Axiom,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, ImpliesRL, TransL, [Axiom|ABox], Concepts, Roles, DBConnections, DBPredicates)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, [Axiom|ABox], Concepts, Roles, DBConnections, DBAccesses, DBPredicates)).
 add_concept(Concept,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, [Concept|Concepts], Roles, DBConnections, DBPredicates)).
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, [Concept|Concepts], Roles, DBConnections, DBAccesses, DBPredicates)).
 add_role(Role, 
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, [Role|Roles], DBConnections, DBPredicates)).
-add_DBConnection(DB, DSN,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, [DB-DSN|DBConnections], DBPredicates)).
-add_DBPredicate(Name, Arity, Connection, Query,
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates),
-		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates1)) :-
-	Functor =.. [/, Name, Arity],
-	(	memberchk(Functor-Connection1-Query1, DBPredicates)
-	->	Connection1 = Connection,
-		Query1 = Query,
-		DBPredicates1 = DBPredicates
-	;	DBPredicates1 = [Functor-Connection-Query|DBPredicates]
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, [Role|Roles], DBConnections, DBAccesses, DBPredicates)).
+
+add_DBConnection(Name, DSN, User, Password,
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections0, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)) :-
+	(	memberchk(connection(Name, DSN1, User1, Password1), DBConnections0)
+	->	DSN1 = DSN,
+		User1 = User,
+		Password1 = Password,
+		DBConnections = DBConnections0
+	;	DBConnections = [connection(Name, DSN, User, Password)|DBConnections0]
 	).
+add_DBAccess(Name, Connection, Access, NegAccess,
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses0, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)) :-
+	(	memberchk(access(Name, Connection1, Access1, NegAccess1), DBAccesses0)
+	->	Connection1 = Connection,
+		Access1 = Access,
+		NegAccess1 = NegAccess,
+		DBAccesses = DBAccesses0
+	;	DBAccesses = [access(Name, Connection, Access, NegAccess)|DBAccesses0]
+	).
+add_DBPredicate(aconcept(C), Access, 
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates0),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates)) :-
+	(	atom_concat('http://www.cs.bme.hu/dlogDB#', _, C) %TODO: mashonnan is szurni ezeket a fogalmakat?
+	->	DBPredicates = DBPredicates0 %concepts in the DB namespace have no DB access 
+	;	Functor =.. [/, C, 1],
+		DBPredicates = [Functor-Access|DBPredicates0]
+	).
+add_DBPredicate(not(aconcept(C)), Access, 
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, [not(Functor)-Access|DBPredicates])) :-
+	(	atom_concat('http://www.cs.bme.hu/dlogDB#', _, C) 
+	->	DBPredicates = DBPredicates0
+	;	Functor =.. [/, C, 1],
+		DBPredicates = [Functor-Access|DBPredicates0]
+	).
+add_DBPredicate(top, _Access, %TODO ?!
+		A, A).
+		%axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		%axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, [top-Access|DBPredicates])).
+add_DBPredicate(arole(R), Access, 
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, [Functor-Access|DBPredicates])) :-
+	Functor =.. [/, R, 2].
+% add_DBPredicate(inv(arole(R)), Access, %TODO ?
+		% axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+		% axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, [Functor-Access|DBPredicates])) :-
+	% Functor =.. [/, R, 2].
+
+%pair up DBAccesses with DBpredicates and remove incompletely defined accesses
+%does NOT check if the queries have the proper arity.
+clearDBaccesses(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBAccesses, DBPredicates),
+				axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates1)) :-
+	clearDBaccesses1(DBPredicates, DBAccesses, DBPredicates1).
+
+clearDBaccesses1([], _DBAccesses, []).
+clearDBaccesses1([Functor-AName | DBPredicates], DBAccesses, DBPredicates1) :-
+	(	memberchk(access(AName, Connection, Access, NegAccess), DBAccesses),
+		nonvar(Connection),
+		(	nonvar(Access),
+			good_access(Access) 
+		->	DBPredicates1 = [access(Functor, Connection, Access) | DBPredicates2]
+		;	DBPredicates1 = DBPredicates2
+		),
+		(	nonvar(NegAccess),
+			good_access(NegAccess)
+		->	Functor = Name/1, %fails if neg access specified for role
+			atom_concat('not_', Name, NegName), %TODO: _
+			DBPredicates2 = [access(NegName/1, Connection, NegAccess) | DBPredicates3]
+		;	DBPredicates2 = DBPredicates3
+		),
+		DBPredicates3 \== DBPredicates1 %fails if neither is ok
+	->	true
+	;	DBPredicates3 = DBPredicates1,
+		warning(dig_reader, (clearDBaccesses(...) -> access(Functor, Connection, Access, NegAccess)), 'Incompletely defined DB access.')
+		%TODO: warn here or collect and warn/error later?
+	),	
+	clearDBaccesses1(DBPredicates, DBAccesses, DBPredicates3).
+	
+
+good_access(query(Q)) :- nonvar(Q).
+good_access(table(T, C1-C2)) :- 
+	nonvar(T),
+	nonvar(C1),
+	nonvar(C2), !.
+good_access(table(T, C)) :- 
+	nonvar(T),
+	nonvar(C).
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -343,10 +467,10 @@ add_DBPredicate(Name, Arity, Connection, Query,
 
 %parse_asks(+Elems, +Asks0, -Asks): 
 parse_asks([]) --> [].
-parse_asks([element(dig:AskType, Atts, Elems)|Asks], State0, State) :- %exception miatt randa...
+parse_asks([element(dig:AskType, Atts, Elems)|Asks], State0, State) :- 
 	catch(	
 		parse_ask(AskType, Atts, Elems, State0, State1), 
-		digerror(103, _, _), %nem támogatott concept
+		digerror(103, _, _), %unsupported concept
 		(
 			( memberchk((id=ID0), Atts) -> ID=id(ID0) ; ID=noid ),
 			State1 = [ID-unsupported(element(dig:AskType, Atts, Elems)) | State0]
@@ -502,8 +626,11 @@ parse_role(inverse, _Atts, [element(dig:RoleType, Atts, Elems)], Role) :-
 		parse_role(RoleType, Atts, Elems, Role1)
 	), !.
 parse_role(AttributeType, Atts, Elems, Attribute) :- 
-	parse_attribute(AttributeType, Atts, Elems, Attribute), !, 
-	throw_concept_error(element(dig:AttributeType, Atts, Elems)).
+	parse_attribute(AttributeType, Atts, Elems, Attribute), 
+	(
+		dbRoleName(Attribute, _) -> true
+	;	throw_concept_error(element(dig:AttributeType, Atts, Elems))
+	).
 
 %parse_attribute(+AttributeType, +Atts, +Elems, -Attribute)	
 parse_attribute(attribute, Atts, _Elems, arole(Attribute)) :-

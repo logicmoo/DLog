@@ -3,7 +3,8 @@
 				mutex_create/1, with_mutex/2, mutex_lock/1, mutex_unlock/1,
 				call/2, call/3,
 				setup_and_call_cleanup/3,
-				format_to_atom/3]).
+				format_to_atom/3,
+				concat_atom/2]).
 
 :- meta_predicate
 	with_mutex(+, :),
@@ -34,3 +35,17 @@ setup_and_call_cleanup(Setup, Goal, Cleanup) :-
 format_to_atom(Atom, Format, Params) :- 
 	format_to_chars(Format, Params, Chars),
 	atom_codes(Atom, Chars).
+
+%concat_atom(+List, -Atom)
+concat_atom([Atom0|List], Atom) :-
+	concat_atom0(List, Atom0, Atom).
+
+concat_atom0([], Atom, Atom).
+concat_atom0([Atom1|List], Atom0, Atom) :-
+	atom_concat(Atom0, Atom1, Atom2),
+	concat_atom0(List, Atom2, Atom).
+
+
+
+
+
