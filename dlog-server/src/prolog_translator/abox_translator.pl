@@ -31,6 +31,7 @@ write_abox(URI, abox(ABoxStr, DBConnections, DBPredicates)) :-
 	abox_headers(Module, Indexing),
 	headwrite('Transformed ABox clauses'),
 	transformed_DBConnections(DBConnections, write, Module),
+	retractall('$dlog_active_statement'(_)), %better safe than sorry
 	transformed_abox(ABoxStr, DBPredicates, Module, Indexing, write),
 	retractall('$dlog_active_statement'(_)).
 
@@ -53,6 +54,7 @@ transformed_abox([], [access(P/A, Connection, Access) | DBPreds], Module, Indexi
 			transformed_DB_noidx_roles([access(P/A, Connection, Access) | Accesses], Target, Module)
 		)
 	),
+	format_if_write(Target, '~n', []), 
 	transformed_abox([], DBPreds1, Module, Indexing, Target).
 transformed_abox([P-L|Ps], DBPreds, Module, Indexing, Target) :-
 	(
@@ -77,6 +79,7 @@ transformed_abox([P-L|Ps], DBPreds, Module, Indexing, Target) :-
 		transformed_DB_noidx_roles(Accesses, Target, Module)
 	  )
 	),
+	format_if_write(Target, '~n', []), 
 	transformed_abox(Ps, DBPreds1, Module, Indexing, Target).
 
 transformed_abox_concept([], _P, _Target, _Module).

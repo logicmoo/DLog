@@ -6,7 +6,7 @@
 
 :- use_module(library(lists)).
 
-:- use_module('../dl_translator/axioms_to_clauses', [axioms_to_clauses/6]).
+:- use_module('../dl_translator/axioms_to_clauses', [axioms_to_clauses/4]).
 :- use_module('../prolog_translator/abox_signature', [abox_signature/4]).
 :- use_module('../prolog_translator/abox_translator', [assert_abox/2, write_abox/2]).
 :- use_module('../prolog_translator/tbox_translator', [tbox2prolog/3]).
@@ -119,8 +119,10 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBCo
 	info(kb_manager, add_axioms(URI, ...), 'Adding axioms to KB.'), %TODO: Concepts, Roles
 	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)), 'Axioms:'),
 	exists_kb(URI),
-	axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
-			  TBox_Clauses, IBox, HBox, _), %TODO!
+	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], _Saved, TBox_Clauses, _Save),
+	replace_inverse(ImpliesRL, HBox),
+	% axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
+			  % TBox_Clauses, IBox, HBox, _), %TODO!
 	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
 	abox_signature(ABox, DBPredicates, ABoxData, Signature),
 	detail(kb_manager, (add_axioms(URI, ...) -> Signature), 'ABox signature: '),
@@ -130,9 +132,22 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBCo
 	(	
 		add_abox(ATarget, URI, abox(ABoxData, DBConnections, DBPredicates)),
 		detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
-		add_tbox(TTarget, URI, tbox(TBox_Clauses, IBox, HBox), abox(Signature))
+		add_tbox(TTarget, URI, tbox(TBox_Clauses, _IBox, HBox), abox(Signature))
 	)),
 	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ideiglenes inverz konverzio
+replace_inverse([],[]).
+replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
+	replace_inverse(R,R1),
+	replace_inverse(S,S1),
+	replace_inverse(Ls,Ls1).
+replace_inverse(arole(R),arole(R)):- !.
+replace_inverse(inv(arole(R)),arole(R1)):-
+	atom_concat('inv_',R,R1). %TODO: _
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 add_abox(assert, URI, ABox) :- !,
