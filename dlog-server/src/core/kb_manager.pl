@@ -58,7 +58,9 @@ new_kb(URI) :-
 		ID1 is ID+1, %{<sorszám>|<UUID>}?
 		assert(kb_count(ID1))
 	)),
-	kb_uri(ID, URI),
+	number_codes(ID, IDC), %for Sicstus compatibility
+	atom_codes(IDA, IDC), 
+	kb_uri(IDA, URI),
 	mutex_create(URI),
 	assert(current_kb(URI)),
 	info(kb_manager, new_kb(URI), 'New KB created.').

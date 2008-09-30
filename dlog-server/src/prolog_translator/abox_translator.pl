@@ -21,7 +21,8 @@ assert_abox(URI, abox(ABoxStr, DBConnections, DBPredicates)) :-
 	get_dlog_option(indexing, URI, Indexing),
 	abox_module_name(URI, Module),
 	transformed_DBConnections(DBConnections, assert, Module),
-	dynamic(Module:'$dlog_active_statement'/2),
+	%dynamic(Module:'$dlog_active_statement'/2), %TODO!
+	assert((Module:'$dlog_active_statement'('$dlog_not_a_query',_) :- fail)),
 	transformed_abox(ABoxStr, DBPredicates, Module, Indexing, assert).
 	%TODO: finalize dynamic? (SWI)
 

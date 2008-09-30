@@ -6,6 +6,10 @@
 :- use_module('../fol/saturate_fol', [simplifyClause/2]).
 :- use_module('../show').
 
+:- use_module('../../core/config', [target/1]).
+:- target(sicstus) -> 
+        use_module(library(terms),[subsumes/2, term_variables/2])
+        ; true.
 
 toClause_list(L,R):-
 	toFOL_list(L,L2), !,

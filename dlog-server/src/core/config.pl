@@ -13,7 +13,7 @@ target(T) :- current_prolog_flag(dialect, swi) -> T = swi ; T = sicstus.
 % target(swi).
 
 :- target(sicstus) -> 
-	use_module(core_sicstus_tools, [abs_file_name/3, format_to_atom/3])
+	use_module(core_sicstus_tools, [abs_file_name/3, format_to_atom/3, call/3])
 	; true.
 :- target(swi) -> 
 	use_module(core_swi_tools, [abs_file_name/3, format_to_atom/3])
@@ -41,6 +41,7 @@ default_option(lib_path, 'hash'). %library path (relative to base_path)
 default_option(logging_detail, warning). %[detail, info, warning, error, silent]
 default_option(logfile, user_error). %open, writeable stream 
 
+default_option(dlog_test_timeout, 60000). %time limit for each test phase (milliseconds)
 
 %%%%%%%%%%%% Translator Options %%%%%%%%%%%%
 default_option(statistics, no). %[yes, no] 
@@ -67,7 +68,7 @@ default_option(tbox_target, tempfile). %[tempfile, allinonefile]
 default_option(server_port, 8080).
 default_option(server_host, localhost).
 default_option(dig_server_path, '/'). %path to DIG server
-default_option(dig_server_service_limit, 60). %time limit for servicing a request
+default_option(dig_server_service_limit, 60). %time limit for servicing a request (seconds)
 default_option(dig_reader_fault_tolerance, no). %[no, drop, yes] a nem támogatott fogalmakra dobjon-e hibát
 
 :- dynamic current_option/2.
