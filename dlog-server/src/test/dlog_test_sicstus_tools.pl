@@ -5,8 +5,8 @@
 :- use_module('../core/config', [get_dlog_option/2, get_dlog_option/3]).
 :- use_module(library(timeout), [time_out/3]).
 :- use_module(library(system), [directory_files/2]).
-:- use_module(library(charsio), [format_to_chars/3]).
-:- use_module(library(lists), [append/3]).
+:- use_module(library(charsio), [with_output_to_chars/4]).
+:- use_module(library(lists), [append/3, member/2]).
 
 :- meta_predicate 
 	time_limit(:, -), 
@@ -34,8 +34,15 @@ setup_and_call_cleanup(Setup, Goal, Cleanup) :-
 	call(Setup),
 	call_cleanup(Goal, Cleanup).
 
-expand_file_name(Pattern, Files) :- %TODO
-	directory_files(Pattern, Files).
+expand_file_name(Pattern, Files) :-
+	directory_files(Pattern, L),
+	findall(N, tst_file(Pattern, L, N), Files).
+
+tst_file(Pattern, List, Name) :-
+	member(F, List), 
+	absolute_file_name(F, Name, [relative_to(Pattern)]), 
+	atom_concat(_, '.tst', Name).
+
 
 call(Module:Goal0, Param) :-
    Goal0 =.. [Name | Params0],
@@ -43,21 +50,18 @@ call(Module:Goal0, Param) :-
    Goal =.. [Name | Params1],
    call(Module:Goal).
 
-message_to_string(Msg, Str) :-
-	format_to_chars('~p', [Msg], Str).%TODO
-	% 'SU_messages':generate_message(Msg, Formats, []),
-	% message_to_string0(Formats, Str).
+message_to_string(Message, String) :-
+	prolog_flag(user_error, Stream0),
+	with_output_to_chars(
+		call_cleanup(
+			m_t_s(Message, Stream),
+			set_prolog_flag(user_error, Stream0)
+		),
+		Stream, String, []).
 
-% message_to_string0([], [])
-% message_to_string0([Format|Formats], Str) :-
-	
-% message_to_string0([|Formats], Str) :-
-
-% FormatString-Args
-% format(FormatString, Args)
-% write_term(Term, Options)
-% write_term(Term)
-% nl
+m_t_s(Message, Stream) :-
+	set_prolog_flag(user_error, Stream),
+	print_message(error, Message).
 
 
 

@@ -7,7 +7,9 @@
 
 :- meta_predicate
 	with_mutex(+, :),
-	setup_and_call_cleanup(:, :, :).
+	setup_and_call_cleanup(:, :, :),
+	call(:, ?),
+	call(:, ?, ?).
 
 :- use_module(library(charsio), [format_to_chars/3]).
 

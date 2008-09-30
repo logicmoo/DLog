@@ -4,8 +4,7 @@
 :- use_module('../core/kb_manager', [new_kb/1, release_kb/1, add_axioms/2, run_query/3]).
 :- use_module('../core/dlogger', [warning/3, info/3, detail/3]).
 :- use_module(dlog_test_outputs).
-%TODO: dlogtest, test module
-%TODO: other input
+%TODO: dlogtest, test modules
 
 :- target(swi) -> use_module(dlog_test_swi_tools, 
 						[time_limit/2, time_limit/3]) ; true.
@@ -14,8 +13,10 @@
 
 %execute_test_files(+Files, ?Output),
 %execute_test_files(+Files, +Output): 
-%  Files is either a list of files or an atom (SWI only). 
-%  The atom is passed to expand_file_name/2.
+%  Files is either a list of files or an atom. 
+%  The atom is passed to expand_file_name/2 in SWI, 
+%  while in Sicstus it must be a directory name, and all files ending 
+%  in '.tst' in that directory are used.
 %  If Output is unifiable with the results (a list), it is unified with the results.
 %  Other output modes are
 %    text: Results are pretty printed on current output.

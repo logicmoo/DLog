@@ -21,8 +21,9 @@ assert_abox(URI, abox(ABoxStr, DBConnections, DBPredicates)) :-
 	get_dlog_option(indexing, URI, Indexing),
 	abox_module_name(URI, Module),
 	transformed_DBConnections(DBConnections, assert, Module),
-	%dynamic(Module:'$dlog_active_statement'/2), %TODO!
-	assert((Module:'$dlog_active_statement'('$dlog_not_a_query',_) :- fail)),
+	%dynamic(Module:'$dlog_active_statement'/2), %Sicstus compatibility
+	assert(Module:'$dlog_active_statement'(_,_)),
+	retractall(Module:'$dlog_active_statement'(_,_)),
 	transformed_abox(ABoxStr, DBPredicates, Module, Indexing, assert).
 	%TODO: finalize dynamic? (SWI)
 
