@@ -5,14 +5,14 @@
 :- use_module('../core/dlogger', [warning/3, info/3, detail/3]).
 :- use_module(dlog_test_outputs).
 %TODO: dlogtest, test module
-%TODO: DIG/other input
+%TODO: other input
 
 :- target(swi) -> use_module(dlog_test_swi_tools, 
 						[time_limit/2, time_limit/3]) ; true.
 :- target(sicstus) -> use_module(dlog_test_sicstus_tools, 
 		[time_limit/2, time_limit/3, expand_file_name/2, setup_and_call_cleanup/3, call/2]) ; true.
 
-%execute_test_files(+Files, -Output),
+%execute_test_files(+Files, ?Output),
 %execute_test_files(+Files, +Output): 
 %  Files is either a list of files or an atom (SWI only). 
 %  The atom is passed to expand_file_name/2.
@@ -217,18 +217,6 @@ read_test(Str) -->
 		read_test(Str)
 	).
 
-% - concept(C), role(R): fogalom és szerep definiálása (ez egyelőre csak az összes fogalom/szerep lekérdezésénél szükséges -- amint implementálom ezt a funkciót :D)
-% - implies(C1, C2): fogalom tartalmazási axióma, a fogalmak olyan formátumban, ahogy Zsolt bemenete várja őket (pl. and([...]), or([...]), some(R, C), atleast(N, R, C), top)
-% - subrole(R, S): szerep tartalmazási axióma
-% - transitive(R): R tranzitív szerep
-% - rassertion(R, I1, I2), cassertion(C, I1): ABox axiómák
-% - dbConnection(Connection, DSN, User, Pass): adatbázis kapcsolat, User és Pass opcionális
-% - dbAccess(Functor, Connection, Access): egy fogalom/szerep adatbázis elérhetősége; Access vagy query(Q) vagy table(T, Col), vagy table(T, Col1-Col2) alakú.
-% - esetleg szintaktikus édesítőszerek (pl. equiv(C1, C2))
-% - query(Q, Response): lekérdezések kívánt válasszal Q lehet például instances(Concept) -> a válasz egy egyed lista, roleFillers(I, Role) -> válasz azoknak a listája, akik az adott egyeddel az adott kapcsolatban állnak, relatedIndividuals(Role) -> párok listája, akik az adott kapcsolatban állnak, egyéb lekérdezések, amiket meg tudunk válaszolni (?)
-% - options(O): beállítások listája (pl. [indexing(no), projection(no)])
-
-
 store(concept(C), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, [C|Concepts], Roles, DBConnections, DBPredicates), Queries, Options)).
@@ -250,7 +238,7 @@ store(transitive(R),
 		test(axioms(ImpliesCL, ImpliesRL, [R|TransL], ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
 store(assertion(R, I1, I2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)). %TODO?
+		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
 store(rassertion(R, I1, I2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)). 
