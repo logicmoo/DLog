@@ -12,164 +12,101 @@
                     <some>
                         <ratom name="hasChild"/>
                         <not>
-                          <catom name="Patricide"/>
+                            <catom name="Patricide"/>
                         </not>
                     </some>
                 </and>
             </some>
         </and>
     </equalc>
-
+    <defattribute name="http://www.cs.bme.hu/dlogDB#hasPassword"/>
+    <rangestring>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasPassword"/>
+    </rangestring>
+    <functional>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasPassword"/>
+    </functional>
+    <defattribute name="http://www.cs.bme.hu/dlogDB#hasNegQuery"/>
+    <rangestring>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasNegQuery"/>
+    </rangestring>
+    <functional>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasNegQuery"/>
+    </functional>
+    <defattribute name="http://www.cs.bme.hu/dlogDB#hasUserName"/>
+    <rangestring>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasUserName"/>
+    </rangestring>
+    <functional>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasUserName"/>
+    </functional>
+    <defattribute name="http://www.cs.bme.hu/dlogDB#hasQuery"/>
+    <rangestring>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasQuery"/>
+    </rangestring>
+    <functional>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasQuery"/>
+    </functional>
+    <defattribute name="http://www.cs.bme.hu/dlogDB#hasDSN"/>
+    <rangestring>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasDSN"/>
+    </rangestring>
+    <functional>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasDSN"/>
+    </functional>
     <defrole name="hasChild"/>
-<!--related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i2"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i3"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i4"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i5"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i6"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i7"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i8"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i9"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i10"/>
-</related>
-<related>
-<individual name="i1"/>
-<ratom name="hasChild"/>
-<individual name="i11"/>
-</related>
-<related>
-<individual name="i2"/>
-<ratom name="hasChild"/>
-<individual name="i3"/>
-</related>
-<related>
-<individual name="i3"/>
-<ratom name="hasChild"/>
-<individual name="i4"/>
-</related>
-<related>
-<individual name="i4"/>
-<ratom name="hasChild"/>
-<individual name="i5"/>
-</related>
-<related>
-<individual name="i5"/>
-<ratom name="hasChild"/>
-<individual name="i6"/>
-</related>
-<related>
-<individual name="i6"/>
-<ratom name="hasChild"/>
-<individual name="i7"/>
-</related>
-<related>
-<individual name="i7"/>
-<ratom name="hasChild"/>
-<individual name="i8"/>
-</related>
-<related>
-<individual name="i8"/>
-<ratom name="hasChild"/>
-<individual name="i9"/>
-</related>
-<related>
-<individual name="i9"/>
-<ratom name="hasChild"/>
-<individual name="i10"/>
-</related>
-<related>
-<individual name="i10"/>
-<ratom name="hasChild"/>
-<individual name="i11"/>
-</related>
-<related>
-<individual name="i11"/>
-<ratom name="hasChild"/>
-<individual name="i12"/>
-</related>
-<instanceof>
-  <individual name="i2"/>
-  <catom name="Patricide"/>
-</instanceof>
-<instanceof>
-  <individual name="i12"/>
-  <not>
-    <catom name="Patricide"/>
-  </not>
-</instanceof-->
-
-<related>
-<individual name="hasChild"/>
-<ratom name="$connectionOfRole$"/>
-<individual name="IODB"/>
-</related>
-<value>
-<individual name="hasChild"/>
-<attribute name="$queryOfRole$"/>
-<sval>SELECT parent, child FROM hasChild</sval>
-</value>
-<related>
-<individual name="Patricide"/>
-<feature name="$connectionOfConcept$"/>
-<individual name="IODB"/>
-</related>
-<value>
-<individual name="Patricide"/>
-<attribute name="$queryOfConcept$"/>
-<sval>SELECT name FROM people WHERE patricide</sval>
-</value>
-
-<related>
-<individual name="Patricide"/>
-<feature name="$connectionOfNegConcept$"/>
-<individual name="IODB"/>
-</related>
-<value>
-<individual name="Patricide"/>
-<attribute name="$queryOfNegConcept$"/>
-<sval>SELECT name FROM people WHERE NOT patricide</sval>
-</value>
-
-
-<value>
-<individual name="IODB"/>
-<attribute name="$connectionDSN$"/>
-<sval>iocaste</sval>
-</value>
-
-
+    <defrole name="http://www.cs.bme.hu/dlogDB#hasConnection"/>
+    <functional>
+        <ratom name="http://www.cs.bme.hu/dlogDB#hasConnection"/>
+    </functional>
+    <defindividual name="http://www.cs.bme.hu/dlogDB#Patricide"/>
+    <instanceof>
+        <individual name="http://www.cs.bme.hu/dlogDB#Patricide"/>
+        <catom name="Patricide"/>
+    </instanceof>
+    <value>
+        <individual name="http://www.cs.bme.hu/dlogDB#Patricide"/>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasNegQuery"/>
+        <sval>SELECT name FROM people WHERE NOT patricide</sval>
+    </value>
+    <value>
+        <individual name="http://www.cs.bme.hu/dlogDB#Patricide"/>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasQuery"/>
+        <sval>SELECT name FROM people WHERE patricide</sval>
+    </value>
+    <related>
+        <individual name="http://www.cs.bme.hu/dlogDB#Patricide"/>
+        <ratom name="http://www.cs.bme.hu/dlogDB#hasConnection"/>
+        <individual name="http://www.cs.bme.hu/dlogDB#iodb"/>
+    </related>
+    <defindividual name="http://www.cs.bme.hu/dlogDB#hasChild"/>
+    <instanceof>
+        <individual name="http://www.cs.bme.hu/dlogDB#hasChild"/>
+        <top/>
+    </instanceof>
+    <value>
+        <individual name="http://www.cs.bme.hu/dlogDB#hasChild"/>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasQuery"/>
+        <sval>SELECT parent, child FROM hasChild</sval>
+    </value>
+    <related>
+        <individual name="http://www.cs.bme.hu/dlogDB#hasChild"/>
+        <ratom name="hasChild"/>
+        <individual name="http://www.cs.bme.hu/dlogDB#hasChild"/>
+    </related>
+    <related>
+        <individual name="http://www.cs.bme.hu/dlogDB#hasChild"/>
+        <ratom name="http://www.cs.bme.hu/dlogDB#hasConnection"/>
+        <individual name="http://www.cs.bme.hu/dlogDB#iodb"/>
+    </related>
+    <defindividual name="http://www.cs.bme.hu/dlogDB#iodb"/>
+    <instanceof>
+        <individual name="http://www.cs.bme.hu/dlogDB#iodb"/>
+        <top/>
+    </instanceof>
+    <value>
+        <individual name="http://www.cs.bme.hu/dlogDB#iodb"/>
+        <attribute name="http://www.cs.bme.hu/dlogDB#hasDSN"/>
+        <sval>iocaste</sval>
+    </value>
 </tells>
