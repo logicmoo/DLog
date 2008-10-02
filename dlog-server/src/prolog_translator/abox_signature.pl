@@ -26,8 +26,7 @@ abox_axiom0(cassertion(N, V), Name, Value, *) :-
 abox_axiom0(rassertion(arole(Name), Value1, Value2), Name, Value1, Value2).
 
 abox_axiom00(aconcept(Name), Value, Name, Value).
-abox_axiom00(not(aconcept(Name0)), Value, Name, Value) :-
-	atom_concat('not_', Name0, Name).  %TODO: _
+abox_axiom00(not(aconcept(Name)), Value, not(Name), Value).
 
 
 abox_signature([], []).

@@ -436,8 +436,8 @@ clearDBaccesses1([Functor-AName | DBPredicates], DBAccesses, DBPredicates1) :-
 		(	nonvar(NegAccess),
 			good_access(NegAccess)
 		->	Functor = Name/1, %fails if neg access specified for role
-			atom_concat('not_', Name, NegName), %TODO: _
-			DBPredicates2 = [access(NegName/1, Connection, NegAccess) | DBPredicates3]
+			%atom_concat('not_', Name, NegName), 
+			DBPredicates2 = [access(not(Name)/1, Connection, NegAccess) | DBPredicates3]
 		;	DBPredicates2 = DBPredicates3
 		),
 		DBPredicates3 \== DBPredicates1 %fails if neither is ok

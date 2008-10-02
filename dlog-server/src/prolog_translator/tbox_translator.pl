@@ -6,11 +6,13 @@
 % - inv_ -> inv/1
 :- module(prolog_translator,[tbox2prolog/3]).
 
+:- use_module('../unfold/unfold_main', [unfold_predicates/2]).
+:- use_module('../core/config', [target/1, abox_module_name/2, tbox_module_name/2, get_dlog_option/3, get_dlog_option/2]).
+:- use_module(predicate_names, [predicate_name/2]).
+:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2, cls_to_neglist/2, body_to_list/2]).
+
 :- use_module(library(lists), [append/3, member/2, last/2, select/3]).
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3]).
-:- use_module('../unfold/unfold_main', [unfold_predicates/2]).
-
-:- use_module('../core/config', [target/1, abox_module_name/2, tbox_module_name/2, get_dlog_option/3, get_dlog_option/2]).
 
 :- target(sicstus) -> 
 		use_module(library(lists),[memberchk/2]),
@@ -24,8 +26,6 @@
 		use_module(library(listing), [portray_clause/1]), 
 		use_module(prolog_translator_swi_tools, [term_variables_bag/2, reduce/2, bb_put/2, bb_get/2, datime/1])
 		; true.
-
-:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2, cls_to_neglist/2, body_to_list/2]).
 
 :- dynamic 
 	predicate/2,
@@ -74,13 +74,12 @@ counter(orphancres).
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
-tbox2prolog(URI, tbox(TBox, _IBox, HBox), abox(Signature)) :-
+tbox2prolog(URI, tbox(TBox, HBox), abox(Signature)) :-
 	init(URI),
 	write_tbox_header(URI),
 	dl_preds(TBox, Preds0),
 	(get_dlog_option(unfold, no) -> Preds1 = Preds0
 	; unfold_main:annotated_preds(Preds0, APreds),
-	  %open('dump.txt', write, D), writeq(D, prog(APreds, Signature, all)), close(D),
 	  unfold_predicates(prog(APreds, Signature, all), Preds1) -> true
 	; Preds1 = Preds0
 	),
@@ -191,7 +190,7 @@ write_tbox_header(URI) :-
 % Preds is a list of Key-Value pairs, where Key is a functor, Value
 % is the list of clauses belong to the given functor represented
 % as Body-Head pairs
-dl_preds(TBox, Preds) :-
+dl_preds(TBox, Preds) :- %TODO: _ (a kimeneten jelenik meg)
 	bagof(Functor-Clauses,
 	      setof(Body-Head,
 		    Name^Arity^(tunnel(TBox, Name, Arity, Head, Body), Functor = Name/Arity),

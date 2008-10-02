@@ -259,13 +259,8 @@ store(dbConnection(Connection, DSN),
 			Queries, Options)). 
 store(dbAccess(Functor, Connection, Access), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, [access(Functor1, Connection, Access)|DBPredicates]), 
-			Queries, Options)) :- 
-	(	Functor = not(Name0)/1 
-	->	atom_concat('not_', Name0, Name1), %TODO: _
-		Functor1=Name1/1
-	;	Functor1 = Functor
-	).
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, [access(Functor, Connection, Access)|DBPredicates]), 
+			Queries, Options)).
 store(query(Q, Response), 
 		test(Axioms, Queries, Options), 
 		test(Axioms, [query(Q, Response)|Queries], Options)).

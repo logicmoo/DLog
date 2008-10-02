@@ -89,16 +89,16 @@ clear_kb(URI) :-
 
 close_DB_connections(AB) :-
 	info(kb_manager, close_DB_connections(AB), 'Closing DB connections'),
-	current_predicate(AB:'$dlog_active_statement'/1),
-	AB:'$dlog_active_statement'(_, Statement),
+	current_predicate(AB:active_statement/2),
+	AB:active_statement(_, Statement),
 	catch(
 		odbc_free_statement(Statement),
 		error(existence_error(odbc_statement_handle, _), _),
 		fail),
 	fail.
 close_DB_connections(AB) :-
-	current_predicate(AB:'$dlog_open_DB_connection'/1),
-	AB:'$dlog_open_DB_connection'(Connection),
+	current_predicate(AB:open_DB_connection/1),
+	AB:open_DB_connection(Connection),
 	catch(
 		odbc_disconnect(Connection),
 		error(existence_error(odbc_connection, _), _), 
@@ -121,34 +121,34 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBCo
 	info(kb_manager, add_axioms(URI, ...), 'Adding axioms to KB.'), %TODO: Concepts, Roles
 	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)), 'Axioms:'),
 	exists_kb(URI),
+	
 	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], _Saved, TBox_Clauses, _Save),
-	replace_inverse(ImpliesRL, HBox),
-	% axioms_to_clauses(URI, [ImpliesCL, ImpliesRL, TransL],
-			  % TBox_Clauses, IBox, HBox, _), %TODO!
+	%replace_inverse(ImpliesRL, HBox), %TODO: _
 	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
 	abox_signature(ABox, DBPredicates, ABoxData, Signature),
 	detail(kb_manager, (add_axioms(URI, ...) -> Signature), 'ABox signature: '),
+		
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
 	with_write_lock(URI, 
 	(	
 		add_abox(ATarget, URI, abox(ABoxData, DBConnections, DBPredicates)),
 		detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
-		add_tbox(TTarget, URI, tbox(TBox_Clauses, _IBox, HBox), abox(Signature))
+		add_tbox(TTarget, URI, tbox(TBox_Clauses, ImpliesRL), abox(Signature))
 	)),
 	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ideiglenes inverz konverzio
-replace_inverse([],[]).
-replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
-	replace_inverse(R,R1),
-	replace_inverse(S,S1),
-	replace_inverse(Ls,Ls1).
-replace_inverse(arole(R),arole(R)):- !.
-replace_inverse(inv(arole(R)),arole(R1)):-
-	atom_concat('inv_',R,R1). %TODO: _
+% replace_inverse([],[]).
+% replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
+	% replace_inverse(R,R1),
+	% replace_inverse(S,S1),
+	% replace_inverse(Ls,Ls1).
+% replace_inverse(arole(R),arole(R)):- !.
+% replace_inverse(inv(arole(R)),arole(R1)):-
+	% atom_concat('inv_',R,R1). %TODO: _
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
