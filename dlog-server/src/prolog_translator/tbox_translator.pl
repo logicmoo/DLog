@@ -2,8 +2,6 @@
 % v0.2
 % todo:
 % - unfolding
-% - not_ -> not/1
-% - inv_ -> inv/1
 :- module(prolog_translator,[tbox2prolog/3]).
 
 :- use_module('../unfold/unfold_main', [unfold_predicates/2]).
@@ -234,11 +232,11 @@ graph_nodes0(Edges, Signature, Node) :-
 	;
 	  atomic_predicate(Node, 2) % grr
 	),
-	\+ atom_concat('inv_', _, Node).
+	\+ atom_concat('$inv_', _, Node).
 
 close_inv([], []).
 close_inv([R|Rs], [R, InvR|InvRs]) :-
-	atom_concat('inv_', R, InvR),
+	atom_concat('$inv_', R, InvR),
 	close_inv(Rs, InvRs).
 
 hbox_edges(HBox, Edges) :-
@@ -921,9 +919,9 @@ write_hierarchy(R1, R2) :-
 	portray_clause((THR1 :- HeadR2)).
 
 abox_inverse_name(R, IRole) :-
-	atom_concat('inv_', IRole, R), !.
+	atom_concat('$inv_', IRole, R), !.
 abox_inverse_name(R, IRole) :-
-	atom_concat('inv_', R, IRole).
+	atom_concat('$inv_', R, IRole).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
