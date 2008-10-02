@@ -72,7 +72,10 @@ counter(orphancres).
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
-tbox2prolog(URI, tbox(TBox, HBox), abox(Signature)) :-
+tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0)) :-
+	replace_inverse(HBox0, HBox), %TODO: _
+	replace_signature(Signature0, Signature),
+	
 	init(URI),
 	write_tbox_header(URI),
 	dl_preds(TBox, Preds0),
@@ -86,6 +89,25 @@ tbox2prolog(URI, tbox(TBox, HBox), abox(Signature)) :-
 	headwrite('Transformed TBox clauses'),
 	transformed_kb(DepGraph, Signature).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ideiglenes inverz konverzio
+replace_inverse([],[]).
+replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
+	replace_inverse(R,R1),
+	replace_inverse(S,S1),
+	replace_inverse(Ls,Ls1).
+replace_inverse(arole(R),arole(R)):- !.
+replace_inverse(inv(arole(R)),arole(R1)):-
+	atom_concat('$inv_',R,R1).
+
+replace_signature([], []).
+replace_signature([Pred/Arity | Signature0], [Name/Arity|Signature]) :-
+	(	Pred = not(Name0)
+	->	atom_concat('$not_',Name0,Name)
+	;	Pred = Name
+	),
+	replace_signature(Signature0, Signature).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 transformed_kb(DepGraph, Signature) :-
 	transform(DepGraph, DepGraph, Signature),
