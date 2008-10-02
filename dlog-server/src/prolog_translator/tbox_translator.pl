@@ -2,7 +2,7 @@
 % v0.2
 % todo:
 % - unfolding
-:- module(prolog_translator,[tbox2prolog/3]).
+:- module(prolog_translator,[tbox2prolog/4]).
 
 :- use_module('../unfold/unfold_main', [unfold_predicates/2]).
 :- use_module('../core/config', [target/1, abox_module_name/2, tbox_module_name/2, get_dlog_option/3, get_dlog_option/2]).
@@ -72,7 +72,7 @@ counter(orphancres).
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
-tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0)) :-
+tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0), TransformedTBox) :-
 	replace_inverse(HBox0, HBox), %TODO: _
 	replace_signature(Signature0, Signature),
 	
@@ -87,7 +87,7 @@ tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0)) :-
 	preprocessing(Preds1, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
 	headwrite('Transformed TBox clauses'),
-	transformed_kb(DepGraph, Signature).
+	transformed_kb(DepGraph, Signature, TransformedTBox, []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ideiglenes inverz konverzio
@@ -109,36 +109,30 @@ replace_signature([Pred/Arity | Signature0], [Name/Arity|Signature]) :-
 	replace_signature(Signature0, Signature).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-transformed_kb(DepGraph, Signature) :-
+transformed_kb(DepGraph, Signature) -->
 	transform(DepGraph, DepGraph, Signature),
-	headwrite('HI predicates'),
-	generated_HI(Signature),
-	generated_atomic,
-	write_orphans,
-	write_statistics.
+%	headwrite('HI predicates'),
+	get_HI(Signature),
+	get_atomic,
+	get_orphans.
+%	write_statistics.
 
-generated_atomic :-
-	(
-	  atomic_predicate(_, 1) ->
-	  headwrite('Transformed Atomic clauses')
-	;
-	  true
-	),
-	generated_atomic0.
 
-generated_atomic0 :-
-	atomic_predicate(A, 1),
-	format('\% Atomic predicate ~p~n',[A/1]),
-	write_atomic_predicate(A),
-	fail.
-generated_atomic0.
+get_atomic -->
+	{findall(atomic_predicate(A), atomic_predicate(A, 1), APreds)},
+	get_atomic0(APreds).
 
-write_atomic_predicate(Pred) :-
+get_atomic0([]) --> [].
+get_atomic0([atomic_predicate(A)|As]) -->
+	{transformed_atomic_predicate(A, TAtomic)},
+	add_generated_predicate(atomic(TAtomic)),
+	get_atomic0(As).
+	
+transformed_atomic_predicate(Pred, TAtomic) :-
 	functor(Head, Pred, 1),
 	arg(1, Head, _A),
 	bb_get(aboxmodule, Module),
-	portray_clause((Head :- Module:Head)),
-	nl.
+	TAtomic = (Head :- Module:Head).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % Init
@@ -577,20 +571,28 @@ atomic_like_body([G|Gs]) :-
 % transforming all DL predicates
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-transform([], _, _).
-transform([Functor-Clauses|Preds], DepGraph, Signature) :-
-	transformed_predicate(Clauses, Functor, DepGraph, Signature), nl, 
+transform([], _, _) --> [].
+transform([Functor-Clauses|Preds], DepGraph, Signature) -->
+	{transformed_predicate(Clauses, Functor, DepGraph, Signature, L, [])},
+	[predicate(L)],
 	transform(Preds, DepGraph, Signature).
 
-write_orphans :-
-	once(orphan(_,_)),
-	headwrite('Transformed Orphan clauses'),
-	orphan(G, Arity),
-	format('\% Predicate ~p~n',[G]),
-	transformed_orphan(G, Arity),
-	fail.
-write_orphans.
+add_generated_predicate(Predicate) -->
+	[Predicate].
 
+add_generated_predicates(Ps) -->
+	Ps.
+
+get_orphans -->
+	{findall(orphan(G, Arity), orphan(G, Arity), Orphans)},
+	get_orphans0(Orphans).
+
+get_orphans0([]) --> [].
+get_orphans0([orphan(G, Arity)|Os]) -->
+	{transformed_orphan(G, Arity, TOrphan)},
+	add_generated_predicate(orphan(TOrphan)),
+	get_orphans0(Os).
+	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Final rearrangement of clauses
@@ -617,31 +619,18 @@ arranged_ancloop(G, LoopAncPass, AL, ATBody) :-
 % transforming one single predicate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-transformed_predicate(Clauses, Name/Arity, DepGraph, Signature) :-
-	(
-	  atomic_like_predicate(Name, Arity) -> % concepts referring only to query predicates
-	  format('\% Atomic-like predicate ~p~n',[Name/Arity]),
-	  transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature)
-	;
-	  orphan_like(Name, Arity) -> 
-	  format('\% Orphan-like predicate ~p~n',[Name/Arity]),
-	 transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature)
-	;
-	  % non-atomic concept predicates
-	  format('\% Predicate ~p~n',[Name/Arity]),
-	  transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature)
-	).
+transformed_predicate(Clauses, Name/_Arity, DepGraph, Signature) -->
+	transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature).
 
-
-write_generated_clauses(GClauses, OGClauses) :-
-	normal_predicates(GClauses, GClauses0),
-	write_clauses(GClauses0),
+write_generated_clauses(GClauses, OGClauses) -->
+	{normal_predicates(GClauses, GClauses0)},
+	add_generated_predicates(GClauses0),
 	(
-	  (env_parameter(projection, yes) ; env_parameter(ground_optim, yes)) ->
-	  once_predicates(OGClauses, OGClauses0),
-	  write_clauses(OGClauses0)
+	  {(env_parameter(projection, yes) ; env_parameter(ground_optim, yes))} ->
+	  {once_predicates(OGClauses, OGClauses0)},
+	  add_generated_predicates(OGClauses0)
 	;
-	  true
+	  []
 	).
 	
 normal_predicates([], []).
@@ -682,7 +671,7 @@ once_predicates([G|Gs], Goal) :-
 	  ),
 	  % change the name
 	  Head =.. [Name|Args],
-	  atom_concat('once_', Name, OnceName),
+	  atom_concat('$once_', Name, OnceName),
 	  Head0 =.. [OnceName|Args],
 	  % append a cut to the bodies
 	  body_to_list(Body, BodyList),
@@ -714,32 +703,30 @@ write_clauses0([C|Cs]) :-
 	),
 	write_clauses0(Cs).
 
-helper_goal(Head0, Head1, Head2, Cat) :-
+helper_goal(Head0, Head1, Head2, Cat) -->
 %	env_parameter(allinone, yes), !,
 	helper_goal0(Head0, Head1, Head2, Cat).
 %helper_goal(_, _, _, _).
 
-helper_goal0(Head0, Head1, _Head2, Cat) :-
-	(env_parameter(ground_optim, yes); env_parameter(projection, yes)), !,
+helper_goal0(Head0, Head1, _Head2, Cat) -->
+	{(env_parameter(ground_optim, yes); env_parameter(projection, yes)), !,
 	(
 	  cat(normal, Cat) ->
 	  transformed_head(Head1, St, Body),
 	  HelperBody = Body
 	;
 	  HelperBody = Head1
-	),
-	portray_clause((Head0 :- init_state(St), HelperBody)),
-	nl.
-helper_goal0(Head0, _Head1, Head2, Cat) :-
-	(
+	)},
+	add_generated_predicate((Head0 :- init_state(St), HelperBody)).
+helper_goal0(Head0, _Head1, Head2, Cat) -->
+	{(
 	  cat(normal, Cat) ->
 	  transformed_head(Head2, St, Body),
 	  HelperBody = Body
 	;
 	  HelperBody = Head2
-	),
-	portray_clause((Head0 :- init_state(St), HelperBody)),
-	nl.
+	)},
+	add_generated_predicate((Head0 :- init_state(St), HelperBody)).
 
 solution_branch(Goal, SolutionBranch) :-
 	(env_parameter(projection, no); env_parameter(filter_duplicates, yes)), !,
@@ -756,10 +743,10 @@ fail_branch(T0, HeadVar, FailBranch) :-
 		     ).
 
   
-choice_goal(Name, Projection, ChoiceHead, HeadVar, Cat) :-
-	(env_parameter(ground_optim, yes);env_parameter(projection, yes)), !, 
-	atom_concat('once_', Name, OncePredName),
-	atom_concat('normal_', Name, NormalPredName),
+choice_goal(Name, Projection, ChoiceHead, HeadVar, Cat) -->
+	{(env_parameter(ground_optim, yes);env_parameter(projection, yes)), !, 
+	atom_concat('$once_', Name, OncePredName),
+	atom_concat('$normal_', Name, NormalPredName),
 	(
 	  cat(normal, Cat) ->
 	  NormalPredHead =.. [NormalPredName, HeadVar, AL],
@@ -777,9 +764,9 @@ choice_goal(Name, Projection, ChoiceHead, HeadVar, Cat) :-
 	  NormalBranch = NormalPredHead
 	),
 	ChoicePredBody = ((nonvar(HeadVar)-> OncePredHead ; NormalBranch)),
-	ChoicePred = (ChoicePredHead :- ChoicePredBody),
-	portray_clause(ChoicePred), nl.
-choice_goal(_Name, _Projection, _ChoiceHead, _HeadVar,  _Cat).
+	ChoicePred = (ChoicePredHead :- ChoicePredBody)},
+	add_generated_predicate(ChoicePred).
+choice_goal(_Name, _Projection, _ChoiceHead, _HeadVar,  _Cat) --> [].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Categorisating normal preds and clauses
@@ -859,26 +846,19 @@ dummy_categorisation([_Body-_Head|Cs], [[query]|Bs]) :-
 % r(A, B) :- abox:inv_s(B, A).
 % s(A, B) :- r(A, B).
 
-generated_HI(Signature) :-
-	role_component([P|Rs]),
-	component_goals(P, Rs, Signature, [PGoals, RGoals]),
-	\+ (PGoals == [], RGoals == []),
-	(
-	  symmetric([P|Rs]) ->
-	  format('\% Symmetric role ~p/2 and its synonims~n',[P])
-	;
-	  format('\% Role ~p/2 and its synonims~n',[P])
-	),
-	write_clauses(PGoals),
-	write_clauses(RGoals),
-	fail.
-generated_HI(_Signature) :-
-	hierarchy(R1, R2),
-	format('\% Subrole of ~p/2 is ~p/2~n',[R1, R2]),
-	write_hierarchy(R1, R2), nl,
-	fail.
-generated_HI(_Signature).
 
+get_HI(Signature) -->
+	{findall([P|Rs], role_component([P|Rs]), Components)},
+	get_component_roles(Components, Signature),
+	{findall(h(R1, R2), hierarchy(R1, R2), Hs)},
+	get_hierarchy_roles(Hs).
+
+get_component_roles([], _) --> [].
+get_component_roles([[P|Rs]|Cs], Signature) -->
+	{component_goals(P, Rs, Signature, [PGoals, RGoals])},
+	add_generated_predicates(PGoals),
+	add_generated_predicates(RGoals),
+	get_component_roles(Cs, Signature).
 
 component_goals(P, Rs, Signature, [PGoals, RGoals]) :-
 	write_primary_role([P|Rs], P, Signature, [], PGoals),
@@ -909,36 +889,40 @@ aboxed_role0(R1, R2, HeadR1, HeadR2, IHeadR2, Signature, Clauses) :-
 	bb_get(aboxmodule, Module),
 	(
 	  memberchk(R1/2, Signature) ->
-	  Clauses = [(HeadR1 :- Module:HeadR2)|Clauses0]
+	  Clauses = [role((HeadR1 :- Module:HeadR2))|Clauses0]
 	;
 	  Clauses = Clauses0
 	),
 	(
 	  memberchk(R2/2, Signature) ->
-	  Clauses0 = [(HeadR1 :- Module:IHeadR2)]
+	  Clauses0 = [role((HeadR1 :- Module:IHeadR2))]
 	;
 	  Clauses0 = []
 	).	
 
 write_component_rest([], _P, []).
-write_component_rest([R|Rs], P, [(HeadR :- HeadP)|Cs]) :-
+write_component_rest([R|Rs], P, [role((HeadR :- HeadP))|Cs]) :-
 	HeadP =.. [P, A, B],
 	HeadR =.. [R, A, B],
 	write_component_rest(Rs, P, Cs).
 
 % r2 < r1 
 % r1(A, B) :- r2(A, B).
-write_hierarchy(R1, R2) :-
-	env_parameter(indexing, yes), !,
+
+get_hierarchy_roles([]) --> [].
+get_hierarchy_roles([h(R1,R2)|Hs]) -->
+	{env_parameter(indexing, yes), !,
 	HeadR1 =.. [R1, A, B],
-	HeadR2 =.. [R2, A, B],
-	portray_clause((HeadR1 :- HeadR2)).
-write_hierarchy(R1, R2) :-
-	HeadR1 =.. [R1, A, B],
+	HeadR2 =.. [R2, A, B]},
+	add_generated_predicate(role((HeadR1 :- HeadR2))),
+	get_hierarchy_roles(Hs).
+get_hierarchy_roles([h(R1,R2)|Hs]) :-
+	{HeadR1 =.. [R1, A, B],
 	HeadR2 =.. [R2, A, B],
 	inverse(R2, _), !, 
-	indexed_transformed_binary(HeadR1, [A], THR1),
-	portray_clause((THR1 :- HeadR2)).
+	indexed_transformed_binary(HeadR1, [A], THR1)},
+	add_generated_predicate(role((THR1 :- HeadR2))),
+	get_hierarchy_roles(Hs).
 
 abox_inverse_name(R, IRole) :-
 	atom_concat('$inv_', IRole, R), !.
@@ -949,8 +933,8 @@ abox_inverse_name(R, IRole) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Transformations: nonatomic (ALC)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature) :-
-	PredHead =.. [Name, Var],
+transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature) -->
+	{PredHead =.. [Name, Var],
 	(
 	  env_parameter(projection, yes)->
 	  (
@@ -964,20 +948,23 @@ transformed_nonatomic_predicate_entry(Clauses, Name, DepGraph, Signature) :-
 	  bb_put(projection, notneeded)
 	),
 	categorised_normal_predicate(Name, Clauses, DepGraph, PCategorisation, CCategorisation),
-	atom_concat('choice_', Name, ChoicePredName),
+	atom_concat('$choice_', Name, ChoicePredName),
 	ChoicePred =.. [ChoicePredName, Var],
-	atom_concat('normal_', Name, NormalPredName),
+	atom_concat('$normal_', Name, NormalPredName),
 	NormalPred =.. [NormalPredName, Var],
-	transformed_nonatomic_predicate(Clauses, Name, GClauses, OGClauses, PCategorisation, CCategorisation, Signature),
+	transformed_nonatomic_predicate(Clauses, Name, GClauses, OGClauses, PCategorisation, CCategorisation, Signature)},
+
 	helper_goal(PredHead, ChoicePred, NormalPred, PCategorisation), % write helper predicate
 	choice_goal(Name, Projection, ChoicePred, Var, PCategorisation), % write choice predicate
 	write_generated_clauses(GClauses, OGClauses), % write abox and other clauses
+
+	{
 	(
 	  bb_get(projection, failed) ->
 	  retractall(projection_temporarily_disabled) % switch back projection on
 	;
 	  true
-	).
+	)}.
 
 transformed_nonatomic_predicate(Clauses, Name, NClauses, [GClause1,GClause2|OGClauses], PCat, CCat, Signature) :-
 	Head =.. [Name, HeadVar],
@@ -1309,14 +1296,14 @@ wrapped_goal(SGoal, Goal, GVars, AllVars, anc(AL, H, AL0), RGoal) :-
 	  SGoal =.. [_|SArgs],
 	  (
 	    env_parameter(projection, no), env_parameter(ground_optim, no) ->
-	    atom_concat('normal_', Name, NormalName),
+	    atom_concat('$normal_', Name, NormalName),
 	    RGoal =.. [NormalName|SArgs]
 	  ;
 	    env_parameter(ground_optim, yes), ground_goal(GVars, AllVars) ->
-	    atom_concat('once_', Name, OnceName),
+	    atom_concat('$once_', Name, OnceName),
 	    RGoal =.. [OnceName|SArgs]
 	  ;
-	    atom_concat('choice_', Name, ChoiceName),
+	    atom_concat('$choice_', Name, ChoiceName),
 	    RGoal =.. [ChoiceName|SArgs]
 	  )   
 	;
@@ -1332,14 +1319,14 @@ wrapped_goal(SGoal, Goal, GVars, AllVars, anc(AL, H, AL0), RGoal) :-
 	  )
 	;
 	  env_parameter(projection, no), env_parameter(ground_optim, no) ->
-	  atom_concat('normal_', Name, NormalName),
+	  atom_concat('$normal_', Name, NormalName),
 	  RGoal =.. [NormalName|Args]
 	;
 	  env_parameter(ground_optim, yes), ground_goal(GVars, AllVars) ->
-	  atom_concat('once_', Name, OnceName),
+	  atom_concat('$once_', Name, OnceName),
 	  RGoal =.. [OnceName|Args]
 	;
-	  atom_concat('choice_', Name, ChoiceName),
+	  atom_concat('$choice_', Name, ChoiceName),
 	  RGoal =.. [ChoiceName|Args]
 	).
 
@@ -1473,12 +1460,12 @@ ground_goal([V|Vs], Vs2) :-
 	varmemberchk(V, Vs2),
 	ground_goal(Vs, Vs2).
 
-transformed_orphan(N, A) :-
+transformed_orphan(N, A, TOrphan) :-
 	  functor(Head, N, A),
 	  arg(1, Head, _Var),
 	  transformed_head(Head, AL, TransformedHead),
 	  anctest(orphancres, Head, AL, [af], AncTest),
-	  portray_clause((TransformedHead :- AncTest, !)). % in case of orphan calls the is no backtrack
+	  TOrphan = (TransformedHead :- AncTest, !). % in case of orphan calls the is no backtrack
 
 
 %%%%%%%%%%%%%%%%%%%%%
