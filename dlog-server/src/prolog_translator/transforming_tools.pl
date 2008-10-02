@@ -34,10 +34,10 @@ neg(Term, NegTerm) :-
 	NegTerm =.. [NegName|Args].
 
 negname(Name, NegName) :-
-	atom_concat('not_', X, Name), !,
+	atom_concat('$not_', X, Name), !,
 	NegName = X.
 negname(Name, NegName) :-
-	atom_concat('not_', Name, NegName).
+	atom_concat('$not_', Name, NegName).
 
 contra(LitList0, Contras) :-
 	add_key(LitList0, ALitList0),
@@ -69,7 +69,7 @@ contrapositive_of(L, (Head:-Body)) :-
 
 ponalt_binary(T) :-
 	functor(T, N, 2),
-	\+ atom_concat('not_', _X, N).
+	\+ atom_concat('$not_', _X, N).
 
 list_to_open_list([], true).
 list_to_open_list([G],X):- !, X=G.
