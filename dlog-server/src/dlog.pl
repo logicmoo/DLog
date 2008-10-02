@@ -4,6 +4,7 @@
 		get_dlog_option/2, get_dlog_option/3, %reexported from module config.
 		set_dlog_option/2, set_dlog_option/3, %reexported from module config.
 		load_config_file/0, load_config_file/1, %reexported from module config.
+		execute_test_files/2, %reexported from module dlog_test.
 		create_binary/0 %create the stand-alone binary version of DLog.
 	]).
 
@@ -25,6 +26,7 @@
 :- use_module('core/console', [console/0]).
 :- use_module('interfaces/dig_iface', [execute_dig_file/2]).
 :- use_module('core/dlogger', [error/3, warning/3, info/3, detail/3]).
+:- use_module('test/dlog_test', [execute_test_files/2]).
 
 :- target(swi) -> 
 	use_module('core/core_swi_tools', [abs_file_name/3]),

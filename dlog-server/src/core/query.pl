@@ -13,7 +13,7 @@ query(allIndividuals, _TBox, _ABox, individualSet(_Answer)).
 query(instances(ConceptTerm), TBox, _ABox, individualSet(Answer)) :-
 	(	ConceptTerm = aconcept(Concept) -> true
 	;	ConceptTerm = not(aconcept(Concept1)) -> 
-		atom_concat('not_', Concept1, Concept)
+		atom_concat('$not_', Concept1, Concept) %TODO: _
 	),
 	current_predicate(TBox:Concept/1) 
 	->

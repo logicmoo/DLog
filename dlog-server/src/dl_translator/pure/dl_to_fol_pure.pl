@@ -283,7 +283,7 @@ defName(nconcept(C),C).
 defName(arole(R),R).
 defName(inv(R),N):-
 	defName(R,N1),
-	atom_concat(inv_,N1,N).
+	atom_concat('$inv_',N1,N). %TODO: _
 defName(not(C),N):-
 	defName(C,N1),
 	atom_concat(not_,N1,N).

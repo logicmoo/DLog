@@ -82,7 +82,7 @@ toFOL(atmost(N,R,C),X,or(Literals)):-
 	atmostLiterals(Vars,R,C2,X,Literals).
 toFOL(arole(R),X,Y,arole(R,X,Y)):- !.
 toFOL(inv(arole(R)),X,Y,arole(R2,X,Y)):- % TODO ezt majd szepiteni kell
-	atom_concat('inv_',R,R2).
+	atom_concat('$inv_',R,R2). %TODO: _
 
 
 % createVars(+N,-Vars):- Vars N darab uj valtozobol allo lista

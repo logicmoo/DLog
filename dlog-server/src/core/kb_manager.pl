@@ -9,7 +9,7 @@
 :- use_module('../dl_translator/axioms_to_clauses', [axioms_to_clauses/4]).
 :- use_module('../prolog_translator/abox_signature', [abox_signature/4]).
 :- use_module('../prolog_translator/abox_translator', [assert_abox/2, write_abox/2]).
-:- use_module('../prolog_translator/tbox_translator', [tbox2prolog/3]).
+:- use_module('../prolog_translator/tbox_translator', [tbox2prolog/4]).
 :- use_module(dlogger, [info/3, detail/3, warning/3]).
 :- use_module(query, [query/4]).
 :- use_module(config, [target/1, default_kb/1, kb_uri/2, 
@@ -208,18 +208,14 @@ add_abox(tempfile, URI, ABox) :-
 
 add_tbox(assert, URI, TBox, ABox) :- !,
 	%throw(not_implemented), %TODO
-	tbox2prolog(URI, TBox, ABox). %TODO: finalize dynamic? (SWI)
+	tbox2prolog(URI, TBox, ABox, _TransformedTBox). %TODO: finalize dynamic? (SWI)
 add_tbox(allinonefile, URI, TBox, ABox) :-
-	current_output(Out),
+	tbox2prolog(URI, TBox, ABox, TransformedTBox), 
 	tbox_file_name(URI, FileName),
 	setup_and_call_cleanup( 
 		open(FileName, write, Stream),
-		setup_and_call_cleanup(
-			set_output(Stream),
-			tbox2prolog(URI, TBox, ABox), 
-			set_output(Out)
-		),
-		close(Stream)	
+		write_tbox(TransformedTBox, URI, Stream),
+		close(Stream)
 	),
 	load_files(FileName, []).
 %%add_tbox(Target, URI, TBox, ABox) :-
@@ -234,7 +230,7 @@ add_tbox(tempfile, URI, TBox, ABox) :-
 			)
 		),
 		( %call (main body)
-			current_output(Out),
+			tbox2prolog(URI, TBox, ABox, TransformedTBox),
 			setup_and_call_cleanup(
 				( %setup output stream
 					(	%%Target == tempfile,
@@ -243,11 +239,7 @@ add_tbox(tempfile, URI, TBox, ABox) :-
 					;	open(FileName, write, Stream)
 					)
 				),
-				setup_and_call_cleanup( % write TBox
-					set_output(Stream),
-					tbox2prolog(URI, TBox, ABox),
-					set_output(Out)
-				), 
+				write_tbox(TransformedTBox, URI, Stream),
 				close(Stream)
 			),
 			(	%load TBox
@@ -273,6 +265,28 @@ add_tbox(tempfile, URI, TBox, ABox) :-
 			%%)
 		)
 	).
+
+write_tbox(TransformedTBox, URI, Stream) :-
+	prolog_translator:write_tbox_header(Stream, URI),
+	write_tbox(TransformedTBox, Stream ).
+
+write_tbox([], Stream) :- nl(Stream).
+write_tbox([Clause|TransformedTBox], Stream) :-
+	portray_clauses(Clause, Stream),
+	write_tbox(TransformedTBox, Stream).
+
+portray_clauses(predicate(L), Stream) :-
+	portray_clauses(L, Stream).
+portray_clauses(role(R), Stream) :-
+	portray_clause(Stream, R).
+portray_clauses(orphan(C), Stream) :-
+	portray_clause(Stream, C).
+portray_clauses(atomic(C), Stream) :-
+	portray_clause(Stream, C).
+portray_clauses([], _Stream).
+portray_clauses([C|Cs], Stream) :-
+	portray_clause(Stream, C),
+	portray_clauses(Cs, Stream).
 
 
 run_query(URI, Query, Answer) :- 
