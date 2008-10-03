@@ -1,4 +1,4 @@
-:- module(dlog_test, [execute_tests/2, execute_test_files/2]).
+:- module(dlog_test, [execute_tests/2, execute_test_files/2, read_test_file/4]).
 
 :- use_module('../core/config', [target/1, set_dlog_options/2]).
 :- use_module('../core/kb_manager', [new_kb/1, release_kb/1, add_axioms/2, run_query/3]).
@@ -183,7 +183,9 @@ try(Goal, URI, Description, Result) :-
 			time_limit(Goal, URI, Result),
 			E, 
 			(
-				atom_concat('Exception while ', Description, Msg), 
+				E == '$aborted'
+			->	throw(E)
+			;	atom_concat('Exception while ', Description, Msg), 
 				warning(dlog_test, (try(Goal, URI) -> E), Msg), 
 				Result = exception(E)
 			)
@@ -201,6 +203,7 @@ try(Goal, URI, Description, Result) :-
 
 %%%%%%%%%%%%%%%%%%%    Read file    %%%%%%%%%%%%%%%%%%%%%%%%
 
+%read_test_file(+File, -Axioms, -Queries, -Options)
 read_test_file(File, Axioms, Queries, Options) :-
 	setup_and_call_cleanup(
 		open(File, read, Str),

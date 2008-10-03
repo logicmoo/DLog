@@ -4,7 +4,7 @@
 :- use_module('fol/translator_fol', [translate_axioms_fol/4]).
 :- use_module('old/translator_old', [translate_axioms_old/4]).
 :- use_module('logic_unfold', [logic_unfold/2]).
-:- use_module('../dlog',[get_dlog_option/2]).
+:- use_module('../core/config',[get_dlog_option/2]).
 
 % axioms_to_clauses(+SHIQAxioms,+Previous,-Clauses,-Save)
 % SHIQAxioms tartalmazza a forditando axiomakat

@@ -10,6 +10,7 @@
 :- use_module('../prolog_translator/abox_signature', [abox_signature/4]).
 :- use_module('../prolog_translator/abox_translator', [assert_abox/2, write_abox/2]).
 :- use_module('../prolog_translator/tbox_translator', [tbox2prolog/4]).
+:- use_module('../prolog_translator/tbox_writer', [write_tbox/3]).
 :- use_module(dlogger, [info/3, detail/3, warning/3]).
 :- use_module(query, [query/4]).
 :- use_module(config, [target/1, default_kb/1, kb_uri/2, 
@@ -122,6 +123,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBCo
 	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)), 'Axioms:'),
 	exists_kb(URI),
 	
+	%TODO: toFOL_pure:saturate_specific leaves choice point!
 	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], _Saved, TBox_Clauses, _Save),
 	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
 	abox_signature(ABox, DBPredicates, ABoxData, Signature),
@@ -265,28 +267,6 @@ add_tbox(tempfile, URI, TBox, ABox) :-
 			%%)
 		)
 	).
-
-write_tbox(TransformedTBox, URI, Stream) :-
-	prolog_translator:write_tbox_header(Stream, URI),
-	write_tbox(TransformedTBox, Stream ).
-
-write_tbox([], Stream) :- nl(Stream).
-write_tbox([Clause|TransformedTBox], Stream) :-
-	portray_clauses(Clause, Stream),
-	write_tbox(TransformedTBox, Stream).
-
-portray_clauses(predicate(L), Stream) :-
-	portray_clauses(L, Stream).
-portray_clauses(role(R), Stream) :-
-	portray_clause(Stream, R).
-portray_clauses(orphan(C), Stream) :-
-	portray_clause(Stream, C).
-portray_clauses(atomic(C), Stream) :-
-	portray_clause(Stream, C).
-portray_clauses([], _Stream).
-portray_clauses([C|Cs], Stream) :-
-	portray_clause(Stream, C),
-	portray_clauses(Cs, Stream).
 
 
 run_query(URI, Query, Answer) :- 

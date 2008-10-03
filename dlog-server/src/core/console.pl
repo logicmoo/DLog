@@ -5,6 +5,7 @@
 					load_config_file/1]).
 :- use_module('../interfaces/dig_iface', [execute_dig_file/2]).
 :- use_module('../dlog', [start_server/0, stop_server/0]).
+:- use_module('../test/dlog_test', [execute_test_files/2]).
 
 
 console :-
@@ -37,8 +38,9 @@ dlog_help :-
 	print('set_option(K, V): set the current value of the option K to V.\n'),
 	print('set_option(K, URI, V): set the current value of the option K for the knowledge base identified by the URI to V.\n'),
 	print('execute_dig_file(F): execute commands from the DIG file F and print the result state.\n'),
-	print('execute_dig_filev(F): execute commands from the DIG file F and print the detailed results.\n').
+	print('execute_dig_filev(F): execute commands from the DIG file F and print the detailed results.\n'),
 	%print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n'). %TODO?
+	print('execute_test_files(F, Mode): execute tests specified in files F. Mode is the output mode.').
 	% print('print(P): print the expression P.\n'),
 	% print('nl: print a new line.\n'),
 	% print('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), print(R).\n').
@@ -89,6 +91,16 @@ parse_console_command(execute_dig_file(F)) :- !,
 		% R=E
 	% ).
 
+parse_console_command(execute_test_files(F)) :- !,
+	execute_test_files(F, text).
+
+parse_console_command(execute_test_files(F, Mode)) :- !,
+	(	test_output_mode(Mode) 
+	->	execute_test_files(F, text)
+	;	write('Invalid output mode.\n'),
+		write('Valid modes are text for displaying results here or text(File) to write the results to a file.\n'),
+		write('Mode can be omitted for text output.\n')
+	).
 
 parse_console_command(quit) :- !,
 	halt.
@@ -111,4 +123,17 @@ parse_console_command(prolog) :- !,
 parse_console_command(A) :- 
 	format('Unknown command "~w".~n', A),
 	print('Type "quit." to quit, "help." for help.\n').
+
+test_output_mode(text).
+test_output_mode(text(Out)) :- 
+	atom(Out).
+% test_output_mode(html).
+% test_output_mode(html(Out)) :- 
+	% atom(Out).
+% test_output_mode(xml).
+% test_output_mode(xml(Out)) :- 
+	% atom(Out).
+% test_output_mode(latex).
+% test_output_mode(latex(Out)) :- 
+	% atom(Out).
 

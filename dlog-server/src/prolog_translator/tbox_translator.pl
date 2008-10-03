@@ -2,12 +2,12 @@
 % v0.2
 % todo:
 % - unfolding
-:- module(prolog_translator,[tbox2prolog/4]).
+:- module(tbox_translator, [tbox2prolog/4]).
 
 :- use_module('../unfold/unfold_main', [unfold_predicates/2]).
-:- use_module('../core/config', [target/1, abox_module_name/2, tbox_module_name/2, get_dlog_option/3, get_dlog_option/2]).
+:- use_module('../core/config', [target/1, get_dlog_option/3, get_dlog_option/2, abox_module_name/2]).
 :- use_module(predicate_names, [predicate_name/2]).
-:- use_module(transforming_tools, [headwrite/1, neg/2, contra/2, cls_to_neglist/2, body_to_list/2]).
+:- use_module(transforming_tools, [neg/2, contra/2, cls_to_neglist/2, body_to_list/2]).
 
 :- use_module(library(lists), [append/3, member/2, last/2, select/3]).
 :- use_module(library(ugraphs), [vertices_edges_to_ugraph/3]).
@@ -16,13 +16,11 @@
 		use_module(library(lists),[memberchk/2]),
 		use_module(library(terms), [term_variables_bag/2]),
 		use_module(library(ugraphs), [reduce/2]),
-		use_module(library(system), [datime/1]),
 		use_module(prolog_translator_sicstus_tools, [(thread_local)/1])
 		; true.
 
 :- target(swi) -> 
-		use_module(library(listing), [portray_clause/1]), 
-		use_module(prolog_translator_swi_tools, [term_variables_bag/2, reduce/2, bb_put/2, bb_get/2, datime/1])
+		use_module(prolog_translator_swi_tools, [term_variables_bag/2, reduce/2, bb_put/2, bb_get/2])
 		; true.
 
 :- dynamic 
@@ -72,12 +70,21 @@ counter(orphancres).
 % preprocessing(yes): [yes, no] whether to filter out clauses with orphan calls if possible+query predicates
 % ground_optim(yes): [yes, no] whether to use ground goal optimization
 % filter_duplicates(no) : [yes, no] whether to filter duplicates
-tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0), TransformedTBox) :-
+%
+%output format: 
+% :- type transformed_tbox --> tbox(list(predicates), role_eq, query_predicates)
+% :- type predicates --> concept(concept, description, list(clause)) | role(boss, description, list(clause)). 
+% :- type concept --> aconcept(atom) | not(aconcept(atom)).
+% :- type role --> arole(atom) | inv(arole(atom)).
+% :- type description --> list(term) % structure that contains all useful information about predicate (query, atomic, orphan, ?; transitive, simmetric, ?)
+% :- type clause --> ...
+% :- type role_eq --> list(list(role)).
+% :- type query_predicates --> list(atom). %list of concept names
+tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0), tbox(TransformedTBox, EqRoles, QueryPredicates)) :-
 	replace_inverse(HBox0, HBox), %TODO: _
 	replace_signature(Signature0, Signature),
-	
 	init(URI),
-	%write_tbox_header(URI),
+	
 	dl_preds(TBox, Preds0),
 	(get_dlog_option(unfold, no) -> Preds1 = Preds0
 	; unfold_main:annotated_preds(Preds0, APreds),
@@ -86,8 +93,13 @@ tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0), TransformedTBox) :-
 	),
 	preprocessing(Preds1, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
-	%headwrite('Transformed TBox clauses'),
-	transformed_kb(DepGraph, Signature, TransformedTBox, []).
+	transformed_kb(DepGraph, Signature, TransformedTBox0, []),
+	
+	replace_tbox_names(TransformedTBox0, TransformedTBox),
+	findall(ER, role_component(ER), EqRoles0),
+	replace_inverse_list(EqRoles0, EqRoles), 
+	findall(Name/Arity, query_predicate(Name, Arity), QueryPredicates0),
+	replace_functors(QueryPredicates0, QueryPredicates).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ideiglenes inverz konverzio
@@ -107,11 +119,38 @@ replace_signature([Pred/Arity | Signature0], [Name/Arity|Signature]) :-
 	;	Pred = Name
 	),
 	replace_signature(Signature0, Signature).
+
+% ideiglenes visszakonverzio
+replace_tbox_names(TransformedTBox, TransformedTBox). %TODO
+
+replace_inverse_list([], []).
+replace_inverse_list([Rs0|Rss0], [Rs|Rss]) :-
+	replace_inverse_list0(Rs0, Rs),
+	replace_inverse_list(Rss0, Rss).
+
+replace_inverse_list0([], []).
+replace_inverse_list0([R0|Rs0], [R|Rs]) :-
+	(	atom_concat('$inv_', R1, R0) 
+	->	R = inv(R1)
+	;	R = R0
+	),
+	replace_inverse_list0(Rs0, Rs).
+
+replace_functors([], []).
+replace_functors([Name0/Arity | Fs0], [Name/Arity| Fs]) :-
+	(	atom_concat('$not_', Name1, Name0) 
+	->	Name = not(Name1)
+	;	atom_concat('$inv_', Name1, Name0) 
+	->	Name = inv(Name1)
+	;	Name = Name0
+	),
+	replace_functors(Fs0, Fs).
+	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 transformed_kb(DepGraph, Signature) -->
 	transform(DepGraph, DepGraph, Signature),
-%	headwrite('HI predicates'),
 	get_HI(Signature),
 	get_atomic,
 	get_orphans.
@@ -125,7 +164,7 @@ get_atomic -->
 get_atomic0([]) --> [].
 get_atomic0([atomic_predicate(A)|As]) -->
 	{transformed_atomic_predicate(A, TAtomic)},
-	add_generated_predicate(atomic(TAtomic)),
+	add_generated_predicate(concept(A, atomic, [TAtomic])),
 	get_atomic0(As).
 	
 transformed_atomic_predicate(Pred, TAtomic) :-
@@ -154,51 +193,6 @@ init(URI) :-
 	retractall(role_component(_)), % a szerepek kozti ekvivalenciaosztalyok
 	retractall(symmetric(_)). % szimmetrikus komponensek
 
-
-
-write_tbox_header(Stream, URI) :- 
-	datime(datime(Year, Month, Day, Hour, Min, Sec)),
-	write(Stream, '\% Automatically generated by the DLog system.\n'),
-	write(Stream, '\% Budapest University of Technology and Economic (BME), 2007-2008.\n'),
-	format(Stream, '\% User defined options: ~p ~n',[todo]), %TODO
-	format(Stream, '\% Timestamp: ~d.~d.~d, ~d:~d:~d sec ~n~n',[Year, Month, Day, Hour, Min, Sec]),
-	tbox_module_name(URI, MName),
-	format(Stream, ':- module(\'~w\',[]).\n',[MName]),
-
-	write(Stream, '\n% ************************\n'),
-	write(Stream,   '% Header\n'),
-	write(Stream,   '% ************************\n\n'),
-	portray_clause(Stream, (
-		sicstus_init :-
-			use_module(library(lists), [member/2]),
-			use_module(dlog_hash, dlog_hash, [init_state/1,new_state/3,new_anc/3,new_loop/3,check_anc/2,check_loop/2])
-			)),
-	nl(Stream),
-	portray_clause(Stream, (
-		swi_init :-
-			open_resource(dlog_hash, module, H)
-			->
-			call_cleanup(
-				load_files(dlog_hash, [stream(H)]),
-				close(H)
-			),
-			import(lists:member/2)
-			;
-			use_module(dlog_hash),
-			use_module(library(lists), [member/2])
-		)),
-	nl(Stream),
-	portray_clause(Stream, (
-		:- current_predicate(config:target/1)
-			->
-			(config:target(sicstus) -> sicstus_init ; true),
-			(config:target(swi) -> swi_init ; true)
-			;
-			(current_prolog_flag(dialect, swi) -> swi_init
-			; %current_prolog_flag(language, sicstus) %sicstus/iso
-			sicstus_init)
-		)),
-	nl(Stream).
 
 % dl_preds(+TBox, -Preds)
 % Preds is a list of Key-Value pairs, where Key is a functor, Value
@@ -264,20 +258,7 @@ hbox_edges0([subrole(arole(R1),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
 	abox_inverse_name(R1, IR1),
 	abox_inverse_name(R2, IR2),
 	hbox_edges0(Rs, Es).
-/* %most Zsolt megcsinalja, valasztasi pontot hagyott! (es amugy is hulyeseg?)
-hbox_edges0([subrole(inv(arole(R1)),arole(R2))|Rs], [R1-R2, IR1-IR2|Es]) :-
-	IR1 = R1,
-	abox_inverse_name(R2, IR2),
-	hbox_edges0(Rs, Es).
-hbox_edges0([subrole(arole(R1),inv(arole(R2)))|Rs], [R1-R2, IR1-IR2|Es]) :-
-	abox_inverse_name(R1, IR1),
-	IR2 = R2,
-	hbox_edges0(Rs, Es).
-hbox_edges0([subrole(inv(arole(R1)),inv(arole(R2)))|Rs], [R1-R2, IR1-IR2|Es]) :-
-	IR1 = R1,
-	IR2 = R2,
-	hbox_edges0(Rs, Es).
-*/
+
 
 asserted_hierarchy_info([]).
 asserted_hierarchy_info([[P|Rs]-Es|Cs]) :-
@@ -574,7 +555,8 @@ atomic_like_body([G|Gs]) :-
 transform([], _, _) --> [].
 transform([Functor-Clauses|Preds], DepGraph, Signature) -->
 	{transformed_predicate(Clauses, Functor, DepGraph, Signature, L, [])},
-	[predicate(L)],
+	{Functor = Name/_Arity},
+	[concept(Name, general, L)], %TODO: itt csak concept?
 	transform(Preds, DepGraph, Signature).
 
 add_generated_predicate(Predicate) -->
@@ -589,8 +571,8 @@ get_orphans -->
 
 get_orphans0([]) --> [].
 get_orphans0([orphan(G, Arity)|Os]) -->
-	{transformed_orphan(G, Arity, TOrphan)},
-	add_generated_predicate(orphan(TOrphan)),
+	{transformed_orphan(G, Arity, TOrphan)}, 
+	add_generated_predicate(concept(G, orphan, [TOrphan])), 
 	get_orphans0(Os).
 	
 
@@ -856,8 +838,14 @@ get_HI(Signature) -->
 get_component_roles([], _) --> [].
 get_component_roles([[P|Rs]|Cs], Signature) -->
 	{component_goals(P, Rs, Signature, [PGoals, RGoals])},
-	add_generated_predicates(PGoals),
-	add_generated_predicates(RGoals),
+	(	{PGoals \== []}
+	->	add_generated_predicate(role(P, primary, PGoals))
+	;	[]
+	),
+	(	{RGoals \== []}
+	->	add_generated_predicate(role(P, equivalent, RGoals))
+	;	[]
+	),
 	get_component_roles(Cs, Signature).
 
 component_goals(P, Rs, Signature, [PGoals, RGoals]) :-
@@ -889,19 +877,19 @@ aboxed_role0(R1, R2, HeadR1, HeadR2, IHeadR2, Signature, Clauses) :-
 	bb_get(aboxmodule, Module),
 	(
 	  memberchk(R1/2, Signature) ->
-	  Clauses = [role((HeadR1 :- Module:HeadR2))|Clauses0]
+	  Clauses = [(HeadR1 :- Module:HeadR2)|Clauses0]
 	;
 	  Clauses = Clauses0
 	),
 	(
 	  memberchk(R2/2, Signature) ->
-	  Clauses0 = [role((HeadR1 :- Module:IHeadR2))]
+	  Clauses0 = [(HeadR1 :- Module:IHeadR2)]
 	;
 	  Clauses0 = []
 	).	
 
 write_component_rest([], _P, []).
-write_component_rest([R|Rs], P, [role((HeadR :- HeadP))|Cs]) :-
+write_component_rest([R|Rs], P, [(HeadR :- HeadP)|Cs]) :-
 	HeadP =.. [P, A, B],
 	HeadR =.. [R, A, B],
 	write_component_rest(Rs, P, Cs).
@@ -914,14 +902,14 @@ get_hierarchy_roles([h(R1,R2)|Hs]) -->
 	{env_parameter(indexing, yes), !,
 	HeadR1 =.. [R1, A, B],
 	HeadR2 =.. [R2, A, B]},
-	add_generated_predicate(role((HeadR1 :- HeadR2))),
+	add_generated_predicate(role(R1, hierarchy, (HeadR1 :- HeadR2))),
 	get_hierarchy_roles(Hs).
-get_hierarchy_roles([h(R1,R2)|Hs]) :-
+get_hierarchy_roles([h(R1,R2)|Hs]) -->
 	{HeadR1 =.. [R1, A, B],
 	HeadR2 =.. [R2, A, B],
 	inverse(R2, _), !, 
 	indexed_transformed_binary(HeadR1, [A], THR1)},
-	add_generated_predicate(role((THR1 :- HeadR2))),
+	add_generated_predicate(role(R1, hierarchy, (THR1 :- HeadR2))),
 	get_hierarchy_roles(Hs).
 
 abox_inverse_name(R, IRole) :-
@@ -1764,11 +1752,12 @@ goal_present0([_|Gs], Goal) :-
 % statistics predicates
 %%%%%%%%%%%%%%%%%%%%%%%
 
+%TODO
 write_statistics :-
 	%env_parameter(allinone, yes),
 	env_parameter(statistics, yes), !,
 	nl,
-	headwrite('Auxiliary predicates'),
+	%headwrite('Auxiliary predicates'),
 	init_statistics, nl,
 	count, nl,
 	get_counts, nl,
