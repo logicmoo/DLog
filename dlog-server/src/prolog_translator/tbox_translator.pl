@@ -121,7 +121,82 @@ replace_signature([Pred/Arity | Signature0], [Name/Arity|Signature]) :-
 	replace_signature(Signature0, Signature).
 
 % ideiglenes visszakonverzio
-replace_tbox_names(TransformedTBox, TransformedTBox). %TODO
+replace_tbox_names([], []).
+replace_tbox_names([Predicate0|Predicates0], [Predicate|Predicates]) :-
+	replace_tbox_names(Predicate0, Predicate),
+	replace_tbox_names(Predicates0, Predicates). 
+replace_tbox_names(concept(Name0, Description, Clauses0), concept(Name, Description, Clauses)) :-
+	replace_term(Name0, Name),
+	replace_tbox_names(Clauses0, Clauses).
+replace_tbox_names(role(Name0, Description, Clauses0), role(Name, Description, Clauses)) :-
+	replace_term(Name0, Name),
+	replace_tbox_names(Clauses0, Clauses).
+replace_tbox_names((Head0 :- Body0), (Head :- Body)) :-
+	replace_term(Head0, Head),
+	replace_tbox_body(Body0, Body).
+
+%TODO: special handling of helper and choice clauses, cut, -> ;
+%	new_anc, new_loop, check_anc, check_loop, etc.
+%TODO: Args: instead of vars use references? 
+replace_tbox_body((Term0, Rest0), (Term, Rest)) :- !,
+	(	Term0 = (setof(HeadVar, Goal0, _), _) %(setof(HeadVar, Goal0, L), member(HeadVar, L)) 
+	->	quantifiers_list(Goal0, Goal1, Qs),
+		replace_tbox_body(Goal1, Goal),
+		Term = projection(Goal, HeadVar, Qs)
+	;	replace_tbox_body(Term0, Term)
+	),
+	replace_tbox_body(Rest0, Rest).
+replace_tbox_body((A0 ; B0), (A; B)) :- !,
+	replace_tbox_body(A0, A),
+	replace_tbox_body(B0, B).
+replace_tbox_body((A0 -> B0), (A -> B)) :- !,
+	replace_tbox_body(A0, A),
+	replace_tbox_body(B0, B).
+replace_tbox_body(Term0, Term) :- 
+	replace_term(Term0, Term).
+
+replace_term(_ABox:Term0, Term) :- !,
+	Term0 =.. [Name |Args], 
+	remove_prefixes(Name, NTerm),
+	Term = abox(NTerm)-Args.
+replace_term(!, !) :- !.
+replace_term(fail, fail) :- !.
+replace_term(true, true) :- !.
+replace_term(nonvar(X), nonvar(X)) :- !.
+replace_term(init_state(S), init_state(S)) :- !.
+replace_term(new_anc(A, S0, S), new_anc(A, S0, S)) :- !.
+replace_term(check_anc(A, S), check_anc(A, S)) :- !.
+replace_term(new_loop(A, S0, S), new_loop(A, S0, S)) :- !.
+replace_term(check_loop(A, S), check_loop(A, S)) :- !.
+replace_term(new_state(A, S0, S), new_state(A, S0, S)) :- !.
+replace_term(Term0, Term) :-
+	Term0 =.. [Name |Args], 
+	remove_prefixes(Name, NTerm),
+	Term = NTerm-Args.
+
+
+remove_prefixes(Name0, NTerm) :-
+	(	atom_concat('$not_', Name, Name0)
+	->	NTerm = not(Name)
+	;	atom_concat('$inv_', Name, Name0)
+	->	NTerm = inv(Name)
+	;	atom_concat('$idx_', Name, Name0)
+	->	NTerm = idx(Name)
+	;	atom_concat('$once_', Name1, Name0)
+	->	NTerm = once(NTerm1),
+		remove_prefixes(Name1, NTerm1)
+	;	atom_concat('$normal_', Name1, Name0)
+	->	NTerm = normal(NTerm1),
+		remove_prefixes(Name1, NTerm1)
+	;	atom_concat('$choice_', Name1, Name0)
+	->	NTerm = choice(NTerm1),
+		remove_prefixes(Name1, NTerm1)
+	;	NTerm = Name0
+	).
+
+quantifiers_list(V^Goal0, Goal, [V|Qs]) :- !,
+	quantifiers_list(Goal0, Goal, Qs).
+quantifiers_list(Goal, Goal, []).
 
 replace_inverse_list([], []).
 replace_inverse_list([Rs0|Rss0], [Rs|Rss]) :-
@@ -145,7 +220,6 @@ replace_functors([Name0/Arity | Fs0], [Name/Arity| Fs]) :-
 	;	Name = Name0
 	),
 	replace_functors(Fs0, Fs).
-	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -902,14 +976,14 @@ get_hierarchy_roles([h(R1,R2)|Hs]) -->
 	{env_parameter(indexing, yes), !,
 	HeadR1 =.. [R1, A, B],
 	HeadR2 =.. [R2, A, B]},
-	add_generated_predicate(role(R1, hierarchy, (HeadR1 :- HeadR2))),
+	add_generated_predicate(role(R1, hierarchy, [(HeadR1 :- HeadR2)])),
 	get_hierarchy_roles(Hs).
 get_hierarchy_roles([h(R1,R2)|Hs]) -->
 	{HeadR1 =.. [R1, A, B],
 	HeadR2 =.. [R2, A, B],
 	inverse(R2, _), !, 
 	indexed_transformed_binary(HeadR1, [A], THR1)},
-	add_generated_predicate(role(R1, hierarchy, (THR1 :- HeadR2))),
+	add_generated_predicate(role(R1, hierarchy, [(THR1 :- HeadR2)])),
 	get_hierarchy_roles(Hs).
 
 abox_inverse_name(R, IRole) :-

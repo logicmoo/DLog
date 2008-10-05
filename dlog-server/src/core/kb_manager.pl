@@ -132,7 +132,7 @@ add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBCo
 	get_dlog_option(abox_target, URI, ATarget),
 	get_dlog_option(tbox_target, URI, TTarget),
 	with_write_lock(URI, 
-	(	
+	(
 		add_abox(ATarget, URI, abox(ABoxData, DBConnections, DBPredicates)),
 		detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
 		add_tbox(TTarget, URI, tbox(TBox_Clauses, ImpliesRL), abox(Signature))

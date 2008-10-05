@@ -1,6 +1,7 @@
 :- module(query, [query/4]).
 
 :- use_module(config, [target/1]).
+:- use_module('../prolog_translator/predicate_names', [predicate_name/2]).
 :- target(sicstus) -> use_module(core_sicstus_tools, [call/2, call/3])
 	; true.
 
@@ -11,41 +12,32 @@ query(allRoleNames, _TBox, _ABox, roleSet(_Answer)). %[[Role, ...], ...]
 query(allIndividuals, _TBox, _ABox, individualSet(_Answer)).
 
 query(instances(ConceptTerm), TBox, _ABox, individualSet(Answer)) :-
-	(	ConceptTerm = aconcept(Concept) -> true
-	;	ConceptTerm = not(aconcept(Concept1)) -> 
-		atom_concat('$not_', Concept1, Concept) %TODO: _
+	(	ConceptTerm = aconcept(Concept) %TODO: összetett concept?
+	-> 	predicate_name(Concept, Name)
+	;	ConceptTerm = not(aconcept(Concept)) 
+	->	predicate_name(not(Concept), Name)
 	),
-	current_predicate(TBox:Concept/1) 
-	->
-	(setof(
-		I,
-		call(TBox:Concept, I), %TODO: összetett concept?
-		Answer) -> true 
-	; Answer = [] %üres válasz? --> []
+	current_predicate(TBox:Name/1),
+	findall(I, call(TBox:Name, I), Answer).
+query(instance(Individual, ConceptTerm), TBox, _ABox, Answer) :-
+	(	ConceptTerm = aconcept(Concept) 
+	-> 	predicate_name(Concept, Name)
+	;	ConceptTerm = not(aconcept(Concept)) 
+	->	predicate_name(not(Concept), Name)
+	),
+	current_predicate(TBox:Name/1),
+	(	call(TBox:Name, Individual)
+	->	!, 
+		Answer = true
+	;	Answer = false
 	).
-query(instance(Name, ConceptTerm), TBox, _ABox, Answer) :-
-	ConceptTerm = aconcept(Concept),
-	current_predicate(TBox:Concept/1) 
-	->
-	(
-	call(TBox:Concept, Name) -> !, Answer = true
-		; Answer = false
-	).
-query(roleFillers(Name, RoleTerm), TBox, _ABox, individualSet(Answer)) :-
-	RoleTerm = arole(Role),
-	current_predicate(TBox:Role/2) 
-	->
-	(setof(
-		I,
-		call(TBox:Role, Name, I), %TODO: inv?, arole(Role)?
-		Answer) -> true 
-	; Answer = []).
+query(roleFillers(Individual, RoleTerm), TBox, _ABox, individualSet(Answer)) :-
+	RoleTerm = arole(Role), %TODO: inv?, arole(Role)?
+	predicate_name(Role, Name),
+	current_predicate(TBox:Name/2),
+	findall(I, call(TBox:Name, Individual, I), Answer).
 query(relatedIndividuals(RoleTerm), TBox, _ABox, individualPairSet(Answer)) :-
-	RoleTerm = arole(Role),
-	current_predicate(TBox:Role/2) 
-	->
-	(setof(
-		I1-I2,
-		call(TBox:Role, I1, I2), %TODO: inv?, arole(Role)?
-		Answer) -> true 
-	; Answer = []).
+	RoleTerm = arole(Role), %TODO: inv?, arole(Role)?
+	predicate_name(Role, Name),
+	current_predicate(TBox:Name/2),
+	findall(I1-I2, call(TBox:Name, I1, I2), Answer).

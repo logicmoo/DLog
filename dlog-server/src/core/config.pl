@@ -1,5 +1,6 @@
 :- module(config, [target/1, 
 					get_dlog_option/2, get_dlog_option/3, 
+					get_kb_specific_options/2,
 					set_dlog_option/2, set_dlog_option/3, 
 					set_dlog_options/1, set_dlog_options/2,
 					remove_dlog_options/1,
@@ -19,7 +20,7 @@ target(T) :- current_prolog_flag(dialect, swi) -> T = swi ; T = sicstus.
 	use_module(core_swi_tools, [abs_file_name/3, format_to_atom/3])
 	; true.
 
-:- use_module(dlogger, [error/3, warning/3, info/3, detail/3]).
+:- use_module(dlogger, [error/3, info/3]).
 
 
 %default_option(?Name, ?Value): compile time default preferences
@@ -90,6 +91,19 @@ get_dlog_option(Name, URI, Value) :-
 		current_option(Name, Val) -> Val = Value
 	; 
 		default_option(Name, Value)
+	).
+
+%Options is a list of compile options overrided for KB URI.
+get_kb_specific_options(URI, Options) :-
+	atom(URI),
+	atom_concat('option_', URI, OptURI),
+	(	current_predicate(OptURI/2)
+	->	findall(Option, 
+			(	call(OptURI, Name, Value), 
+				functor(Option, Name, 1), 
+				arg(1, Option, Value)
+			), Options)
+	; Options = []
 	).
 
 %set_dlog_option(+Name, +Value): set non KB-specific options

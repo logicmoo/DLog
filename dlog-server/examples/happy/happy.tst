@@ -1,6 +1,6 @@
 %Generated from '../examples/happy/happy.dig'.
 
-query(instances(aconcept(Happy)), [i1]).
+query(instances(aconcept('Happy')), [i1]).
 
 concept('Happy').
 concept('Pretty').
