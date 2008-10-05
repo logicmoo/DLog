@@ -22,9 +22,20 @@ assert_abox(URI, abox(ABoxStr, DBConnections, DBPredicates)) :-
 	get_dlog_option(indexing, URI, Indexing),
 	abox_module_name(URI, Module),
 	transformed_DBConnections(DBConnections, assert, Module),
-	%dynamic(Module:active_statement/2), %Sicstus compatibility
-	assert(Module:active_statement(_,_)),
+	%dynamic(Module:active_statement/2), 
+	assert(Module:active_statement(_,_)), %Sicstus compatibility
 	retractall(Module:active_statement(_,_)),
+	/*
+	(	target(sicstus)
+	->	assert(Module:active_statement(_,_)),
+		retractall(Module:active_statement(_,_))
+	;	dynamic(Module:active_statement/2), %Sicstus compatibility
+		Module:import(odbc:odbc_connect/3), 
+		Module:import(odbc:odbc_prepare/5), 
+		Module:import(odbc:odbc_execute/3)
+	),
+	*/
+	
 	transformed_abox(ABoxStr, DBPredicates, Module, Indexing, assert).
 	%TODO: finalize dynamic? (SWI)
 
@@ -174,7 +185,7 @@ transformed_DBConnections( [connection(Alias, DSN, User, Password) | DBConnectio
 	->	odbc_connect(DSN, Connection, Options), 
 		assert(Module:open_DB_connection(Alias))
 	;	portray_clause((:- %TODO: initialization? -> close connection at_halt?
-				odbc_connect(DSN, Connection, Options))),
+				odbc:odbc_connect(DSN, Connection, Options))),
 		portray_clause(open_DB_connection(Alias))
 	),
 	transformed_DBConnections(DBConnections, Target, Module).
@@ -196,12 +207,12 @@ transformed_DBConcept(assert, access(P/1, Connection, Access), Module) :-
 				Module, Connection, [default], [atom], CheckSt),
 		assert((Module:Head :- 
 				var(X) -> 
-					odbc_execute(RetrSt, [], row(X))
-				;	odbc_execute(CheckSt, [X], _)
+					odbc:odbc_execute(RetrSt, [], row(X))
+				;	odbc:odbc_execute(CheckSt, [X], _)
 			))
 	;	Access = query(RetrQ),
 		prepared_query([RetrQ], Module, Connection, [], [atom], RetrSt),
-		assert((Module:Head :- odbc_execute(RetrSt, [], row(X)))) 
+		assert((Module:Head :- odbc:odbc_execute(RetrSt, [], row(X)))) 
 	).
 transformed_DBConcept(write, access(P/1, Connection, Access), _Module) :-
 	predicate_name(P, Name),
@@ -216,16 +227,16 @@ transformed_DBConcept(write, access(P/1, Connection, Access), _Module) :-
 			Head :- 
 				var(X) -> 
 					active_statement(RetrQ, Statement),
-					odbc_execute(Statement, [], row(X))
+					odbc:odbc_execute(Statement, [], row(X))
 				;	active_statement(CheckQ, Statement),
-					odbc_execute(Statement, [X], _)
+					odbc:odbc_execute(Statement, [X], _)
 			))
 	;	Access = query(RetrQ),
 		prepared_query([RetrQ], Connection, [], [atom], RetrQ),
 		portray_clause((
 			Head :- 
 				active_statement(RetrQ, Statement),
-				odbc_execute(Statement, [], row(X))
+				odbc:odbc_execute(Statement, [], row(X))
 		))
 	).
 
@@ -263,18 +274,18 @@ transformed_DB_role(assert, Head, X, Y, Connection, Access, Module) :-
 			(Module:Head :- 
 				var(X) -> 
 				(	var(Y) ->
-					odbc_execute(RetrSt, [], row(X, Y))
-				;	odbc_execute(Retr1St, [Y], row(X))
+					odbc:odbc_execute(RetrSt, [], row(X, Y))
+				;	odbc:odbc_execute(Retr1St, [Y], row(X))
 				)
 				;
 				(	var(Y) ->
-					odbc_execute(Retr2St, [X], row(Y))
-				;	odbc_execute(CheckSt, [X, Y], _)
+					odbc:odbc_execute(Retr2St, [X], row(Y))
+				;	odbc:odbc_execute(CheckSt, [X, Y], _)
 				)
 			))
 	;	Access = query(RetrQ),
 		prepared_query([RetrQ], Module, Connection, [], [atom, atom], RetrSt),
-		assert((Module:Head :- odbc_execute(RetrSt, [], row(X, Y))))
+		assert((Module:Head :- odbc:odbc_execute(RetrSt, [], row(X, Y))))
 	).
 transformed_DB_role(write, Head, X, Y, Connection, Access, _Module) :-
 	(	Access = table(Table, Col1-Col2) 
@@ -291,16 +302,16 @@ transformed_DB_role(write, Head, X, Y, Connection, Access, _Module) :-
 				var(X) -> 
 				(	var(Y) ->
 					active_statement(RetrQ, Statement),
-					odbc_execute(Statement, [], row(X, Y))
+					odbc:odbc_execute(Statement, [], row(X, Y))
 				;	active_statement(Retr1Q, Statement),
-					odbc_execute(Statement, [Y], row(X))
+					odbc:odbc_execute(Statement, [Y], row(X))
 				)
 				;
 				(	var(Y) ->
 					active_statement(Retr2Q, Statement),
-					odbc_execute(Statement, [X], row(Y))
+					odbc:odbc_execute(Statement, [X], row(Y))
 				;	active_statement(CheckQ, Statement),
-					odbc_execute(Statement, [X, Y], _)
+					odbc:odbc_execute(Statement, [X, Y], _)
 				)
 			))
 	;	Access = query(RetrQ),
@@ -308,7 +319,7 @@ transformed_DB_role(write, Head, X, Y, Connection, Access, _Module) :-
 		portray_clause(
 			(Head :- 
 				active_statement(RetrQ, Statement),
-				odbc_execute(Statement, [], row(X, Y))
+				odbc:odbc_execute(Statement, [], row(X, Y))
 			))
 	).
 
@@ -330,7 +341,7 @@ prepared_query(Query, Connection, Conv, Types, PQuery) :-
 	(	active_statement(PQuery) %query already prepared
 	->	true 
 	;	portray_clause((
-		 :- odbc_prepare(Connection, PQuery, Conv, Statement, [types(Types)]), 
+		 :- odbc:odbc_prepare(Connection, PQuery, Conv, Statement, [types(Types)]), 
 			assert(active_statement(PQuery, Statement))
 		)),
 		assert(active_statement(PQuery))
@@ -382,15 +393,24 @@ portray_abox_clause(write, _Module, C) :-
 portray_abox_clause(assert, Module, C) :-
 	assert(Module:C).
 
+%TODO: only include DB when needed
 abox_headers(MName, Indexing) :-
 	headers(Indexing),
 	format(':- module(\'~w\',[]).\n',[MName]),
 	portray_clause((
 		:- current_predicate(config:target/1)
-			->
-			(config:target(swi) -> use_module(library(odbc)) ; true)
-			;
+			->	true	%library(odbc) already loaded
+/*				(	config:target(swi) 
+				-> 	true
+					%use_module(library(odbc)) 
+					% import(odbc:odbc_connect/3), 
+					% import(odbc:odbc_prepare/5), 
+					% import(odbc:odbc_execute/3)
+				; true
+				)
+	*/		;
 			(current_prolog_flag(dialect, swi) -> use_module(library(odbc))
+				%standalone run -> try to load library(odbc)
 			; %current_prolog_flag(language, sicstus) %sicstus/iso
 			true)
 		)),

@@ -40,7 +40,7 @@ dlog_help :-
 	print('execute_dig_file(F): execute commands from the DIG file F and print the result state.\n'),
 	print('execute_dig_filev(F): execute commands from the DIG file F and print the detailed results.\n'),
 	%print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n'). %TODO?
-	print('execute_test_files(F, Mode): execute tests specified in files F. Mode is the output mode.').
+	print('execute_test_files(F, Mode): execute tests specified in files F. Mode is the output mode.\n').
 	% print('print(P): print the expression P.\n'),
 	% print('nl: print a new line.\n'),
 	% print('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), print(R).\n').
@@ -96,7 +96,7 @@ parse_console_command(execute_test_files(F)) :- !,
 
 parse_console_command(execute_test_files(F, Mode)) :- !,
 	(	test_output_mode(Mode) 
-	->	execute_test_files(F, text)
+	->	execute_test_files(F, Mode)
 	;	write('Invalid output mode.\n'),
 		write('Valid modes are text for displaying results here or text(File) to write the results to a file.\n'),
 		write('Mode can be omitted for text output.\n')

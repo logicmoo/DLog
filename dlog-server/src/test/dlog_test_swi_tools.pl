@@ -1,6 +1,7 @@
-:- module(dlog_test_swi_tools, [time_limit/2, time_limit/3]).
+:- module(dlog_test_swi_tools, [time_limit/2, time_limit/3, call_with_time_limit/2]).
 
 :- use_module('../core/config', [get_dlog_option/2, get_dlog_option/3]).
+:- use_module(library(time), [call_with_time_limit/2]).
 
 :- module_transparent time_limit/2, time_limit/3, time_limit0/3.
 

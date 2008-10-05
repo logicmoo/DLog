@@ -6,8 +6,9 @@
 :- use_module(dlog_test_outputs).
 %TODO: dlogtest, test modules
 
-:- target(swi) -> use_module(dlog_test_swi_tools, 
-						[time_limit/2, time_limit/3]) ; true.
+:- target(swi) -> 
+	use_module(dlog_test_swi_tools, [time_limit/2, time_limit/3, call_with_time_limit/2])
+	; true.
 :- target(sicstus) -> use_module(dlog_test_sicstus_tools, 
 		[time_limit/2, time_limit/3, expand_file_name/2, setup_and_call_cleanup/3, call/2]) ; true.
 
