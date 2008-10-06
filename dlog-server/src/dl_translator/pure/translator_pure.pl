@@ -12,14 +12,14 @@
 % elso argumentum egy harmas lista: [CInclusion, RInclusion, Transitive], mely egy SHIQ KB-t ir le
 translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses):-
 
-	nl, show(CInclusion),nl, show(RInclusion), nl, show(Transitive), nl,
-	print('vege'), nl,
+	% nl, show(CInclusion),nl, show(RInclusion), nl, show(Transitive), nl,
+
 	% belsosites es negacios normalformara hozas
 	axiomsToNNFConcepts(CInclusion,NNF),	
 	
 	removeTransitive(NNF,RInclusion,Transitive,TransNNF),
 	
-	nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
+	% nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
 	
 	% strukturalis transzformacio
 	def_list(NNF,'n_',Defs),		
@@ -43,7 +43,7 @@ translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses):-
 
 	toClause_list(FunFree,FOL),
 
-	nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
+	% nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
 	Clauses = FOL.
 
 
