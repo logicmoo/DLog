@@ -62,8 +62,8 @@ getNewAxioms([atmost(0,R,C)|Closure],RInclusion,Transitive,NewAxioms):-
 	findall(S,(
 		   (
 		     member(S,Transitive)
-		   ; inv(S,Sinv),
-		     member(Sinv,Transitive)
+		   ; member(Sinv,Transitive),
+		     inv(S,Sinv)
 		   ),
 		   someSubRole(S,R,RInclusion)
 		  ),Ss

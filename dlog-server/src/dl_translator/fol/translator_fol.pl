@@ -1,4 +1,4 @@
-:- module(translator_fol,[translate_axioms_fol/4]).
+:- module(translator_fol,[translate_axioms_fol/2]).
 
 :- use_module('../show').
 :- use_module('../struct').
@@ -8,8 +8,8 @@
 :- use_module('saturate_without_binary_fol').
 :- use_module(library(lists), [append/3,select/3, member/2]).
 
-translate_axioms_fol(SHIQAxioms,Clauses,Hbox,Transitive):-
-	translate_axioms2(SHIQAxioms,Clauses1,_Ibox,Hbox,Transitive),
+translate_axioms_fol(SHIQAxioms,Clauses):-
+	translate_axioms2(SHIQAxioms,Clauses1,_Ibox),
 	% tipusmegjelolesek elhagyasa
 	% inverzek es szerephierarchiak elhagyasa
 	findall(C,(
@@ -19,7 +19,7 @@ translate_axioms_fol(SHIQAxioms,Clauses,Hbox,Transitive):-
 	       ).
 
 
-translate_axioms2([Tbox,Hbox,Trbox],Clauses,Ibox,Hbox,Trbox2):-
+translate_axioms2([Tbox,Hbox,Trbox],Clauses,Ibox):-
 	% nl,print('Eredeti KB'),nl,nl, show(Tbox),nl,nl,
 
 	replace_inv_list(Tbox,Tbox2),

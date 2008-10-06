@@ -5,7 +5,7 @@ query(roleFillers(i1, arole(hasChild)), [i2, i3, i4, i5, i6, i7, i8, i9, i10, i1
 role(hasChild).
 role(hasDescendant).
 
-transitive(hasDescendant).
+transitive(arole(hasDescendant)).
 subrole(arole(hasChild), arole(hasDescendant)).
 
 rassertion(arole(hasChild), i11, i12).

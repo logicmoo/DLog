@@ -1,4 +1,4 @@
-:- module(translator,[translate_axioms/4]).
+:- module(translator,[translate_axioms/2]).
 
 :- use_module(library(lists), [append/3,select/3, member/2]).
 :- use_module(dl_to_fol, [axiomsToNNFConcepts/2, def_list/3]).
@@ -8,14 +8,11 @@
 :- use_module(show).
 :- use_module(struct,[omit_structs/3, contains_struct/2]).
 
-% translate_axioms([+CInclusion, +RInclusion, +Transitive],-Clauses,-RInclusion,-Transitive):-
+% translate_axioms([+CInclusion, +RInclusion, +Transitive],-Clauses):-
 % elso argumentum egy harmas lista: [CInclusion, RInclusion, Transitive], mely egy SHIQ KB-t ir le
-translate_axioms([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transitive):-
-	% ideiglenes inverz konverzio
-	replace_inverse(RInclusion,RInclusion2),
+translate_axioms([CInclusion, RInclusion, Transitive],Clauses):-
 
 	% belsosites es negacios normalformara hozas
-
 	axiomsToNNFConcepts(CInclusion,NNF),
 	
 	removeTransitive(NNF,RInclusion,Transitive,TransNNF),
@@ -65,16 +62,6 @@ separate([L|Ls],[L|Type1],Rest):-
 	separate(Ls,Type1,Rest).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ideiglenes inverz konverzio
-replace_inverse([],[]).
-replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
-	replace_inverse(R,R1),
-	replace_inverse(S,S1),
-	replace_inverse(Ls,Ls1).
-replace_inverse(arole(R),arole(R)):- !.
-replace_inverse(inv(arole(R)),arole(R1)):-
-	atom_concat('inv_',R,R1).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 collect(List):-

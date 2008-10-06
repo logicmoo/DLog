@@ -1,4 +1,4 @@
-:- module(translator_old,[translate_axioms_old/4]).
+:- module(translator_old,[translate_axioms_old/2]).
 
 :- use_module('../show').
 :- use_module('../struct').
@@ -13,7 +13,7 @@
 % Ibox az inverzeket tartalmazza
 % Hbox a szerephierarchiat
 % Trbox a tranzitiv szerepeket
-translate_axioms_old([Tbox,Hbox,Trbox],Clauses,Hbox2,Trbox3):-
+translate_axioms_old([Tbox,Hbox,Trbox],Clauses):-
 
 	replace_inv_list(Tbox,Tbox2),
 	replace_inv_list(Hbox,Hbox2),

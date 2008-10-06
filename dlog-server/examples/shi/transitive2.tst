@@ -8,7 +8,7 @@ concept('Clever').
 role(hasChild).
 role(hasDescendant).
 
-transitive(hasDescendant).
+transitive(arole(hasDescendant)).
 subrole(arole(hasChild), arole(hasDescendant)).
 
 implies(some(arole(hasDescendant), aconcept('Clever')), aconcept('Happy')).

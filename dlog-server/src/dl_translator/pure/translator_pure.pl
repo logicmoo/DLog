@@ -1,4 +1,4 @@
-:- module(translator_pure,[translate_axioms_pure/4]).
+:- module(translator_pure,[translate_axioms_pure/2]).
 
 :- use_module(library(lists), [append/3,select/3, member/2]).
 :- use_module(dl_to_fol_pure, [axiomsToNNFConcepts/2, def_list/3]).
@@ -10,17 +10,16 @@
 
 % translate_axioms_pure([+CInclusion, +RInclusion, +Transitive],-Clauses,-RInclusion,-Transitive):-
 % elso argumentum egy harmas lista: [CInclusion, RInclusion, Transitive], mely egy SHIQ KB-t ir le
-translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,Transitive):-
-	% ideiglenes inverz konverzio
-	replace_inverse(RInclusion,RInclusion2),
+translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses):-
 
+	nl, show(CInclusion),nl, show(RInclusion), nl, show(Transitive), nl,
+	print('vege'), nl,
 	% belsosites es negacios normalformara hozas
-
-	axiomsToNNFConcepts(CInclusion,NNF),
+	axiomsToNNFConcepts(CInclusion,NNF),	
 	
 	removeTransitive(NNF,RInclusion,Transitive,TransNNF),
 	
-	% nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
+	nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
 	
 	% strukturalis transzformacio
 	def_list(NNF,'n_',Defs),		
@@ -44,7 +43,7 @@ translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses,RInclusion2,T
 
 	toClause_list(FunFree,FOL),
 
-	% nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
+	nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
 	Clauses = FOL.
 
 
@@ -55,16 +54,3 @@ separate([L|Ls],Type1,[L|Rest]):-
 	separate(Ls,Type1,Rest).
 separate([L|Ls],[L|Type1],Rest):-
 	separate(Ls,Type1,Rest).
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ideiglenes inverz konverzio
-replace_inverse([],[]).
-replace_inverse([subrole(R,S)|Ls],[subrole(R1,S1)|Ls1]):- !,
-	replace_inverse(R,R1),
-	replace_inverse(S,S1),
-	replace_inverse(Ls,Ls1).
-replace_inverse(arole(R),arole(R)):- !.
-replace_inverse(inv(arole(R)),arole(R1)):-
-	atom_concat('inv_',R,R1).
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
