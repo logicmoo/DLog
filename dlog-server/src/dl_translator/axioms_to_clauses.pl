@@ -5,6 +5,7 @@
 :- use_module('old/translator_old', [translate_axioms_old/2]).
 :- use_module('logic_unfold', [logic_unfold/2]).
 :- use_module('../core/config',[get_dlog_option/2]).
+:- use_module(show).
 
 % axioms_to_clauses(+SHIQAxioms,+Previous,-Clauses,-Save)
 % SHIQAxioms tartalmazza a forditando axiomakat
@@ -29,6 +30,13 @@ axioms_to_clauses(SHIQAxioms,_Previous,Clauses,_Save):-
 	  Option2 = yes ->
 	  logic_unfold(Clauses2,Clauses)
 	; Clauses = Clauses2
+	),
+	get_dlog_option(debug_tbox_translator,DebugMode),
+	(
+	  DebugMode = yes ->
+	  nl, print('Input Tbox: '), nl, show(SHIQAxioms), nl,
+	  nl, print('Translated Tbox: '), nl, show(Clauses), nl
+	; true
 	).
 	
 

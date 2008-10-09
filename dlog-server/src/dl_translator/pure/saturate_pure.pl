@@ -37,7 +37,7 @@ saturate_partially(W1,W2,RInclusion,S):-
 saturate(W1,[],_,W1):- !.
 saturate(W1,[C|W2],RInclusion,S):-
 	redundant(C,W1), !,
-	% nl, print('---- ') ,print(C), print('---- redundans'),
+	% print('---- ') ,print(C), print('---- redundans'),
 	saturate(W1,W2,RInclusion,S).
 saturate(W1,[C|W2],RInclusion,S):-
 	% nl, print(C),

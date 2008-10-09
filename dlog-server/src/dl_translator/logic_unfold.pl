@@ -1,9 +1,12 @@
 :- module(logic_unfold,[logic_unfold/2]).
 
 :- use_module(toFOL, [redundant/2, elim_reds/3]).
+:- use_module(show).
 
 logic_unfold(L,R):-
-	saturate([],L,R).
+	saturate([],L,R),
+	% nl, print('After unfold: '), show(R), nl,
+	true.
 
 % saturate(+W1,+W2,-R): W1 es W2 klozok listaja, R-t W1 es W2
 % altalanos rezolucios telitesevel nyerjuk ugy hogy W1 es W2-beli klozokat,
