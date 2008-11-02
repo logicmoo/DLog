@@ -31,9 +31,9 @@ axioms_to_clauses(SHIQAxioms,_Previous,Clauses,_Save):-
 	  logic_unfold(Clauses2,Clauses)
 	; Clauses = Clauses2
 	),
-	get_dlog_option(debug_tbox_translator,DebugMode),
+	get_dlog_option(logging_detail,DebugMode),
 	(
-	  DebugMode = yes ->
+	  DebugMode = info ->
 	  nl, print('Input Tbox: '), nl, show(SHIQAxioms), nl,
 	  nl, print('Translated Tbox: '), nl, show(Clauses), nl
 	; true

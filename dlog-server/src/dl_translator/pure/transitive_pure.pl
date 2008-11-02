@@ -88,7 +88,7 @@ someSubRole(S,R,RInclusion):-
 % newAxiomList(+R,+C,+Ss,-NewAxioms)
 newAxiomList(_,_,[],[]).
 newAxiomList(R,C,[S|Ss],[A|NewAxioms]):-
-	negNormForm(or([atleast(1,R,C),atmost(0,S,atleast(1,S,C))]),A),
+	negNormForm(or([atleast(1,S,C),atmost(0,S,atleast(1,S,C))]),A),
 	newAxiomList(R,C,Ss,NewAxioms).
 
 
