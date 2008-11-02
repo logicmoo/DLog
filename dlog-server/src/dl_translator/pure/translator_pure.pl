@@ -19,7 +19,7 @@ translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses):-
 	
 	removeTransitive(NNF,RInclusion,Transitive,TransNNF),
 	
-	nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
+	% nl,print('NNF'),nl, show(NNF),nl, show(TransNNF), nl,
 	
 	% strukturalis transzformacio
 	def_list(NNF,'n_',Defs),		
@@ -27,7 +27,7 @@ translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses):-
 
 	append(Defs,TransDefs,AllDefs),
 	
-	nl,print('Strukturalis transzformacio utan'),nl, show(AllDefs),nl,
+	% nl,print('Strukturalis transzformacio utan'),nl, show(AllDefs),nl,
 
 	% szerepeket tartalmazo klozok levalasztasa
 %	separate(AllDefs,Type1,Rest),
@@ -35,15 +35,15 @@ translate_axioms_pure([CInclusion, RInclusion, Transitive],Clauses):-
 	% klozhalmaz telitese alap-szuperpozicioval
 	saturate(AllDefs,RInclusion,Saturated),
 	
-	nl,print('Telites utan'),nl, show(Saturated),nl,	
+	% nl,print('Telites utan'),nl, show(Saturated),nl,	
 
 	omit_structs(Saturated,atleast(_,_,_),FunFree),
 
-        nl,print('Fuggvenyjelek kikuszobolesevel'),nl, show(FunFree),nl,
+        % nl,print('Fuggvenyjelek kikuszobolesevel'),nl, show(FunFree),nl,
 
 	toClause_list(FunFree,FOL),
 
-	nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
+	% nl,print('Elsorendu klozok kepzese'),nl,nl, show(FOL),nl,
 	Clauses = FOL.
 
 

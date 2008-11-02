@@ -24,7 +24,7 @@ toClause_list(L,R):-
 		   ), Clauses
 	       ),
 
-	nl, print('Kloz alak'), nl, show(Clauses), nl,	
+	% nl, print('Kloz alak'), nl, show(Clauses), nl,	
 	
 	remove_temp(Clauses,Clauses1),
 
