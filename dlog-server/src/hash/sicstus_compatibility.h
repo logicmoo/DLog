@@ -1,18 +1,23 @@
 #ifndef SICSTUS_COMPATIBILITY_H_
 #define SICSTUS_COMPATIBILITY_H_
 
+#include <sicstus/sicstus.h>
+
 #define install_t void
 #define term_t SP_term_ref
 #define atom_t SP_atom
-struct functor_t {SP_atom name; int arity;}; 
+typedef struct {SP_atom name; int arity;} functor_t; 
 #define foreign_t int
+
+//for PL_unify_*; not threads safe
+extern SP_term_ref _term;
 
 #define PL_succeed return SP_SUCCESS
 //#define PL_fail return SP_FAILURE
 #define PL_fail {SP_fail(); return SP_FAILURE;}
-#define PL_new_atom(string) SP_atom_from_string(string)
+#define PL_new_atom(string) (SP_register_atom(SP_atom_from_string(string)), SP_atom_from_string(string))
 #define PL_atom_chars(atom) SP_string_from_atom(atom)
-//functor_t PL_new_functor(atom_t name, int arity)
+#define PL_new_functor(name, arity) {(name), (arity)}
 //atom_t PL_functor_name(functor_t f)
 //int PL_functor_arity(functor_t f)
 // -> int SP_atom_length(SP_atom a)
@@ -68,7 +73,6 @@ struct functor_t {SP_atom name; int arity;};
 
 //atom t PL new atom nchars(size t len, const char *s)
 //const char * PL atom nchars(atom t a, size t *len)
-
 //atom t PL new atom wchars(size t len, const pl wchar t *s)
 //pl wchar t* PL atom wchars(atom t atom, int *len)
 //int PL get wchars(term t t, size t *len, pl wchar t **s, unsigned flags)
@@ -93,19 +97,16 @@ struct functor_t {SP_atom name; int arity;};
 // -> int SP_put_list_chars(SP_term_ref t, SP_term_ref tail, char *s)
 // -> int SP_put_list_n_chars(SP_term_ref t, SP_term_ref tail, long n, char *s)
 #define PL_put_integer(term, long) SP_put_integer(term, long)
-//#define PL_put_int64(term t -t, int64 t i)
-// -> int SP_put_integer_bytes(SP_term_ref tr, void *buf, size_t buf_size, int native) //-> GMP? 
-// -> int SP_put_number_chars(SP_term_ref t, char *s) 
+#define PL_put_int64(term, int64) SP_put_integer_bytes(term, (void*) &(int64), 8, 1) 
 #define PL_put_pointer(term, pointer) SP_put_address(term, pointer)
 #define PL_put_float(term, double) SP_put_float(term, double)
-//#define PL_put_functor(term t -t, functor t functor)
-// -> int SP_put_functor(SP_term_ref t, SP_atom name, int arity)
+#define PL_put_functor(term, functor) SP_put_functor(term, functor.name, functor.arity)
 #define PL_put_list(term) SP_put_list(term)
 //#define PL_put_nil(term t -l)
 #define PL_put_term(to, from) SP_put_term(to, from)
 
 #if defined _MSC_VER && _MSC_VER < 1400
-	// VC < 2005 -> variadic macro nor supported
+	//TODO: VC < 2005 -> variadic macro not supported
 	#define PL_cons_functor(term, functor, t1, t2) SP_cons_functor(term, functor.name, functor.arity, t1, t2)
 #else
 	#define PL_cons_functor(term, functor, ...) SP_cons_functor(term, functor.name, functor.arity, __VA_ARGS__)
@@ -114,23 +115,23 @@ struct functor_t {SP_atom name; int arity;};
 //void PL cons functor v(term t -h, functor t f, term t a0)
 #define PL_cons_list(term, head, tail) SP_cons_list(term, head, tail)
 
+/////////////////////////////   UNIFICATION    ////////////////////////////////////////////
+#define SP_unify_type(term, type, value) (_term = SP_new_term_ref(), \
+					SP_put_##type(_term, value) && SP_unify(term, _term))
+
 #define PL_unify(term1, term2) SP_unify(term1, term2)
-//#define PL_unify_atom(term t ?t, atom t a)
+#define PL_unify_atom(term, atom) SP_unify_type(term, atom, atom)
 //#define PL_unify_chars(term t ?t, int flags, size t len, const char *chars)
-//#define PL_unify_atom chars(term t ?t, const char *chars)
-//#define PL_unify_list chars(term t ?t, const char *chars)
-//#define PL_unify_string chars(term t ?t, const char *chars)
-//#define PL_unify_string nchars(term t ?t, size t len, const char *chars)
-//#define PL_unify_integer(term t ?t, long n)
-//#define PL_unify_int64(term t ?t, int64 t n)
-//#define PL_unify_float(term t ?t, double f)
-//#define PL_unify_pointer(term, pointer)
-inline int PL_unify_pointer(term_t t, void *ptr){
-	SP_term_ref t2 = SP_new_term_ref();
-	SP_put_address(t2, ptr);
-	return SP_unify(t, t2);
-}
-//#define PL_unify_functor(term t ?t, functor t f)
+#define PL_unify_atom_chars(term, chars) SP_unify_type(term, string, chars)
+//#define PL_unify_list_chars(term t ?t, const char *chars) //->  SP_put_list_chars(SP_term_ref t, SP_term_ref tail, char *s)
+//#define PL_unify_string chars(term t ?t, const char *chars) //-> int SP_put_list_chars(SP_term_ref t, SP_term_ref tail, char *s)
+//#define PL_unify_string nchars(term t ?t, size t len, const char *chars) //->int SP_put_list_n_chars(SP_term_ref t, SP_term_ref tail, long n, char *s)
+#define PL_unify_integer(term, long) SP_unify_type(term, integer, long)
+//#define PL_unify_int64(term t ?t, int64 t n) //->int SP_put_integer_bytes(SP_term_ref tr, void *buf, size_t buf_size, int native)
+#define PL_unify_float(term, double) SP_unify_type(term, float, double)
+#define PL_unify_pointer(term, pointer) SP_unify_type(term, address, pointer) 
+
+//#define PL_unify_functor(term t ?t, functor t f) //-> int SP_put_functor(SP_term_ref t, SP_atom name, int arity)
 //#define PL_unify_list(term t ?l, term t -h, term t -t)
 //#define PL_unify_nil(term t ?l)
 //#define PL_unify_arg(int index, term t ?t, term t ?a)

@@ -26,7 +26,7 @@ target(T) :- current_prolog_flag(dialect, swi) -> T = swi ; T = sicstus.
 %default_option(?Name, ?Value): compile time default preferences
 %%%%%%%%%%%% System Options %%%%%%%%%%%%
 default_option(name, 'DLog'). %program name
-default_option(version, '0.2 alpha'). %program version
+default_option(version, '0.3.1 beta'). %program version
 default_option(description, D) :-
 	get_dlog_option(name, N), 
 	get_dlog_option(version, V), 

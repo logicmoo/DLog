@@ -1,10 +1,27 @@
 To compile dlog_hash use:
 
-windows (VC 6.0):
+Windows (VC 6.0):
 SWI:
-plld -shared -cc-options,/GR -cc-options,/W3 dlog_hash.cpp Backtrackable_HashSet.cpp -o hash_swi pthreadVC.lib
-Sicstus:
-splfr dlog_hash.cpp Backtrackable_HashSet.cpp hash_sicstus.pl --cflag=/GR --cflag=-GX
+plld -shared -cc-options,/GR -cc-options,/W3 dlog_hash.c Backtrackable_HashSet.c -o hash_swi pthreadVC.lib
+SICStus:
+splfr dlog_hash.c Backtrackable_HashSet.c sicstus_compatibility.c hash_sicstus.pl --cflag=/GR --cflag=-GX
 
+Linux: 
+SWI:
+plld -shared dlog_hash.c Backtrackable_HashSet.c -o hash_swi pthreadVC.lib
+SICStus:
+splfr dlog_hash.c Backtrackable_HashSet.c sicstus_compatibility.c hash_sicstus.pl
 
+To specify compile time parameters use:
+SWI: -DDEFAULT_TABLE_SIZE=1024 or -DDEBUG_DLOG_HASH
+SICStus: --cflag=-DDEFAULT_TABLE_SIZE=1024 or --cflag=-DDEBUG_DLOG_HASH
+
+Available parameters (values specified here are the default values):
+DEBUG_DLOG_HASH              Define for debug mode including logging and error checking.
+DEFAULT_TABLE_SIZE=1024      Default size (number of buckets) of the hash table.
+BUCKET_SIZE=2                The number of elements stored in a bucket.
+STACK_SIZE=50                Stack is allocated in units that can store STACK_SIZE elements.
+FREE_STACK_RATIO=0.8         Stack is freed if the previous stack piece is less than FREE_STACK_RATIO full.
+MODULE_NAME="dlog_hash"      Name of the Prolog module.
+HASH_LOG_NAME="hash_log.txt" Name of the log file if DEBUG_DLOG_HASH is defined.
 

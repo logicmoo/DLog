@@ -1,7 +1,7 @@
 options([abox_target(allinonefile), tbox_target(allinonefile)]).
 
-query(instances(aconcept('Happy')), [i1, i2, i3, i4]).
-query(roleFillers(i3, arole(hasDescendant)), [i4, i5, i6, i7, i8, i9, i10, i11, i12]).
+query(instances(aconcept('Happy')), [i1, i2, i3, i4, i5, i6]).
+%query(roleFillers(i3, arole(hasDescendant)), [i4, i5, i6, i7, i8, i9, i10, i11, i12]).
 
 concept('Happy').
 concept('Clever').
@@ -36,4 +36,4 @@ rassertion(arole(hasChild), i1, i4).
 rassertion(arole(hasChild), i1, i3).
 rassertion(arole(hasChild), i1, i2).
 
-assertion(aconcept('Clever'), i5).
+assertion(aconcept('Clever'), i7).

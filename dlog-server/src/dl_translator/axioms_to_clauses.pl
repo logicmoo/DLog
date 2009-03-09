@@ -5,6 +5,7 @@
 :- use_module('old/translator_old', [translate_axioms_old/2]).
 :- use_module('logic_unfold', [logic_unfold/2]).
 :- use_module('../core/config',[get_dlog_option/2]).
+:- use_module('../core/dlogger', [info/3]).
 :- use_module(show).
 
 % axioms_to_clauses(+SHIQAxioms,+Previous,-Clauses,-Save)
@@ -14,6 +15,7 @@
 % Clauses az eredo klozhalmaz
 % Save az eltarolando adatszerkezet
 axioms_to_clauses(SHIQAxioms,_Previous,Clauses,_Save):-
+	info(axioms_to_clauses, axioms_to_clauses(SHIQAxioms, ...), 'Input TBox: '),
 	get_dlog_option(calculus,Option),
 	(
 	  Option = old ->
@@ -31,13 +33,15 @@ axioms_to_clauses(SHIQAxioms,_Previous,Clauses,_Save):-
 	  logic_unfold(Clauses2,Clauses)
 	; Clauses = Clauses2
 	),
-	get_dlog_option(logging_detail,DebugMode),
-	(
-	  DebugMode = info ->
-	  nl, print('Input Tbox: '), nl, show(SHIQAxioms), nl,
-	  nl, print('Translated Tbox: '), nl, show(Clauses), nl
-	; true
-	).
+	info(axioms_to_clauses, (axioms_to_clauses(SHIQAxioms, ...) -> Clauses), 'Translated Clauses: ')
+	% get_dlog_option(logging_detail,DebugMode),
+	% (
+	  % DebugMode = info ->
+	  % nl, print('Input Tbox: '), nl, show(SHIQAxioms), nl,
+	  % nl, print('Translated Tbox: '), nl, show(Clauses), nl
+	% ; true
+	% )
+	.
 	
 
 % satisfiable(+Axioms, +Query):-
