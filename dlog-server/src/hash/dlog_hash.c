@@ -32,18 +32,20 @@
 	#define set_hashref(hashref) (_hashref = (hashref))
 #endif
 
+///Throw an informative exception to prolog.
+foreign_t throw_prolog_exception(const char *name, const long code);
+
 //TODO: selectable size -> KB specific hash
 foreign_t init_hash(term_t state) {
+	long e;
 	Backtrackable_HashSet* hashref = get_hashref();
 
 	if(!hashref){
 		hashref = (Backtrackable_HashSet*) malloc(sizeof(Backtrackable_HashSet));
-								// default size
-		if(!hashref || init_Backtrackable_HashSet(hashref, 0)){
-			term_t except = PL_new_term_ref();
-			PL_put_atom_chars(except, "error_creating_hash");
-			return PL_raise_exception(except); //TODO: informative exception
-		}
+		if(!hashref) return throw_prolog_exception("init_hash_error", ALLOC_ERROR);
+		
+		e = init_Backtrackable_HashSet(hashref, 0); // default size
+		if(e) return throw_prolog_exception("init_hash_error", e);
 
 		set_hashref(hashref);
 		
@@ -79,12 +81,7 @@ foreign_t new_loop(term_t goal, term_t hashes0, term_t hashes2) {
 	);
 	
 	state1 = put_to_Backtrackable_HashSet(hashref, state0, func_atom, arg_atom);
-	if(state1 <= 0){
-		//TODO: informative exception
-		term_t except = PL_new_term_ref();
-		PL_put_atom_chars(except, "put_to_Backtrackable_HashSet_error");
-		return PL_raise_exception(except);
-	}
+	if(state1 <= 0)	return throw_prolog_exception("new_loop_error", state1);
 
 	PL_put_integer(loophash1, state1);
 	PL_cons_functor(hashes1, hash_func, loophash1, anclist);
@@ -102,7 +99,7 @@ foreign_t check_loop(term_t goal, term_t hashes) {
 	long state;
 	atom_t func_atom, arg_atom;
 	Backtrackable_HashSet *hashref = get_hashref();
-	int c;
+	long c;
 			
 	prolog(
 			PL_get_functor(hashes, &hash_func) && //LoopHash-AL
@@ -121,17 +118,7 @@ foreign_t check_loop(term_t goal, term_t hashes) {
 		PL_fail;
 	}else{
 		//error
-		term_t except = PL_new_term_ref();
-		term_t argt = PL_new_term_ref();
-		atom_t name = PL_new_atom("check_loop_error");
-		{	//block needed for SICStus compatibility
-			functor_t f = PL_new_functor(name, 1);
-			PL_put_functor(except, f);
-		}
-		PL_unregister_atom(name);
-		PL_get_arg(1, except, argt);
-		PL_unify_integer(argt, c);
-		return PL_raise_exception(except);
+		return throw_prolog_exception("check_loop_error", c);
 	}
 }
 
@@ -153,9 +140,9 @@ install_t install()
 		term_t except = PL_new_term_ref();
 		PL_put_atom_chars(except, "error_loading_hash");
 		 
-		//PL_raise_exception(except);
-		PL_throw(except);
-		return;
+		//PL_raise_exception(except); //sets the exception to be thrown on failure by prolog
+		PL_throw(except); //longjmp
+		return; //not really neaded :)
 	};
 
 	
@@ -175,3 +162,42 @@ install_t install(int when){
 
 #endif //MULTI_THREADED
 
+
+/**
+ * Throw an informative exception to prolog in the form of name(message) where 
+ * message is an atom representing an error defined in Backtrackable_HashSet.h 
+ * or an integer
+ * @param name the functor name of the exception.
+ * @param code the error code.
+ * @return PL_raise_exception(except) (SP_error in SICStus or false in SWI)
+ */
+foreign_t throw_prolog_exception(const char *name, const long code){
+	term_t except = PL_new_term_ref();
+	term_t argt = PL_new_term_ref();
+	atom_t aname = PL_new_atom(name); //increases atom ref counter
+	
+	{	//block needed for SICStus compatibility
+		functor_t f = PL_new_functor(aname, 1);
+		PL_put_functor(except, f);
+	}
+	
+	//already have an other reference in except, let GC later destroy it
+	PL_unregister_atom(aname); 
+	PL_get_arg(1, except, argt);
+	switch(code){
+	case ALLOC_ERROR:
+		PL_unify_atom_chars(argt, "alloc_error");
+		break;
+	case INVALID_ARGUMENT:
+		PL_unify_atom_chars(argt, "invalid_argument");
+		break;
+	case OVERFLOW:
+		PL_unify_atom_chars(argt, "overflow");
+		break;
+	case ALREADY_ADDED:
+		PL_unify_atom_chars(argt, "already_added");
+		break;	
+	default: PL_unify_integer(argt, code);
+	}
+	return PL_raise_exception(except);
+}

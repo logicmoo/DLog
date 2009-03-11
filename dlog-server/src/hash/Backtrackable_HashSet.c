@@ -56,7 +56,7 @@ long init_Backtrackable_HashSet(Backtrackable_HashSet *h, const long size)
 	h->stack_end=&(h->stack);
 	h->hash = (Bucket*) calloc(h->size, sizeof(Bucket));
 	if(h->hash){
-		memset(h->hash, 0, (h->size) * sizeof(Bucket)); //TODO: correct?
+		memset(h->hash, 0, (h->size) * sizeof(Bucket));
 		LOG("init_Backtrackable_HashSet(%p, %ld) succeeded.\n", h, size);
 		return 0;
 	}else{
@@ -221,7 +221,7 @@ long put_to_Backtrackable_HashSet(Backtrackable_HashSet *h, const long state,
 							h, state, func_atom, arg_atom);
 					return ALLOC_ERROR; //OOM
 				}
-				memset(b->next, 0, sizeof(Bucket)); //TODO: correct?
+				memset(b->next, 0, sizeof(Bucket));
 			}
 			b = b->next;
 			i = 0;
