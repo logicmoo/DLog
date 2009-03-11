@@ -51,8 +51,10 @@ foreign_t init_hash(term_t state) {
 		
 		if(PL_unify_integer(state, 0)) PL_succeed;
 		else PL_fail;
-	}else{	
-		if(PL_unify_integer(state, clear_Backtrackable_HashSet(hashref))) PL_succeed;
+	}else{
+		e = clear_Backtrackable_HashSet(hashref);
+		if(e) return throw_prolog_exception("init_hash_error", e);
+		if(PL_unify_integer(state, 0)) PL_succeed;
 		else PL_fail;
 	}
 }
