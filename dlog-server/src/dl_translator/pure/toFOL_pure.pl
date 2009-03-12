@@ -238,7 +238,7 @@ saturate_specific(L,PredName,R):-
 % saturate_specific(+W1,+W2, +PredName, -R): W1 es W2 klozok listaja, R-t W1 es W2
 % telitesevel nyerjuk a PredName nevu bevezetett fogalom szerint
 % ugy hogy W1 es W2-beli klozokat, valamint W2-W2-beli klozokat rezolvalunk egymassal
-saturate_specific(W1,[],_,W1).
+saturate_specific(W1,[],_,W1) :- !.
 saturate_specific(W1,[C|W2],PredName,R):-
 	redundant(C,W1), !, 
 	saturate_specific(W1,W2,PredName,R).
