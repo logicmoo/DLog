@@ -6,6 +6,7 @@
 
 :- use_module('../unfold/unfold_main', [unfold_predicates/2]).
 :- use_module('../core/config', [target/1, get_dlog_option/3, get_dlog_option/2, abox_module_name/2]).
+:- use_module('../core/dlogger', [warning/3]).
 :- use_module(predicate_names, [predicate_name/2]).
 :- use_module(transforming_tools, [neg/2, contra/2, cls_to_neglist/2, body_to_list/2]).
 
@@ -86,10 +87,11 @@ tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0), tbox(TransformedTBox, EqRo
 	init(URI),
 	
 	dl_preds(TBox, Preds0),
-	(get_dlog_option(unfold, no) -> Preds1 = Preds0
-	; unfold_main:annotated_preds(Preds0, APreds),
-	  unfold_predicates(prog(APreds, Signature, all), Preds1) -> true
-	; Preds1 = Preds0
+	(get_dlog_option(unfold, URI, no) -> Preds1 = Preds0
+	; 	unfold_main:annotated_preds(Preds0, APreds),
+		unfold_predicates(prog(APreds, Signature, all), Preds1) -> true
+	;	warning(tbox_translator, tbox2prolog(URI, ...), 'Unfold failed'),
+		Preds1 = Preds0
 	),
 	preprocessing(Preds1, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),
