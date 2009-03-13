@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tells uri="" xmlns="http://dl.kr.org/dig/2003/02/lang">
+<tells xmlns="http://dl.kr.org/dig/lang">
   <impliesc>    
     <some>
       <inverse>
