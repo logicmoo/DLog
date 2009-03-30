@@ -177,12 +177,10 @@ foreign_t throw_prolog_exception(const char *name, const long code){
 	term_t except = PL_new_term_ref();
 	term_t argt = PL_new_term_ref();
 	atom_t aname = PL_new_atom(name); //increases atom ref counter
+	functor_t f = PL_new_functor(aname, 1);
 	
-	{	//block needed for SICStus compatibility
-		functor_t f = PL_new_functor(aname, 1);
-		PL_put_functor(except, f);
-	}
-	
+	PL_put_functor(except, f);
+		
 	//already have an other reference in except, let GC later destroy it
 	PL_unregister_atom(aname); 
 	PL_get_arg(1, except, argt);

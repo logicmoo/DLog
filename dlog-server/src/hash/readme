@@ -8,7 +8,7 @@ splfr dlog_hash.c Backtrackable_HashSet.c sicstus_compatibility.c hash_sicstus.p
 
 Linux: 
 SWI:
-plld -shared dlog_hash.c Backtrackable_HashSet.c -o hash_swi pthreadVC.lib
+plld -shared dlog_hash.c Backtrackable_HashSet.c -o hash_swi
 SICStus:
 splfr dlog_hash.c Backtrackable_HashSet.c sicstus_compatibility.c hash_sicstus.pl
 

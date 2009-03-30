@@ -18,9 +18,8 @@ extern SP_term_ref _term;
 #define PL_new_atom(string) (SP_register_atom(SP_atom_from_string(string)), SP_atom_from_string(string))
 #define PL_atom_chars(atom) SP_string_from_atom(atom)
 #define PL_new_functor(name, arity) {(name), (arity)}
-//atom_t PL_functor_name(functor_t f)
-//int PL_functor_arity(functor_t f)
-// -> int SP_atom_length(SP_atom a)
+#define PL_functor_name(functor) ((functor).name)
+#define PL_functor_arity(functor) ((functor).arity)
 #define PL_register_atom(atom) SP_register_atom(atom)
 #define PL_unregister_atom(atom) SP_unregister_atom(atom)
 #define PL_new_term_ref() SP_new_term_ref()
