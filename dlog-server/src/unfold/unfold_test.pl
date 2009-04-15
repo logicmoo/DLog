@@ -177,7 +177,7 @@ test(File, OptName, Save) :-
 	findall(QR, run_query(Queries, IUProgram, ABox, QR), QRs),
 	(   QRsBase == QRs -> true
 	;   member(Q-BR, QRsBase), memberchk(Q-CR, QRs), BR \== CR,
-	    (   EntrySpec = pos -> \+ atom_concat(not_, _, Q)
+	    (   EntrySpec = pos -> \+ atom_concat('$not_', _, Q)
 	    ;   true
 	    ),
 	    my_error('Error: query: ~w, base result = ~w, current result = ~w', [Q, BR,CR]),

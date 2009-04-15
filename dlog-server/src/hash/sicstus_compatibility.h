@@ -9,8 +9,6 @@
 typedef struct {SP_atom name; int arity;} functor_t; 
 #define foreign_t int
 
-//for PL_unify_*; not threads safe
-extern SP_term_ref _term;
 
 #define PL_succeed return SP_SUCCESS
 //#define PL_fail return SP_FAILURE
@@ -115,6 +113,8 @@ extern SP_term_ref _term;
 #define PL_cons_list(term, head, tail) SP_cons_list(term, head, tail)
 
 /////////////////////////////   UNIFICATION    ////////////////////////////////////////////
+//not threads safe
+extern SP_term_ref _term;
 #define SP_unify_type(term, type, value) (_term = SP_new_term_ref(), \
 					SP_put_##type(_term, value) && SP_unify(term, _term))
 

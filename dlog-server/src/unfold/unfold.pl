@@ -108,7 +108,7 @@ func_occuring_in(Program, Func, Constraint) :-
 	),
 	(   Constraint == pos ->
 	    Func = Name/_,
-	    \+ atom_concat(not_, _, Name)
+	    \+ atom_concat('$not_', _, Name)
 	;   true
 	).
 
@@ -1396,9 +1396,9 @@ negated_goal_pattern(G, NG, NP) :-
 	NG =.. [NP|Args].
 
 negated_predname(P, NP) :-
-	atom_concat(not_, X, P), !, NP = X.
+	atom_concat('$not_', X, P), !, NP = X.
 negated_predname(P, NP) :-
-	atom_concat(not_, P, NP).
+	atom_concat('$not_', P, NP).
 
 binary_goal(goal(G,_), goal(G, [])) :-
 	functor(G, _, 2).
