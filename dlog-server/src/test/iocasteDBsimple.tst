@@ -8,9 +8,9 @@ role(hasChild).
 equiv(and([some(arole(hasChild), and([aconcept('Patricide'), some(arole(hasChild), not(aconcept('Patricide')))]))]), aconcept('Good')).
 
 dbConnection(iodb, iocaste).
-dbAccess('Patricide'/1, iodb, query("SELECT name FROM people WHERE patricide")).
-dbAccess(not('Patricide')/1, iodb, query("SELECT name FROM people WHERE NOT patricide")).
-dbAccess(hasChild/2, iodb, query("SELECT parent, child FROM hasChild").
+dbAccess('Patricide'/1, iodb, query('SELECT name FROM people WHERE patricide')).
+dbAccess(not('Patricide')/1, iodb, query('SELECT name FROM people WHERE NOT patricide')).
+dbAccess(hasChild/2, iodb, query('SELECT parent, child FROM hasChild')).
 
 
 query(instances(aconcept('Good')), [i1]).
