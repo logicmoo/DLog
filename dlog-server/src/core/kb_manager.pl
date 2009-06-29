@@ -32,7 +32,8 @@
 
 
 :- dynamic current_kb/1,
-			kb_count/1.
+			kb_count/1,
+			dl_translator_saved_state/2.
 
 :- volatile current_kb/1,
 			kb_count/1.
@@ -79,12 +80,12 @@ release_kb(URI) :-
 clear_kb(URI) :- 
 	with_write_lock(URI,
 	(
+		retractall(dl_translator_saved_state(URI, _)),
 		tbox_module_name(URI, TB),
 		abox_module_name(URI, AB),
 		close_DB_connections(AB),
 		abolish_module(AB),
 		abolish_module(TB)
-		%, remove_dlog_options(URI) %TODO: remove options? -> only for default kb?
 	)),
 	info(kb_manager, clear_kb(URI), 'KB cleared.').
 
@@ -118,24 +119,26 @@ abolish_module(Module) :-
 	fail.
 abolish_module(_Module).
 
-add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)) :- %TODO: eltárolni, hozzáadni
+add_axioms(URI, Axioms) :-
+	with_write_lock(URI, add_axioms0(URI, Axioms)).
+	
+add_axioms0(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)) :-	
 	info(kb_manager, add_axioms(URI, ...), 'Adding axioms to KB.'), %TODO: Concepts, Roles
 	detail(kb_manager, add_axioms(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates)), 'Axioms:'),
-	exists_kb(URI),
 	
-	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], _Saved, TBox_Clauses, _Save),
+	(dl_translator_saved_state(URI, Saved) -> true ; true),
+	axioms_to_clauses([ImpliesCL, ImpliesRL, TransL], Saved, TBox_Clauses, Save),
+	retractall(dl_translator_saved_state(URI, _)),
+	assert(dl_translator_saved_state(URI, Save)),
 	detail(kb_manager, add_axioms(URI, ...), 'Clauses ready.'),
 	abox_signature(ABox, DBPredicates, ABoxData, Signature),
 	detail(kb_manager, (add_axioms(URI, ...) -> Signature), 'ABox signature: '),
 		
 	get_dlog_option(abox_target, URI, ATarget),
-	get_dlog_option(tbox_target, URI, TTarget),
-	with_write_lock(URI, 
-	(
-		add_abox(ATarget, URI, abox(ABoxData, DBConnections, DBPredicates)),
-		detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
-		add_tbox(TTarget, URI, tbox(TBox_Clauses, ImpliesRL), abox(Signature))
-	)),
+	get_dlog_option(tbox_target, URI, TTarget),	
+	add_abox(ATarget, URI, abox(ABoxData, DBConnections, DBPredicates)),
+	detail(kb_manager, add_axioms(URI, ...), 'ABox done.'),
+	add_tbox(TTarget, URI, tbox(TBox_Clauses, ImpliesRL), abox(Signature)),
 	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
 
 
