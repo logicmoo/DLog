@@ -42,7 +42,7 @@ execute_test_file([File|Files], [Result|Results]) :-
 %    text: Results are pretty printed on current output.
 %    text(Out): Results are pretty printed using Out as output. Out can be a file name or stream(Stream).
 %    If Output is call(Goal), Goal is called with Results appended as last argument.
-output_results([H|T], [H|T]) :- !. %cut, if variable
+output_results(Output, Result) :- Output = Result, !. %unify and cut if successful
 output_results(call(Goal), Results) :-
 	call(Goal, Results).
 output_results(text, Results) :-
