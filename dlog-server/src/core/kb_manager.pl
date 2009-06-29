@@ -36,7 +36,8 @@
 			dl_translator_saved_state/2.
 
 :- volatile current_kb/1,
-			kb_count/1.
+			kb_count/1,
+			dl_translator_saved_state/2.
 
 :- initialization
 		detail(kb_manager, initialization, 'KB manager initializing...'),
