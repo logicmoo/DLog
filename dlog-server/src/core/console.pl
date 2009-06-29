@@ -28,19 +28,19 @@ dlog_help :-
 	format('~a~n~n', D),
 	% print('Commands can be separated with commas (,), and end with a dot (.).\n\n'),
 	print('Available commands:\n'),
-	print('quit: stop the server and quit.\n'),
-	print('help: print this help.\n'),
-	print('start_server: starts the server.\n'),
-	print('stop_server: stops the server.\n'),
-	print('load_config_file(F): load the config file F.\n'),
-	print('show_option(K): show the current value of the option K.\n'),
-	print('show_option(K, URI): show the current value of the option K for the knowledge base identified by the URI.\n'),
-	print('set_option(K, V): set the current value of the option K to V.\n'),
-	print('set_option(K, URI, V): set the current value of the option K for the knowledge base identified by the URI to V.\n'),
-	print('execute_dig_file(F): execute commands from the DIG file F and print the result state.\n'),
-	print('execute_dig_filev(F): execute commands from the DIG file F and print the detailed results.\n'),
-	%print('execute_dig_file(F, R): execute commands from the DIG file F and return the results in R.\n'). %TODO?
-	print('execute_test_files(F, Mode): execute tests specified in files F. Mode is the output mode.\n').
+	print('quit: Stop the server and quit DLog.\n'),
+	print('help: Print this help.\n'),
+	print('start_server: Start the server.\n'),
+	print('stop_server: Stop the server.\n'),
+	print('load_config_file(F): Load the configuration file F.\n'),
+	print('show_option(K): Show the current value of the option K.\n'),
+	print('show_option(K, URI): Show the current value of the option K for the knowledge base identified by the URI.\n'),
+	print('set_option(K, V): Set the value of the option K to V.\n'),
+	print('set_option(K, URI, V): Set the value of the option K for the knowledge base identified by the URI to V.\n'),
+	print('execute_dig_file(F): Execute a DIG command from the file F and print the result state.\n'),
+	print('execute_dig_filev(F): Execute a DIG command from the file F and print the detailed results.\n'),
+	%print('execute_dig_file(F, R): Execute a DIG command from the file F and return the results in R.\n'). %TODO?
+	print('execute_test_files(F, Mode): Execute tests specified in files F. Mode is the output mode.\n').
 	% print('print(P): print the expression P.\n'),
 	% print('nl: print a new line.\n'),
 	% print('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), print(R).\n').

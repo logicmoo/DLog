@@ -63,22 +63,49 @@ output_results(latex(Out), Results) :-
 	latex_print(Results, Out).
 
 
-% :- type results --> list(results(fileName, readTime, result, fTotalTime)).
-% :- type result --> list(result(options, compileTime, query, totalTime)) | fail | exception(E) | time_out. %read failure/error
-% :- type query --> list(query(queryType, queryTime, queryResult, checkTime)) | fail | exception(E) | time_out. %compile failure/error
-% :- type queryType --> instances(ConceptTerm) | instance(Name, ConceptTerm) | roleFillers(Name, RoleTerm) | relatedIndividuals(RoleTerm). 
-			%| allConceptNames | allRoleNames | allIndividuals
-% :- type queryResult --> pass | fail(answer, desired) | fail | exception(E) | time_out. %query failure/error	
-% :- type answer --> true | false | individualSet(list(atom)) | individualPairSet(list(atom-atom)) 
-%				%| conceptSet(list(list(atom))) | roleSet(list(list(atom)))
-% :- type desired --> true | false | list(atom) | list(atom-atom)
-%				%| list(list(atom)) | list(list(atom))
-% :- type fileName --> atom.
-% :- type readTime --> integer. %milliseconds
-% :- type fTotalTime --> integer. %milliseconds
-% :- type options --> list(name(value)).
-% :- type compileTime --> integer. %milliseconds
-% :- type totalTime --> integer. %milliseconds
+% :- type results == list(results1).
+% :- type results1 ---> results(fileName, readTime, result, fTotalTime).
+% :- type result ---> 
+%        success(list(result1)) | 
+%        fail | exception(univ) | time_out. % read failure/error
+% :- type result1 ---> result(options, compileTime, query, totalTime).
+% :- type query ---> 
+%        success(list(query1)) | 
+%        fail | exception(univ) | time_out. % compile failure/error
+% :- type query1 ---> query(queryType, queryTime, queryResult, checkTime).
+% :- type queryType ---> 
+%        instances(conceptTerm) | instance(iName, conceptTerm) | 
+%        roleFillers(iName, roleTerm) | 
+%        relatedIndividuals(roleTerm). 
+%       %| allConceptNames | allRoleNames | allIndividuals.
+% :- type queryResult ---> 
+%        pass | 
+%        fail(answer, desired) | % wrong answer
+%        fail | exception(univ) | time_out. % query failure/error
+% :- type answer ---> 
+%        true | false | 
+%        individualSet(list(atom)) |
+%        individualPairSet(list(pair(atom, atom))). 
+%      %| conceptSet(list(list(atom))) | roleSet(list(list(atom))).
+% :- type desired.
+% %		---> 
+% %       true | false | 
+% %       list(atom) | 
+% %       list(pair(atom, atom)).
+% %      %| list(list(atom)) | list(list(atom)).
+% :- type fileName == atom.
+% :- type readTime == integer. %milliseconds
+% :- type fTotalTime == integer. %milliseconds
+% :- type compileTime == integer. %milliseconds
+% :- type iName == atom.
+% :- type conceptTerm.
+% :- type roleTerm.
+% :- type queryTime == integer. %milliseconds
+% :- type checkTime == integer. %milliseconds
+% :- type totalTime == integer. %milliseconds
+% :- type options == list(option).
+% :- type option. %name(value)
+
 execute_tests(File, results(File, ReadTime, Result, FTotal)) :-
 	info(dlog_test, execute_tests(File, ...), 'Processing file:'),
 	statistics(runtime, [StartTime, _]),
@@ -86,10 +113,11 @@ execute_tests(File, results(File, ReadTime, Result, FTotal)) :-
 	statistics(runtime, [MidTime, _]), 
 	ReadTime is MidTime - StartTime,
 	(	RResult == success 
-	->	detail(dlog_test, execute_tests(File, ...), 'File loaded.'), 
+	->	detail(dlog_test, execute_tests(File, ...), 'File loaded.'),
+		Result = success(Result1),
 		(	Options == []
-		->	execute_test([[]], Axioms, Queries, Result) %use default options only
-		;	execute_test(Options, Axioms, Queries, Result) % use user-specified option sets
+		->	execute_test([[]], Axioms, Queries, Result1) %use default options only
+		;	execute_test(Options, Axioms, Queries, Result1) % use user-specified option sets
 		)
 	;	Result = RResult
 	),
@@ -110,7 +138,8 @@ execute_test([Opt|Options], Axioms, Queries, [result(Opt, CompileTime, QRes, Tot
 	CompileTime is MidTime - StartTime,
 	
 	(	CResult == success 
-	->	run_queries(Queries, URI, QRes)
+	->	QRes = success(QRes1),
+		run_queries(Queries, URI, QRes1)
 	;	QRes = CResult
 	),
 	release_kb(URI),
@@ -164,7 +193,9 @@ try(Goal, Description, Result) :-
 			time_limit(Goal, Result),
 			E, 
 			(
-				atom_concat('Exception while ', Description, Msg), 
+				E == '$aborted'
+			->	throw(E)
+			;	atom_concat('Exception while ', Description, Msg), 
 				warning(dlog_test, (try(Goal) -> E), Msg), 
 				Result = exception(E)
 			)
@@ -222,56 +253,74 @@ read_test(Str) -->
 		read_test(Str)
 	).
 
+%TODO: better (detailed) syntax check?
 store(concept(C), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, [C|Concepts], Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, [C|Concepts], Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !.
+store(concepts(CL), 
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts1, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- append(Concepts, CL, Concepts1), !.
 store(role(R), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, [R|Roles], DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, [R|Roles], DBConnections, DBPredicates), Queries, Options))
+		:- !.
+store(roles(RL), 
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
+		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles1, DBConnections, DBPredicates), Queries, Options))
+		:- append(Roles, RL, Roles1), !.
 store(implies(C1, C2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms([implies(C1, C2)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms([implies(C1, C2)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !.
 store(equiv(C1, C2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms([implies(C1, C2), implies(C2, C1)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), 
-				Queries, Options)).
+				Queries, Options)) :- !.
 store(subrole(R, S), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, [subrole(R, S)|ImpliesRL], TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, [subrole(R, S)|ImpliesRL], TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options))
+		:- !.
 store(transitive(R), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, [R|TransL], ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, ImpliesRL, [R|TransL], ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !.
 store(assertion(R, I1, I2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options))
+		 :- !.
 store(rassertion(R, I1, I2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)). 
+		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !. 
 store(assertion(C, I), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, [cassertion(C, I)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, ImpliesRL, TransL, [cassertion(C, I)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !.
 store(cassertion(C, I), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
-		test(axioms(ImpliesCL, ImpliesRL, TransL, [cassertion(C, I)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)).
+		test(axioms(ImpliesCL, ImpliesRL, TransL, [cassertion(C, I)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !.
 store(dbConnection(Connection, DSN, User, Pass), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, [connection(Connection, DSN, User, Pass)|DBConnections], DBPredicates), 
-			Queries, Options)).
+			Queries, Options)) :- !.
 store(dbConnection(Connection, DSN), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, [connection(Connection, DSN, _User, _Pass)|DBConnections], DBPredicates), 
-			Queries, Options)). 
+			Queries, Options)) :- !. 
 store(dbAccess(Functor, Connection, Access), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, [access(Functor, Connection, Access)|DBPredicates]), 
-			Queries, Options)).
+			Queries, Options)) :- !.
 store(query(Q, Response), 
 		test(Axioms, Queries, Options), 
-		test(Axioms, [query(Q, Response)|Queries], Options)).
+		test(Axioms, [query(Q, Response)|Queries], Options)) :- !.
 store(query(Q), %Q=instance(Indiv,Concept)
 		test(Axioms, Queries, Options), 
-		test(Axioms, [query(Q, true)|Queries], Options)).
+		test(Axioms, [query(Q, true)|Queries], Options)) :- !.
 store(options(O), 
 		test(Axioms, Queries, Options), 
-		test(Axioms, Queries, [O|Options])).
-
+		test(Axioms, Queries, [O|Options])) :- !.
+store(Unknown, _, _) :- throw(unknown_element(Unknown)).
