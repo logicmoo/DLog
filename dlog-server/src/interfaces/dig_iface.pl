@@ -189,6 +189,8 @@ ask([IDT-Type|Asks], URI, [Response|Responses]) :-
 		;	E == time_limit_exceeded
 		->	%warning(dig_iface, ask([IDT-Type| ...], URI, ...), 'Timeout while running query.'),
 			throw(time_limit_exceeded) %handled in dig_server
+		;	E == '$aborted'
+		->	throw('$aborted')
 		;	Response = ID-error(E),
 			warning(dig_iface, ask([IDT-Type| ...], URI, [Response|...]), 'Exception while running query.')
 		)
