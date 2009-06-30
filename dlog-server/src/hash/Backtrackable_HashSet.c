@@ -122,11 +122,16 @@ void delete_Backtrackable_HashSet(Backtrackable_HashSet *h)
  * ALLOC_ERROR otherwise. If DEBUG_DLOG_HASH is defined might return 
  * INVALID_ARGUMENT or OVERFLOW.
  */
-long clear_Backtrackable_HashSet(Backtrackable_HashSet *h)
+long clear_Backtrackable_HashSet(Backtrackable_HashSet *h, const long size)
 {
-	LOG("clear_Backtrackable_HashSet(%p)\n", h);
-	//TODO: clear to different size?
-	return rollback(h, 0);
+	LOG("clear_Backtrackable_HashSet(%p, %ld)\n", h, size);
+	// unchanged           remains default size
+	if(size == h->size || !size && h->size == DEFAULT_TABLE_SIZE){
+		return rollback(h, 0);
+	}else{ //change table size
+		delete_Backtrackable_HashSet(h); 
+		return init_Backtrackable_HashSet(h, size); 
+	}	
 }
 
 /**

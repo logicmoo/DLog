@@ -3,16 +3,18 @@
 
 #include <sicstus/sicstus.h>
 
-#define install_t void
-#define term_t SP_term_ref
-#define atom_t SP_atom
+typedef void install_t;
+typedef SP_term_ref term_t;
+typedef SP_atom atom_t;
 typedef struct {SP_atom name; int arity;} functor_t; 
-#define foreign_t int
+typedef int foreign_t;
 
 
 #define PL_succeed return SP_SUCCESS
 //#define PL_fail return SP_FAILURE
-#define PL_fail {SP_fail(); return SP_FAILURE;}
+#define PL_fail do{ SP_fail(); return SP_FAILURE; }while(0)
+//extern atom_t _new_atom;
+//#define PL_new_atom(string) (SP_register_atom(_new_atom = SP_atom_from_string(string)), _new_atom)
 #define PL_new_atom(string) (SP_register_atom(SP_atom_from_string(string)), SP_atom_from_string(string))
 #define PL_atom_chars(atom) SP_string_from_atom(atom)
 #define PL_new_functor(name, arity) {(name), (arity)}
@@ -157,6 +159,6 @@ extern SP_term_ref _term;
 
 //#define PL_register_foreign(const char *name, int arity, foreign t (*function)(), int flags)
 //#define PL_register_foreign_in_module(module, name, arity, foreign t (*function)(), flags) SP_define_c_predicate(name, arity, module, SP_CPredFun *proc, NULL)
-	// ...
+	// ... //typedef int SP_CPredFun(SP_term_ref goal, void *stash);
 
 #endif /*SICSTUS_COMPATIBILITY_H_*/

@@ -16,7 +16,8 @@
 	#define MODULE_NAME "dlog_hash"
 #endif
 //prolog-like calls
-#define prolog(A) if(!(A)) PL_fail; 
+//#define prolog(A) if(!(A)) PL_fail; 
+#define prolog(A) do{ if(!(A)) PL_fail; }while(0)
 
 //TODO: _PL_get_arg(1, x2, loophash); //no checking
 //TODO: hash anc list, optional hash
@@ -34,32 +35,39 @@
 
 ///Throw an informative exception to prolog.
 foreign_t throw_prolog_exception(const char *name, const long code);
+foreign_t init_hash_size0(const long size, term_t state);
 
-//TODO: selectable size -> KB specific hash
 foreign_t init_hash(term_t state) {
-	long e;
-	Backtrackable_HashSet* hashref = get_hashref();
+	return init_hash_size0(0l, state); // default size
+}
 
+foreign_t init_hash_size(term_t size, term_t state) {
+	long s;
+	prolog(
+		PL_get_long(size, &s)
+	);
+	return init_hash_size0(s, state);
+}
+
+foreign_t init_hash_size0(const long size, term_t state) {
+	long e;
+	Backtrackable_HashSet* hashref = get_hashref();	
+	
 	if(!hashref){
 		hashref = (Backtrackable_HashSet*) malloc(sizeof(Backtrackable_HashSet));
 		if(!hashref) return throw_prolog_exception("init_hash_error", ALLOC_ERROR);
-		
-		e = init_Backtrackable_HashSet(hashref, 0); // default size
-		if(e) return throw_prolog_exception("init_hash_error", e);
-
+		e = init_Backtrackable_HashSet(hashref, size); 
 		set_hashref(hashref);
-		
-		if(PL_unify_integer(state, 0)) PL_succeed;
-		else PL_fail;
 	}else{
-		e = clear_Backtrackable_HashSet(hashref);
-		if(e) return throw_prolog_exception("init_hash_error", e);
-		if(PL_unify_integer(state, 0)) PL_succeed;
-		else PL_fail;
-	}
+		e = clear_Backtrackable_HashSet(hashref, size);
+	}	
+	if(e) return throw_prolog_exception("init_hash_error", e);
+	if(PL_unify_integer(state, 0)) PL_succeed; 
+	else PL_fail;
 }
 
-foreign_t new_loop(term_t goal, term_t hashes0, term_t hashes2) {
+
+foreign_t put_to_hash(term_t goal, term_t hashes0, term_t hashes2) {
 	int arity;
 	term_t loophash0 = PL_new_term_ref();
 	term_t anclist = PL_new_term_ref();
@@ -92,7 +100,7 @@ foreign_t new_loop(term_t goal, term_t hashes0, term_t hashes2) {
 	else PL_fail;
 }
 
-foreign_t check_loop(term_t goal, term_t hashes) {
+foreign_t check_hash(term_t goal, term_t hashes) {
 	int arity;
 	term_t loophash = PL_new_term_ref();
 	term_t anclist = PL_new_term_ref();
@@ -149,8 +157,9 @@ install_t install()
 
 	
 	PL_register_foreign_in_module(MODULE_NAME, "init_hash", 1, (void*)init_hash, 0);
-	PL_register_foreign_in_module(MODULE_NAME, "new_loop", 3, (void*)new_loop, 0);
-	PL_register_foreign_in_module(MODULE_NAME, "check_loop", 2, (void*)check_loop, 0);
+	PL_register_foreign_in_module(MODULE_NAME, "init_hash", 2, (void*)init_hash_size, 0);
+	PL_register_foreign_in_module(MODULE_NAME, "put_to_hash", 3, (void*)put_to_hash, 0);
+	PL_register_foreign_in_module(MODULE_NAME, "check_hash", 2, (void*)check_hash, 0);
 }
 
 #else //MULTI_THREADED

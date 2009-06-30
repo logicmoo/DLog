@@ -1,13 +1,21 @@
-%TODO: hash for anc list
-:- module(dlog_hash, [init_state/1,
-		     new_state/3,new_anc/3,new_loop/3,
-		     check_anc/2,check_loop/2]).
+:- module(dlog_hash, [
+				init_state/1, init_state/2, %TODO: OK? 
+				%init_hash/1, init_hash/2, %foreign
+				put_to_hash/3, check_hash/2, %foreign
+				put_to_list/3, check_list/2,
+				put_to_both/3, %TODO: kell?
+				
+				%temporary compatibility predicates
+				new_state/3, %put_to_both/3
+				new_anc/3, %put_to_list/3
+				new_loop/3, %put_to_hash/3
+				check_anc/2, %check_list/2
+				check_loop/2 %check_hash/2
+				]).
 
 sicstus_init :-
-	%ensure_loaded(hash_sicstus),
 	load_foreign_resource(hash_sicstus),
-	use_module(library(lists), [member/2]),
-	use_module(library(terms), [term_hash/4]).
+	use_module(library(lists), [member/2]).
 
 swi_init :- 
 	initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
@@ -35,16 +43,36 @@ swi_init :-
 		)
 	.
 
+
+
+%init_hash(LoopHash) :- foreign.
+
+%init_state(-(LoopHash-AncList))
 init_state(LoopHash-AncList) :-
 	init_hash(LoopHash),
 	AncList = [].
 
-new_state(Goal, LH0-AL0, LH-AL) :-
-	new_loop(Goal, LH0-_, LH-_), %TODO: only pass LH?
-	AL = [Goal|AL0].
+%init_hash(HashSize, LoopHash) :- foreign.
 
-new_anc(Goal, LH-AL0, LH-AL) :-
-	AL = [Goal|AL0].
+%init_state(+HashSize, -(LoopHash-AncList))
+init_state(HashSize, LoopHash-AncList) :-
+	init_hash(HashSize, LoopHash),
+	AncList = [].
 
-check_anc(Goal, _-AL) :-
+%put_to_hash(Goal, State0, State) :- foreign.
+%check_hash(Goal, State) :- foreign.
+
+put_to_list(Goal, LH-AL, LH-[Goal|AL]).
+check_list(Goal, _-AL) :-
 	member(Goal, AL).
+
+put_to_both(Goal, LH0-AL, LH-[Goal|AL]) :- %TODO: is this used at all?
+	put_to_hash(Goal, LH0-_, LH-_).
+
+
+% Compatibility predicates
+new_state(Goal, State0, State) :- put_to_both(Goal, State0, State).
+new_anc(Goal, State0, State) :- put_to_list(Goal, State0, State).
+check_anc(Goal, State) :- check_list(Goal, State).
+new_loop(Goal, State0, State) :- put_to_hash(Goal, State0, State).
+check_loop(Goal, State) :- check_hash(Goal, State).

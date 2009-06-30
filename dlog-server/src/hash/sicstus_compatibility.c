@@ -1,6 +1,8 @@
 #include "sicstus_compatibility.h"
 
 SP_term_ref _term;
+//atom_t _new_atom;
+
 
 /*
 int PL_unify_integer(term_t t, long l){

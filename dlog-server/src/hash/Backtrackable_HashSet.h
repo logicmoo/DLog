@@ -94,8 +94,8 @@ long init_Backtrackable_HashSet(Backtrackable_HashSet *h, const long size);
 ///Destructor, frees up all excess memory allocated during the use of the hash set.
 void delete_Backtrackable_HashSet(Backtrackable_HashSet *h);
 
-///Empties the hash set.
-long clear_Backtrackable_HashSet(Backtrackable_HashSet *h);
+///Empties the hash set and changes its size if necessary.
+long clear_Backtrackable_HashSet(Backtrackable_HashSet *h, const long size);
 
 ///Roll back the hash set to state and add {func_atom, arg_atom}.
 long put_to_Backtrackable_HashSet(Backtrackable_HashSet *h, const long state, 
@@ -124,8 +124,12 @@ int check_Backtrackable_HashSet(Backtrackable_HashSet *h, const long state,
 		int _log(const char *format, ...);
 	
 	#else
-		#define LOG(format, ...) {fprintf(hash_log, "%s:%d " format, __FILE__, __LINE__, __VA_ARGS__); \
-									fflush(hash_log);}
+		// TODO: , ## __VA_ARGS__
+		#define LOG(format, ...) \
+				do{ \
+					fprintf(hash_log, "%s:%d " format, __FILE__, __LINE__, __VA_ARGS__); \
+					fflush(hash_log); \
+				}while(0) 
 	#endif
 #else
 	#define LOG
