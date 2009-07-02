@@ -3,7 +3,8 @@
 :- use_module(library(ordsets)).
 
 unfold_predicates(InputProg, UnfoldedProg) :-
-	unfold_predicates0(InputProg, [], uprog(UnfoldedProg,_)).
+	unfold_predicates0(InputProg, [], uprog(UnfoldedProg0,_)),
+	findall(Pred, (member(Pred, UnfoldedProg0), Pred=_-[_|_]), UnfoldedProg).
 
 unfold_predicates0(InputProg, Options, uprog(UProgram,PredInfo)) :-
 	unfold_predicates1(InputProg, [recdet(off)|Options], uprog(UProgram0,PredInfo)),
