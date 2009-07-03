@@ -89,9 +89,11 @@ tbox2prolog(URI, tbox(TBox, HBox0), abox(Signature0), tbox(TransformedTBox, EqRo
 	dl_preds(TBox, Preds0),
 	(get_dlog_option(unfold, URI, no) -> Preds1 = Preds0
 	; 	unfold_main:annotated_preds(Preds0, APreds),
-		unfold_predicates(prog(APreds, Signature, all), Preds1) -> true
-	;	warning(tbox_translator, tbox2prolog(URI, ...), 'Unfold failed'),
-		Preds1 = Preds0
+		catch(
+			unfold_predicates(prog(APreds, Signature, all), Preds1),
+			deannotate_failed,
+			Preds1 = Preds0
+		)			
 	),
 	preprocessing(Preds1, Signature, DepGraph), % asserts orphan/2, atomic_predicate/2, atomic_like_predicate/2
 	processed_hbox(HBox, Signature),

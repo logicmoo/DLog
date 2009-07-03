@@ -2,13 +2,22 @@
 :- use_module(library(ugraphs)).
 :- use_module(library(ordsets)).
 
+:- use_module('../core/dlogger', [warning/3, error/3]).
+
 unfold_predicates(InputProg, UnfoldedProg) :-
 	unfold_predicates0(InputProg, [], uprog(UnfoldedProg0,_)),
 	findall(Pred, (member(Pred, UnfoldedProg0), Pred=_-[_|_]), UnfoldedProg).
 
 unfold_predicates0(InputProg, Options, uprog(UProgram,PredInfo)) :-
-	unfold_predicates1(InputProg, [recdet(off)|Options], uprog(UProgram0,PredInfo)),
-	deannotate_gprog(UProgram0, UProgram).
+	(	unfold_predicates1(InputProg, [recdet(off)|Options], uprog(UProgram0,PredInfo))
+	->	true
+	;	error(unfold, unfold_predicates0(...), 'Unfold error'),
+		throw(unfold_error)
+	),
+	(	deannotate_gprog(UProgram0, UProgram)  -> true
+	;	warning(unfold, unfold_predicates0(...), 'Unfold failed'),
+		throw(deannotate_failed)
+	).
 
 unfold_predicates(InputProg, Options, UnfoldedProg) :-
 	memberchk(compat(on), Options), !,
