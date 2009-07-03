@@ -210,9 +210,18 @@ transformed_DBConcept(assert, access(P/1, Connection, Access), Module) :-
 					odbc:odbc_execute(RetrSt, [], row(X))
 				;	odbc:odbc_execute(CheckSt, [X], _)
 			))
-	;	Access = query(RetrQ),
+	;	Access = query(RetrQ) ->
 		prepared_query([RetrQ], Module, Connection, [], [atom], RetrSt),
 		assert((Module:Head :- odbc:odbc_execute(RetrSt, [], row(X)))) 
+	;	Access = queries(RetrQ, CheckQ) ->
+		prepared_query([RetrQ], Module, Connection, [], [atom], RetrSt),
+		prepared_query([CheckQ], Module, Connection, [default], [atom], CheckSt),
+		assert((
+			Module:Head :- 
+				var(X) -> 
+					odbc:odbc_execute(RetrSt, [], row(X))
+				;	odbc:odbc_execute(CheckSt, [X], _)
+			)) 
 	).
 transformed_DBConcept(write, access(P/1, Connection, Access), _Module) :-
 	predicate_name(P, Name),
@@ -231,13 +240,24 @@ transformed_DBConcept(write, access(P/1, Connection, Access), _Module) :-
 				;	active_statement(CheckQ, Statement),
 					odbc:odbc_execute(Statement, [X], _)
 			))
-	;	Access = query(RetrQ),
+	;	Access = query(RetrQ) ->
 		prepared_query([RetrQ], Connection, [], [atom], RetrQ),
 		portray_clause((
 			Head :- 
 				active_statement(RetrQ, Statement),
 				odbc:odbc_execute(Statement, [], row(X))
 		))
+	;	Access = queries(RetrQ, CheckQ) ->
+		prepared_query([RetrQ], Connection, [], [atom], RetrQ),
+		prepared_query([CheckQ], Connection, [default], [atom], CheckQ),
+		portray_clause((
+			Head :- 
+				var(X) -> 
+					active_statement(RetrQ, Statement),
+					odbc:odbc_execute(Statement, [], row(X))
+				;	active_statement(CheckQ, Statement),
+					odbc:odbc_execute(Statement, [X], _)
+			)) 
 	).
 
 
@@ -270,8 +290,8 @@ transformed_DB_role(assert, Head, X, Y, Connection, Access, Module) :-
 				Module, Connection, [default], [atom], Retr2St),
 		prepared_query(['SELECT 1 FROM `', Table, '` WHERE `', Col1, '` = ? AND `', Col2, '` = ?'], 
 				Module, Connection, [default, default], [atom], CheckSt),
-		assert(
-			(Module:Head :- 
+		assert((
+			Module:Head :- 
 				var(X) -> 
 				(	var(Y) ->
 					odbc:odbc_execute(RetrSt, [], row(X, Y))
@@ -283,9 +303,27 @@ transformed_DB_role(assert, Head, X, Y, Connection, Access, Module) :-
 				;	odbc:odbc_execute(CheckSt, [X, Y], _)
 				)
 			))
-	;	Access = query(RetrQ),
+	;	Access = query(RetrQ) ->
 		prepared_query([RetrQ], Module, Connection, [], [atom, atom], RetrSt),
 		assert((Module:Head :- odbc:odbc_execute(RetrSt, [], row(X, Y))))
+	;	Access = queries(RetrQ, Retr1Q, Retr2Q, CheckQ) ->
+		prepared_query([RetrQ], Module, Connection, [], [atom, atom], RetrSt),
+		prepared_query([Retr1Q], Module, Connection, [default], [atom], Retr1St),
+		prepared_query([Retr2Q], Module, Connection, [default], [atom], Retr2St),
+		prepared_query([CheckQ], Module, Connection, [default, default], [atom], CheckSt),
+		assert((
+			Module:Head :- 
+				var(X) -> 
+				(	var(Y) ->
+					odbc:odbc_execute(RetrSt, [], row(X, Y))
+				;	odbc:odbc_execute(Retr1St, [Y], row(X))
+				)
+				;
+				(	var(Y) ->
+					odbc:odbc_execute(Retr2St, [X], row(Y))
+				;	odbc:odbc_execute(CheckSt, [X, Y], _)
+				)
+			))
 	).
 transformed_DB_role(write, Head, X, Y, Connection, Access, _Module) :-
 	(	Access = table(Table, Col1-Col2) 
@@ -297,8 +335,8 @@ transformed_DB_role(write, Head, X, Y, Connection, Access, _Module) :-
 				Connection, [default], [atom], Retr2Q),
 		prepared_query(['SELECT 1 FROM `', Table, '` WHERE `', Col1, '` = ? AND `', Col2, '` = ?'], 
 				Connection, [default, default], [atom], CheckQ),
-		portray_clause(
-			(Head :- 
+		portray_clause((
+			Head :- 
 				var(X) -> 
 				(	var(Y) ->
 					active_statement(RetrQ, Statement),
@@ -314,13 +352,36 @@ transformed_DB_role(write, Head, X, Y, Connection, Access, _Module) :-
 					odbc:odbc_execute(Statement, [X, Y], _)
 				)
 			))
-	;	Access = query(RetrQ),
+	;	Access = query(RetrQ) ->
 		prepared_query([RetrQ], Connection, [], [atom, atom], RetrQ),
-		portray_clause(
-			(Head :- 
+		portray_clause((
+			Head :- 
 				active_statement(RetrQ, Statement),
 				odbc:odbc_execute(Statement, [], row(X, Y))
 			))
+	;	Access = queries(RetrQ, Retr1Q, Retr2Q, CheckQ) ->
+		prepared_query([RetrQ], Connection, [], [atom, atom], RetrQ),
+		prepared_query([Retr1Q], Connection, [default], [atom], Retr1Q),
+		prepared_query([Retr2Q], Connection, [default], [atom], Retr2Q),
+		prepared_query([CheckQ], Connection, [default, default], [atom], CheckQ),
+		portray_clause((
+			Head :- 
+				var(X) -> 
+				(	var(Y) ->
+					active_statement(RetrQ, Statement),
+					odbc:odbc_execute(Statement, [], row(X, Y))
+				;	active_statement(Retr1Q, Statement),
+					odbc:odbc_execute(Statement, [Y], row(X))
+				)
+				;
+				(	var(Y) ->
+					active_statement(Retr2Q, Statement),
+					odbc:odbc_execute(Statement, [X], row(Y))
+				;	active_statement(CheckQ, Statement),
+					odbc:odbc_execute(Statement, [X, Y], _)
+				)
+			))
+	
 	).
 
 

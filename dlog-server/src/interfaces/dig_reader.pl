@@ -107,7 +107,9 @@ parse(Req, Atts, Elems, _) :-
 %		where CName is the individual representing the connection
 %	8a. DBAccesses: list of access(AName, CName, Access, NegAccess)
 %		where AName is the individual representing the access
-%		Access and NegAccess are query(Query) OR table(Table, Col) OR table(Table, Col1-Col2)
+%		Access and NegAccess are query(Query) OR queries(IRetrievalQ, ICheckQ) 
+%		OR queries(IRetrievalQ, ICheck1Q, ICheck2Q, ICheck12Q)
+%		OR table(Table, Col) OR table(Table, Col1-Col2)
 %		Query, Table and Cols are atoms.
 %	9a. DBPredicates: list of ConceptName/1-AName or RoleName/2-AName
 %		where AName is the individual representing the access 
@@ -264,10 +266,32 @@ parse_tell(value, Atts,
 		->	add_DBConnection(IN, _dsn, Value, _pass)
 		;	{AN == hasPassword}
 		->	add_DBConnection(IN, _dsn, _user, Value)
+		
+		%Simple
 		;	{AN == hasQuery}
 		->	add_DBAccess(IN, _conn, query(Value), _negA)
 		;	{AN == hasNegQuery}
 		->	add_DBAccess(IN, _conn, _a, query(Value))
+		
+		%Extended Simple
+		;	{AN == hasRetrievalQuery}
+		->	add_DBAccess(IN, _conn, queries(Value, _check), _negA)
+		;	{AN == hasCheckQuery}
+		->	add_DBAccess(IN, _conn, queries(_retr, Value), _negA)
+		;	{AN == hasNegRetrievalQuery}
+		->	add_DBAccess(IN, _conn, _a, queries(Value, _check))
+		;	{AN == hasNegCheckQuery}
+		->	add_DBAccess(IN, _conn, _a, queries(_retr, Value))
+		;	{AN == hasRoleRetrievalQuery}
+		->	add_DBAccess(IN, _conn, queries(Value, _retrO, _retrS, _check), _negA)
+		;	{AN == hasRetrieveObjectQuery}
+		->	add_DBAccess(IN, _conn, queries(_retr, Value, _retrS, _check), _negA)
+		;	{AN == hasRetrieveSubjectQuery}
+		->	add_DBAccess(IN, _conn, queries(_retr, _retrO, Value, _check), _negA)
+		;	{AN == hasRoleCheckQuery}
+		->	add_DBAccess(IN, _conn, queries(_retr, _retrO, _retrS, Value), _negA)
+		
+		%Complex
 		;	{AN == hasTable}
 		->	add_DBAccess(IN, _conn, table(Value, _col), _negA)
 		;	{AN == hasColumn}
@@ -334,6 +358,14 @@ dbRoleName1(hasUserName).
 dbRoleName1(hasPassword).
 dbRoleName1(hasQuery).
 dbRoleName1(hasNegQuery).
+dbRoleName1(hasRetrievalQuery).
+dbRoleName1(hasCheckQuery).
+dbRoleName1(hasRoleRetrievalQuery).
+dbRoleName1(hasRetrieveObjectQuery).
+dbRoleName1(hasRetrieveSubjectQuery).
+dbRoleName1(hasRoleCheckQuery).
+dbRoleName1(hasNegRetrievalQuery).
+dbRoleName1(hasNegCheckQuery).
 dbRoleName1(hasTable).
 dbRoleName1(hasColumn).
 dbRoleName1(hasLHS).
@@ -450,6 +482,14 @@ clearDBaccesses1([Functor-AName | DBPredicates], DBAccesses, DBPredicates1) :-
 	
 
 good_access(query(Q)) :- nonvar(Q).
+good_access(queries(IRetrievalQ, ICheckQ)) :- 
+	nonvar(IRetrievalQ),
+	nonvar(ICheckQ).
+good_access(queries(IRetrievalQ, ICheck1Q, ICheck2Q, ICheck12Q)) :- 
+	nonvar(IRetrievalQ),
+	nonvar(ICheck1Q),
+	nonvar(ICheck2Q),
+	nonvar(ICheck12Q).
 good_access(table(T, C1-C2)) :- 
 	nonvar(T),
 	nonvar(C1),

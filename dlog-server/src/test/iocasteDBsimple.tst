@@ -1,6 +1,7 @@
 options([abox_target(allinonefile), tbox_target(allinonefile), indexing(yes)]).
 options([abox_target(allinonefile), tbox_target(allinonefile), indexing(no)]). %All DB -> indexing doesn't help at all
 options([indexing(no)]).
+options([indexing(yes)]).
 
 concept('Good').
 concept('Patricide').
