@@ -1,0 +1,228 @@
+% gtrace,test.
+:- module(presql_struct2sql,[struct2query/4]).
+:- use_module('zsl_util').
+:- use_module('assoc_array').
+:- use_module(library(lists)).
+
+
+struct2query(union_body,[],'',Id).
+   
+struct2query(union_body,[H|T],SQLQuery,Id):-
+   (
+      T=[]
+      ->
+      struct2query(top_level,H,SQLQuery,Id)
+   ;
+      struct2query(top_level,H,QH,Id),
+      struct2query(union_body,T,QT,Id),
+      atom_append(['('+QH+')'+' UNION '+'('+QT+')'],SQLQuery)
+   ).
+
+struct2query(mem_top,Struct,SQLQuery,Id):-
+   (
+      Struct = mem_abox(TID,[X,Y],PRN,Inst)
+      ->
+      struct2query(mem_list_role,Inst,NestedQuery,Id),
+      atom_append(['SELECT * FROM ( '+NestedQuery+' ) as t_'+TID],SQLQuery)
+   ;
+      Struct = mem_abox(TID,[X],PRN,Inst)
+      ->
+      struct2query(mem_list_concept,Inst,NestedQuery,Id),
+      atom_append(['SELECT * FROM ( '+NestedQuery+' ) as t_'+TID],SQLQuery)   
+   ).
+
+struct2query(mem_list_concept,[H|T],SQLQuery,Id):-
+   (
+      T = []
+      ->
+      atom_append(['(SELECT \''+H+'\' AS subject)'],SQLQuery)
+   ;   
+      struct2query(mem_list_concept,T,SQLQuery2,Id),
+      atom_append(['(SELECT \''+H+'\' AS subject) UNION '+SQLQuery2],SQLQuery)
+   ).
+   
+
+struct2query(mem_list_role,[HX-HY|T],SQLQuery,Id):-
+   (
+      T = []
+      ->
+      atom_append(['(SELECT * FROM ( SELECT \''+HX+'\' AS subject) as tmp1, (SELECT \''+HY+'\' AS object) as tmp2)'],SQLQuery)
+   ;   
+      struct2query(mem_list_role,T,SQLQuery2,Id),
+      atom_append(['(SELECT * FROM ( SELECT \''+HX+'\' AS subject) as tmp1, (SELECT \''+HY+'\' AS object) as tmp2) UNION '+SQLQuery2],SQLQuery)
+   ).   
+
+%TODO
+struct2query(lambda_body,PreSqlStruct,SQLQuery,Id):-
+   PreSqlStruct = lambda(_,[X],LBody),
+   % legfelso szint fejreszeinek valtozoit gyujti ossze
+   collect_variables(LBody,InvertedStruct),
+   invertedS2sql(LBody,InvertedStruct,FromTablesSQL,WhereSQL,Id),
+   pop_multi_assoc(X,InvertedStruct,TID/ParamNum,_),
+   (
+      ParamNum = 1
+      ->
+      Column = 'subject '
+   ;
+      ParamNum = 2
+      ->
+      Column = 'object '
+   ),
+   atom_append(['SELECT t_'+TID+'.'+Column+' FROM  '+FromTablesSQL+'  '+WhereSQL],SQLQuery).
+   
+invertedS2sql(LBody,InvertedStruct,FromTablesSQL,WhereSQL,Id):-
+   invertedS2sql_fromtable_iterator(LBody,FromTablesSQL,Id),
+   assoc_to_keys(InvertedStruct,Vars),
+   invertedS2sql_where_iterator(Vars,InvertedStruct,'',WhereSQL2,first=true),
+   atom_append([' WHERE true '+WhereSQL2],WhereSQL).
+   
+             
+% TODO 
+% innen folytatni a debuggolast
+invertedS2sql_fromtable_iterator(LBody,SQLQuery,Id):-
+   (
+      LBody = ','(H,T)
+      ->
+      (
+      arg(1,H,TID),
+      struct2query(top_level,H,NestedQuerySQL2,Id),
+      invertedS2sql_fromtable_iterator(T,NestedQuerySQL3,Id),
+      atom_append([' ( '+NestedQuerySQL2+' ) as t_'+TID+' ,'+NestedQuerySQL3],SQLQuery)
+      )
+   ;
+      arg(1,LBody,TID),
+      struct2query(top_level,LBody,NestedQuerySQL2,Id),
+      atom_append([' ( '+NestedQuerySQL2+' ) as t_'+TID+' '],SQLQuery)
+   ).   
+
+% [H|T] is the list of all the Vars that occur in clause heads   
+invertedS2sql_where_iterator([H|T],InvertedStruct,WhereSQLIn,WhereSQLOut,first=First):-
+   get_assoc(H,InvertedStruct,TIDS),
+   (
+      T=[]
+      ->
+      invertedS2sql_where_iterator_iterator(TIDS,CondPartSQL,first=First),
+      atom_append([WhereSQLIn+CondPartSQL],WhereSQLOut)
+   ;
+         
+      invertedS2sql_where_iterator_iterator(TIDS,CondPartSQL,first=First),
+      atom_append([WhereSQLIn+CondPartSQL],WhereSQL2),
+      invertedS2sql_where_iterator(T,InvertedStruct,WhereSQL2,WhereSQLOut,first=false)
+   ).
+      
+invertedS2sql_where_iterator_iterator(TIDS,CondPartSQL,first=First):-
+   (
+      % legalabb 2 valtozo kell a joinhoz
+      TIDS=[_]      
+      ->
+      CondPartSQL=''
+   ;
+      (
+         (
+            First = true -> And = ' and '
+         ;
+            And = ' and '
+         ),
+         TIDS = [H1|[H2|T]],
+         H1 = TID1/ParamNumber1,
+         (
+            ParamNumber1 = 1
+            ->
+            atom_append([And+' t_'+TID1+'.subject '],CondPart2)
+         ;
+            ParamNumber1 = 2
+            ->
+            atom_append([And+' t_'+TID1+'.object '],CondPart2)
+         ),
+         H2 = TID2/ParamNumber2,
+         (
+            ParamNumber2 = 1
+            ->
+            atom_append([CondPart2+'= t_'+TID2+'.subject '],CondPart3)
+         ;
+            ParamNumber2 = 2
+            ->
+            atom_append([CondPart2+'= t_'+TID2+'.object '],CondPart3)
+         ),
+         (
+            T=[]
+            ->
+            CondPartSQL = CondPart3
+         ;
+            invertedS2sql_where_iterator_iterator([H2|T],CondPart4,first=false),
+            atom_append([CondPart3+CondPart4],CondPartSQL)
+         )
+      )
+   ).
+  
+
+collect_variables(LBody,InvertedStruct):-
+   empty_assoc(AssocIn),
+   collect_variables_iterator(LBody,AssocIn,InvertedStruct).
+
+collect_variables_iterator(LBody,AssocIn,AssocOut):-
+   (
+      LBody = ','(H,T)
+      ->
+      (
+      collect_variables_helper(H,AssocIn,Assoc2),
+      collect_variables_iterator(T,Assoc2,AssocOut)
+      )
+   ;
+      collect_variables_helper(LBody,AssocIn,AssocOut)
+   ).
+
+
+collect_variables_helper(Elem,AssocIn,AssocOut):-   
+   Elem=..HList,
+   nth0(1,HList,TID),
+   nth0(2,HList,Vars),
+   
+   Vars = [VH|VB],
+   put_multi_assoc(VH,AssocIn,TID/1,Assoc2),
+   (
+      VB = []
+      ->
+      AssocOut = Assoc2
+      
+   ;
+      VB = [VH2|[]],
+      put_multi_assoc(VH2,Assoc2,TID/2,AssocOut)
+   ).
+   
+   
+   
+   
+
+struct2query(top_level,PreSqlStruct,SQLQuery,Id):-
+   %breakc(arg(1,PreSqlStruct,14)),
+   (
+      %TID:Table ID
+      PreSqlStruct = union(TID,_,UBody)
+      ->
+      struct2query(union_body,UBody,SQLQNested,Id),
+      atom_append(['SELECT * FROM ( '+SQLQNested+' ) AS t_'+TID],SQLQuery)            
+   ;
+      PreSqlStruct = lambda(TID,[X],LBody)
+      ->
+      struct2query(lambda_body,PreSqlStruct,SQLQuery,Id)
+   ;
+      PreSqlStruct = sql_abox(TID,[X,Y],PRN)
+      ->
+      dl2sql_role_db_abox(Id,PRN-[_,_],query(Qtmp)),
+      atom_append(['SELECT * FROM ('+Qtmp+')'+' AS '+'t_'+TID],SQLQuery)
+   ;
+      PreSqlStruct = sql_abox(TID,[X],PRN)
+      ->
+      dl2sql_concept_db_abox(Id,normal(PRN)-[_],query(Qtmp)),
+      atom_append(['SELECT * FROM ('+Qtmp+')'+' AS '+'t_'+TID],SQLQuery)      
+   ;   
+   
+      PreSqlStruct = mem_abox(TID,_,_,_)
+      ->
+      struct2query(mem_top,PreSqlStruct,SQLQuery,Id)
+   ).
+   
+
+%:- spy(struct2query/4).    
+:- spy(invertedS2sql_fromtable_iterator/3).
