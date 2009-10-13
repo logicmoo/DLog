@@ -16,8 +16,9 @@
 write_rule(IOFD,Rule):-
    writec('\n----------------------\n\n'+Rule).
 /*   
- a Trivial valtozo azt mutatja, hogy egy egyszeru abox hivatkozasrol 
+  
  van-e szo, vagy egy bonyolultabb szabályrõl (trivialis szerep ill. fogalom)
+ The Trivial variable shows whether it's about a simple Abox ref or it's a compund concept/role
 */ 
 filter_role(Rule,[trivial=Trivial],Id):-
    (
@@ -172,6 +173,7 @@ plate(Query,PlatedQuery,Id):-
 */
 
 % az adott fogalmat megkeresi az aboxban (adatbazis ill. memoria)
+% searches the concept in the Abox ( DB or memory )
 make_concept_aboxref(Id,Query,RefList):-
    Query = normal(PRN)-[X],
    (
@@ -216,8 +218,17 @@ make_role_aboxref(Id,Query,RefList):-
    
    
    
-   
+commalist2list(CommaL,List):-
+	(   
+	CommaL = ','(H,T) ->	
+	List = [H|TC],
+	    commalist2list(T,TC)
+	;   
+	List = [CommaL|[]]
+	).
 
+   
+% plates compund concepts/roles: the output is PreSQLStruct
 plate(Query,PlatedQuery,Id):-
    
    (
@@ -225,10 +236,12 @@ plate(Query,PlatedQuery,Id):-
       ->
       (
          Query = normal(PRN)-[X],
-         tmp_id(Lambdaid),
+         tmp_id(JoinId),
          tmp_id(Unionid),
-         Derivative_concept = lambda(Lambdaid,[X],Plated_RHS),
+
          plate(Concept_RHS,Plated_RHS,Id),
+         commalist2list(Plated_RHS,Pl_RHS_List),       
+         Derivative_concept = join(JoinId,[X],Pl_RHS_List),       
          make_concept_aboxref(Id,Query,Aboxref),
          append([Derivative_concept],Aboxref,UnionList),
          PlatedQuery = union(Unionid,[X],UnionList)
@@ -322,13 +335,13 @@ query_predicates_to_sql(TransformedTBox, QueryPredicates, _DBConnections, DBPred
    plate(QBody,PlatedQuery,Id),   
    
    tmp_id(TID),
-   PreSqlStruct = lambda(TID,[X],PlatedQuery),
-   writec('\n\nkilapitott query:\n'+PreSqlStruct),
+   PreSqlStruct = join(TID,[X],[PlatedQuery]),
+   writec('\n\nplated query:\n'+PreSqlStruct),
    (
       struct2query(top_level,PreSqlStruct,SQLQuery,Id),!,
-      writec('\nsqlq:\n\n '+SQLQuery+'\n\n')
+      writec('\nSQL query:\n\n '+SQLQuery+'\n\n')
    ;
-      write('\nnem sikerult a struct2query\n')
+      write('\nstruct2query failed\n')
    ).   
 
    
@@ -385,7 +398,7 @@ test:-
    Query = X-(normal(c)-[X]),
    test_file_to_sql('zsl_test06.tst',_,true,Query).
     
-
+% to see how the transformed Tbox looks like; must see, if you want to mess with this file; see the commented part in the body of "test_file_to_sql"
 write_axioms(axioms(ImpliesCL, ImpliesRL, TransL, ABox, 
 						_Concepts, _Roles, DBConnections, DBPredicates)):-
    writec(
@@ -398,7 +411,7 @@ write_axioms(axioms(ImpliesCL, ImpliesRL, TransL, ABox,
       '\n\nDBConnections:\n'+DBConnections+
       '\n\nDBPredicates:\n'+DBPredicates).
    
-%%%%%%%%%%%%%%%%%%%%  Axioms formátum
+%%%%%%%%%%%%%%%%%%%%  Axioms format
 
 %   axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates):
 %   1. ImpliesCL: concept inclusion axioms:

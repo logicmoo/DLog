@@ -1,5 +1,3 @@
-% atom_concattal valo probalkozas
-
 :- module(zsl_util,[atom_append/2,writec/1,writec/2,
    foldl/4,foldr/4,map/3,filter/3,
    filter_distinct/2,
@@ -10,7 +8,7 @@
 
 :- use_module(library(lists)).
 
-   
+% usage: atom_append([a+b+c],abc).   
 atom_append([Atoms],Out):-
    atom_append2(Atoms,Out). 
    
@@ -23,7 +21,7 @@ atom_append2(H,H).
 :- abolish(tmp_id_counter/1).
 :- dynamic(tmp_id_counter/1).
 
-% szamlalo az atmeneti tablak megszamozasara
+% counter for temporary tables and other stuff that might need a unique ID
 tmp_id_counter(1).
 tmp_id(X):- 
    tmp_id_counter(X),
@@ -32,7 +30,7 @@ tmp_id(X):-
    assert(tmp_id_counter(X1)),
    breakc(X=14).
 
-   
+% similar to atom_append, but it prints the result   
 writec(H+T):-   
    !,writec(H),
    write_term(T,[]).
@@ -49,7 +47,7 @@ writec(IOFD,H+T):-
 writec(IOFD,E):-
    write_term(IOFD,E,[]).   
    
-% azt szuri ki, amire Goal nem teljesul
+% filters out for what Goal is false
 filter([],_,[]).      
 filter([H|T],X-Goal,Out):-
    copy_term(X-Goal,CX-CGoal),
@@ -61,10 +59,9 @@ filter([H|T],X-Goal,Out):-
       Out = FTail
    ).
    
+% map(+InList,+Func,-OutList)   
+% Func = (+X,-Y)-(Funcbody)
 map([],_,[]).
-% +[H|T],+Goal,
-% (X,Y):A Goal fejresze
-% Goal(X)=Y
 map([H|T],(X,Y)-Goal,[H2|T2]):-
    copy_term(X-Y-Goal,X2-Y2-Goal2),
    X2=H,
@@ -116,7 +113,7 @@ foldl_helper(T,H,(X1,X2,Y)-Goal,Init,Out):-
    call(GoalC),
    foldl(T,(X1,X2,Y)-Goal,YC,Out).
    
-% kiszuri az ismetlodeseket   
+% filters out the recurrence
 filter_distinct([InH|InT],Out):-
    !,filter(InT,X-(X\==InH),InTFilt),   
    filter_distinct(InTFilt,Out2),
@@ -126,12 +123,15 @@ filter_distinct([InH|InT],Out):-
 filter_distinct([E],[E]).
 filter_distinct([],[]).
    
+% utility for listing predicates beginning with a prefix
 listing_prefix(Pref,Name/Arity):-
    current_functor(Name,Arity),
    atom_concat(Pref,_,Name).
 
+% breakpoint - it always breaks   
 break1.
 
+% conditional breakpoint
 breakc(G):-
    (
       call(G) ->

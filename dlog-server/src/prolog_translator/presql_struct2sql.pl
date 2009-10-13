@@ -52,9 +52,9 @@ struct2query(mem_list_role,[HX-HY|T],SQLQuery,Id):-
       atom_append(['(SELECT * FROM ( SELECT \''+HX+'\' AS subject) as tmp1, (SELECT \''+HY+'\' AS object) as tmp2) UNION '+SQLQuery2],SQLQuery)
    ).   
 
-%TODO
-struct2query(lambda_body,PreSqlStruct,SQLQuery,Id):-
-   PreSqlStruct = lambda(_,[X],LBody),
+
+struct2query(join_body,PreSqlStruct,SQLQuery,Id):-
+   PreSqlStruct = join(_,[X],LBody),
    % legfelso szint fejreszeinek valtozoit gyujti ossze
    collect_variables(LBody,InvertedStruct),
    invertedS2sql(LBody,InvertedStruct,FromTablesSQL,WhereSQL,Id),
@@ -77,11 +77,9 @@ invertedS2sql(LBody,InvertedStruct,FromTablesSQL,WhereSQL,Id):-
    atom_append([' WHERE true '+WhereSQL2],WhereSQL).
    
              
-% TODO 
-% innen folytatni a debuggolast
 invertedS2sql_fromtable_iterator(LBody,SQLQuery,Id):-
    (
-      LBody = ','(H,T)
+      LBody = [H|T],T\=[]
       ->
       (
       arg(1,H,TID),
@@ -90,12 +88,13 @@ invertedS2sql_fromtable_iterator(LBody,SQLQuery,Id):-
       atom_append([' ( '+NestedQuerySQL2+' ) as t_'+TID+' ,'+NestedQuerySQL3],SQLQuery)
       )
    ;
-      arg(1,LBody,TID),
-      struct2query(top_level,LBody,NestedQuerySQL2,Id),
+      LBody = [LB],
+      arg(1,LB,TID),
+      struct2query(top_level,LB,NestedQuerySQL2,Id),
       atom_append([' ( '+NestedQuerySQL2+' ) as t_'+TID+' '],SQLQuery)
    ).   
 
-% [H|T] is the list of all the Vars that occur in clause heads   
+% [H|T] is the list of all the Vars that occur in "clause" heads   
 invertedS2sql_where_iterator([H|T],InvertedStruct,WhereSQLIn,WhereSQLOut,first=First):-
    get_assoc(H,InvertedStruct,TIDS),
    (
@@ -110,6 +109,9 @@ invertedS2sql_where_iterator([H|T],InvertedStruct,WhereSQLIn,WhereSQLOut,first=F
       invertedS2sql_where_iterator(T,InvertedStruct,WhereSQL2,WhereSQLOut,first=false)
    ).
       
+
+% the "first" arg isn't used for now;
+% it would indicate whether an "and" word is needed in the "WHERE" part
 invertedS2sql_where_iterator_iterator(TIDS,CondPartSQL,first=First):-
    (
       % legalabb 2 valtozo kell a joinhoz
@@ -162,14 +164,15 @@ collect_variables(LBody,InvertedStruct):-
 
 collect_variables_iterator(LBody,AssocIn,AssocOut):-
    (
-      LBody = ','(H,T)
+      LBody = [H|T],T\=[]
       ->
       (
       collect_variables_helper(H,AssocIn,Assoc2),
       collect_variables_iterator(T,Assoc2,AssocOut)
       )
    ;
-      collect_variables_helper(LBody,AssocIn,AssocOut)
+      LBody = [LB],
+      collect_variables_helper(LB,AssocIn,AssocOut)
    ).
 
 
@@ -203,9 +206,9 @@ struct2query(top_level,PreSqlStruct,SQLQuery,Id):-
       struct2query(union_body,UBody,SQLQNested,Id),
       atom_append(['SELECT * FROM ( '+SQLQNested+' ) AS t_'+TID],SQLQuery)            
    ;
-      PreSqlStruct = lambda(TID,[X],LBody)
+      PreSqlStruct = join(TID,[X],LBody)
       ->
-      struct2query(lambda_body,PreSqlStruct,SQLQuery,Id)
+      struct2query(join_body,PreSqlStruct,SQLQuery,Id)
    ;
       PreSqlStruct = sql_abox(TID,[X,Y],PRN)
       ->
