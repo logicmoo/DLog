@@ -45,7 +45,11 @@ INSERT INTO `items` (`subject`, `c`, `b`, `d`) VALUES
 ('q5', 1, 0, 0),
 ('q6', 1, 0, 1),
 ('q7', 1, 1, 0),
-('q8', 1, 1, 1);
+('q8', 1, 1, 1),
+('qx9', 0, 1, 0),
+('qx10', 0, 0, 0),
+('qx11', 0, 0, 0),
+('qx12', 0, 0, 1);
 
 -- --------------------------------------------------------
 
@@ -65,7 +69,10 @@ CREATE TABLE IF NOT EXISTS `relationship_a` (
 
 INSERT INTO `relationship_a` (`subject`, `object`) VALUES
 ('q1', 'q2'),
-('q1', 'q4');
+('q1', 'q4'),
+('qx9','q3'),
+('qx10', 'qx11');
+
 
 -- --------------------------------------------------------
 
@@ -86,7 +93,8 @@ CREATE TABLE IF NOT EXISTS `relationship_e` (
 INSERT INTO `relationship_e` (`subject`, `object`) VALUES
 ('q1', 'q4'),
 ('q4', 'q3'),
-('q4', 'q2');
+('q4', 'q2'),
+('qx11','qx12');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
