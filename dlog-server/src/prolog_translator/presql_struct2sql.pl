@@ -49,7 +49,7 @@ struct2query(mem_list_concept,[H|T],SQLQuery,first=false,Id):-
    (
       T = []
       ->
-      atom_append(['SELECT \''+H+'\' AS subject '],SQLQuery)
+      atom_append(['SELECT \''+H+'\' '],SQLQuery)
    ;   
       struct2query(mem_list_concept,T,SQLQuery2,first=false,Id),
       atom_append(['SELECT \''+H+'\' UNION '+SQLQuery2],SQLQuery)
