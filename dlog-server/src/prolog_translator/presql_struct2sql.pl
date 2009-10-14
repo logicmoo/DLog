@@ -7,51 +7,75 @@
 
 struct2query(union_body,[],'',Id).
    
+
+   
 struct2query(union_body,[H|T],SQLQuery,Id):-
    (
       T=[]
       ->
-      struct2query(top_level,H,SQLQuery,Id)
+      struct2query(top_level,H,SQLQNested,Id),
+      atom_append(['('+SQLQNested+')'],SQLQuery)
    ;
       struct2query(top_level,H,QH,Id),
       struct2query(union_body,T,QT,Id),
-      atom_append(['('+QH+')'+' UNION '+'('+QT+')'],SQLQuery)
+      atom_append(['('+QH+')'+' UNION '+QT],SQLQuery)
    ).
+   
 
 struct2query(mem_top,Struct,SQLQuery,Id):-
    (
       Struct = mem_abox(TID,[X,Y],PRN,Inst)
       ->
-      struct2query(mem_list_role,Inst,NestedQuery,Id),
+      struct2query(mem_list_role,Inst,NestedQuery,first=true,Id),
       atom_append(['SELECT * FROM ( '+NestedQuery+' ) as t_'+TID],SQLQuery)
    ;
       Struct = mem_abox(TID,[X],PRN,Inst)
       ->
-      struct2query(mem_list_concept,Inst,NestedQuery,Id),
+      struct2query(mem_list_concept,Inst,NestedQuery,first=true,Id),
       atom_append(['SELECT * FROM ( '+NestedQuery+' ) as t_'+TID],SQLQuery)   
    ).
 
-struct2query(mem_list_concept,[H|T],SQLQuery,Id):-
+struct2query(mem_list_concept,[H|T],SQLQuery,first=true,Id):-
    (
       T = []
       ->
-      atom_append(['(SELECT \''+H+'\' AS subject)'],SQLQuery)
+      atom_append(['SELECT \''+H+'\' AS subject'],SQLQuery)
    ;   
-      struct2query(mem_list_concept,T,SQLQuery2,Id),
-      atom_append(['(SELECT \''+H+'\' AS subject) UNION '+SQLQuery2],SQLQuery)
+      struct2query(mem_list_concept,T,SQLQuery2,first=false,Id),
+      atom_append(['SELECT \''+H+'\' AS subject UNION '+SQLQuery2],SQLQuery)
+   ).
+
+struct2query(mem_list_concept,[H|T],SQLQuery,first=false,Id):-
+   (
+      T = []
+      ->
+      atom_append(['SELECT \''+H+'\' AS subject '],SQLQuery)
+   ;   
+      struct2query(mem_list_concept,T,SQLQuery2,first=false,Id),
+      atom_append(['SELECT \''+H+'\' UNION '+SQLQuery2],SQLQuery)
    ).
    
 
-struct2query(mem_list_role,[HX-HY|T],SQLQuery,Id):-
+struct2query(mem_list_role,[HX-HY|T],SQLQuery,first=true,Id):-
    (
       T = []
       ->
-      atom_append(['(SELECT * FROM ( SELECT \''+HX+'\' AS subject) as tmp1, (SELECT \''+HY+'\' AS object) as tmp2)'],SQLQuery)
+      atom_append(['SELECT \''+HX+'\' AS subject, \''+HY+'\' AS object '],SQLQuery)
    ;   
-      struct2query(mem_list_role,T,SQLQuery2,Id),
-      atom_append(['(SELECT * FROM ( SELECT \''+HX+'\' AS subject) as tmp1, (SELECT \''+HY+'\' AS object) as tmp2) UNION '+SQLQuery2],SQLQuery)
+      struct2query(mem_list_role,T,SQLQuery2,first=false,Id),
+      atom_append(['SELECT \''+HX+'\' AS subject, \''+HY+'\' AS object UNION '+SQLQuery2],SQLQuery)
    ).   
 
+struct2query(mem_list_role,[HX-HY|T],SQLQuery,first=false,Id):-
+   (
+      T = []
+      ->
+      atom_append(['SELECT \''+HX+'\', \''+HY+'\' '],SQLQuery)
+   ;   
+      struct2query(mem_list_role,T,SQLQuery2,first=false,Id),
+      atom_append(['SELECT \''+HX+'\', \''+HY+'\' UNION '+SQLQuery2],SQLQuery)
+   ).   
+   
 
 struct2query(join_body,PreSqlStruct,SQLQuery,Id):-
    PreSqlStruct = join(_,[X],LBody),
@@ -91,6 +115,7 @@ invertedS2sql_fromtable_iterator(LBody,SQLQuery,Id):-
       LBody = [LB],
       arg(1,LB,TID),
       struct2query(top_level,LB,NestedQuerySQL2,Id),
+%      NestedQuerySQL2 = SQLQuery
       atom_append([' ( '+NestedQuerySQL2+' ) as t_'+TID+' '],SQLQuery)
    ).   
 
@@ -198,7 +223,7 @@ collect_variables_helper(Elem,AssocIn,AssocOut):-
    
 
 struct2query(top_level,PreSqlStruct,SQLQuery,Id):-
-   %breakc(arg(1,PreSqlStruct,14)),
+   breakc(arg(1,PreSqlStruct,5)),
    (
       %TID:Table ID
       PreSqlStruct = union(TID,_,UBody)
@@ -208,7 +233,8 @@ struct2query(top_level,PreSqlStruct,SQLQuery,Id):-
    ;
       PreSqlStruct = join(TID,[X],LBody)
       ->
-      struct2query(join_body,PreSqlStruct,SQLQuery,Id)
+      struct2query(join_body,PreSqlStruct,SQLQNested,Id),
+      atom_append(['SELECT * FROM ( '+SQLQNested+' ) AS t_'+TID],SQLQuery)      
    ;
       PreSqlStruct = sql_abox(TID,[X,Y],PRN)
       ->
