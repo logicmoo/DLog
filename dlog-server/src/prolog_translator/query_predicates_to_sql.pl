@@ -334,8 +334,11 @@ query_predicates_to_sql(TransformedTBox, QueryPredicates, _DBConnections, DBPred
    %writec('\nplate elott:\n'+Query),
    plate(QBody,PlatedQuery,Id),   
    
+   /*
    tmp_id(TID),
    PreSqlStruct = join(TID,[X],[PlatedQuery]),
+   */
+   PlatedQuery = PreSqlStruct,
    writec('\n\nplated query:\n'+PreSqlStruct),
    (
       struct2query(top_level,PreSqlStruct,SQLQuery,Id),!,
