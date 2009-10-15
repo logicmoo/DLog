@@ -28,7 +28,6 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE IF NOT EXISTS `items` (
   `subject` text,
-  `c` tinyint(1) DEFAULT NULL,
   `b` tinyint(1) DEFAULT NULL,
   `d` tinyint(1) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
@@ -37,19 +36,19 @@ CREATE TABLE IF NOT EXISTS `items` (
 -- Dumping data for table `items`
 --
 
-INSERT INTO `items` (`subject`, `c`, `b`, `d`) VALUES
-('q1', 0, 0, 0),
-('q2', 0, 0, 1),
-('q3', 0, 1, 0),
-('q4', 0, 1, 1),
-('q5', 1, 0, 0),
-('q6', 1, 0, 1),
-('q7', 1, 1, 0),
-('q8', 1, 1, 1),
-('qx9', 0, 1, 0),
-('qx10', 0, 0, 0),
-('qx11', 0, 0, 0),
-('qx12', 0, 0, 1);
+INSERT INTO `items` (`subject`, `b`, `d`) VALUES
+('q1' , 0, 0),
+('q2' , 0, 1),
+('q3' , 1, 0),
+('q4' , 1, 1),
+('q5' , 0, 0),
+('q6' , 0, 1),
+('q7' , 1, 0),
+('q8' , 1, 1),
+('qx9' , 1, 0),
+('qx10' , 0, 0),
+('qx11' , 0, 0),
+('qx12' , 0, 1);
 
 -- --------------------------------------------------------
 
