@@ -6,7 +6,7 @@ t(1,join(1,[X],[mem_abox(2,[X],d,[i1])])).
 
 t(2,join(1,[X],[mem_abox(2,[X],d,[i2,i3])])).
 
-t(3,union(1,[X],[mem_abox(2,[X],d,[i2,i3]),mem_abox(3,[X],e,[i4])])]).
+t(3,union(1,[X],[mem_abox(2,[X],d,[i2,i3]),mem_abox(3,[X],e,[i4])])).
 
 t(4,join(1,[X],[mem_abox(2,[X],a,[1,2,4]),mem_abox(3,[X],b,[2,3])])).
 
@@ -44,7 +44,13 @@ t(9,union(5,[X],
 
 t(10,
    
-   mem_abox(2,[X],d,[i2,i3])
+   mem_abox(2,[X],d,[i2,i3,i4,i5])
+   
+).
+
+t(11,
+   
+   mem_abox(2,[X,Y],d,[i2-q2,i3-q3,i4-q4,i5-q5])
    
 ).
 
