@@ -3,7 +3,9 @@
    filter_distinct/2,
    tmp_id/1,
    breakc/1,break1/0,
-   listing_prefix/2   
+   listing_prefix/2,
+   append_all/2,
+   tr/0   
    ]).
 
 :- use_module(library(lists)).
@@ -140,4 +142,18 @@ breakc(G):-
       true
    ).
    
-:- spy(break1/0).   
+:- spy(break1/0).
+
+append_all([[]],[]):-!.
+% this only matches a list with one element
+append_all([[X]],[X]):-!.
+append_all([H1,H2|T],Out):-
+   append(H1,H2,Res),
+   ( 
+      T = [] ->
+      Out = Res
+   ;
+      append_all([Res|T],Out)
+   ).
+   
+tr:- gtrace,trace.   

@@ -48,16 +48,17 @@ filter_role(Rule,[trivial=Trivial],Id):-
             ,writec('\n  role \n'+
             T+'\n\n')
          )
-      ;      
-      %szerep tartalmazas      
-      %ezeket egyelore nem dolgozom fel      
+      ;           
       Rule = role(inv(_)-[],hierarchy,_)
       ->
       Trivial = true      
-      ;      
-      Rule = role(_-[],hierarchy,_)
-      
-      
+      ;     
+      % TODO hier filter role
+      %szerep tartalmazas      
+      %ezeket egyelore nem dolgozom fel            
+      Rule = role(PRN-[],hierarchy,[PRN-[V1,V2]:-PRN2-[V1,V2]]),
+      assert(dl2sql_role(Id,PRN-[V1,V2],PRN2-[V1,V2])),
+      assert(dl2sql_role(Id,inv(PRN)-[V1,V2],inv(PRN2)-[V1,V2]))          
    ).
 
 filter_concept(Rule,[trivial=Trivial],Id):-
@@ -123,10 +124,11 @@ assert_concepts([H|T],Id):-
    assert(dl2sql_concept(Id,HC,HB)),
    assert_concepts(T,Id).
    
-   
-
+/*   
+ The so called Transformed TBox still has some ABOX references, so 
+ I just print them and mark them as "trivial". It also aserts the "non-trivial" ones.
+ */
 filter_trivial(IOFD,Rule,Id):-
-%   Rule  \= concept(not(_)-_,_,_),
    FilterVar=[type=Type,trivial=Trivial],
    (
       Rule = concept(_-_,_,PredList) ->
@@ -150,7 +152,6 @@ assert_dbpredicates([H|T],Id):-
    assert(dl2sql_dbpredicate(Id,H)),
    assert_dbpredicates(T,Id).
 
-   
 /*
 plate(Query,PlatedQuery,Id):-
 
@@ -177,7 +178,7 @@ plate(Query,PlatedQuery,Id):-
 make_concept_aboxref(Id,Query,RefList):-
    Query = normal(PRN)-[X],
    (
-      clause(dl2sql_concept_db_abox(Id,Query,_),_)
+      dl2sql_concept_db_abox(Id,Query,_)
       ->
       tmp_id(TID1),
       TMP1 = [sql_abox(TID1,[X],PRN)]
@@ -227,26 +228,61 @@ commalist2list(CommaL,List):-
 	List = [CommaL|[]]
 	).
 
+% TODO compound role - yet to be tested
+plate_compound_role(Query,PlatedQuery,Id):-
+   bagof(PLQNested,
+   (
+      dl2sql_role(Id,Query,RHS),plate(RHS,PLQNested,Id)
+   ),RHS_list),
+   tmp_id(TID),   
+   make_role_aboxref(Id,Query,AboxList),
+   Query = PRN-[X,Y],
+   append(RHS_list,AboxList,List),
+   PlatedQuery = union(TID,[X,Y],List).     
+   
+plate_compound_concept(Query,PlatedQuery,Id):-
+   Query = normal(PRN)-[X],
+   bagof(Concept_RHS,
+      (
+         dl2sql_concept(Id,Query,Concept_RHS)
+      ),List_of_RHS),
+      plate_compound_concept_it(List_of_RHS,Joins,[X],Id),
+   %TODO compund concept - yet to be tested
+   %break1,
+           
+                  
+   % and we add the Abox too
+   tmp_id(Unionid),
+   make_concept_aboxref(Id,Query,Aboxref),
+   append(Joins,Aboxref,UnionList),
+   PlatedQuery = union(Unionid,[X],UnionList).
+   
+plate_compound_concept_it([],[],_,Id).   
+plate_compound_concept_it([H|T],Joins,[X],Id):-
+         plate(H,Plated_H,Id),
+         commalist2list(Plated_H,JoinBody),
+         plate_compound_concept_it(T,Joins_T,[X],Id),
+         tmp_id(Joinid),
+         Joins= [join(Joinid,[X],JoinBody)|Joins_T].
+         
+         
+         %append(Plated_H_wo_commas,List_of_plated_RHS_T_wo_commas,
+          %  List_of_plated_RHS).
+         
+
    
 % plates compund concepts/roles: the output is PreSQLStruct
-plate(Query,PlatedQuery,Id):-
-   
+plate(Query,PlatedQuery,Id):-   
    (
-      dl2sql_concept(Id,Query,Concept_RHS) 
+   % compound concept - substitution with right hand side
+   clause(dl2sql_concept(Id,Query,_),_)
       ->
-      (
-         Query = normal(PRN)-[X],
-         tmp_id(JoinId),
-         tmp_id(Unionid),
-
-         plate(Concept_RHS,Plated_RHS,Id),
-         commalist2list(Plated_RHS,Pl_RHS_List),       
-         Derivative_concept = join(JoinId,[X],Pl_RHS_List),       
-         make_concept_aboxref(Id,Query,Aboxref),
-         append([Derivative_concept],Aboxref,UnionList),
-         PlatedQuery = union(Unionid,[X],UnionList)
-      )
-      
+   plate_compound_concept(Query,PlatedQuery,Id)      
+   ;
+   %TODO plate role
+   clause(dl2sql_role(Id,Query,_),_)
+      ->
+   plate_compound_role(Query,PlatedQuery,Id)      
    ;
       Query = PRN-[X,Y] ->
       make_role_aboxref(Id,Query,UnionList),
@@ -314,11 +350,15 @@ query_predicates_to_sql(TransformedTBox, QueryPredicates, _DBConnections, DBPred
    tmp_id(Id),
    assert_dbpredicates(DBPredicates,Id),   
    bagof(X,(member(X,TransformedTBox),filter_trivial(IOFD,X,Id)),_),
-   bagof(X,(member(X,DBPredicates),assert_db_abox(Id,X)),_),
    (
-      bagof(X,(member(X,ABox),assert_mem_abox(Id,X)),_),!
+      DBPredicates = [],!
       ;
-      true
+      bagof(X,(member(X,DBPredicates),assert_db_abox(Id,X)),_)
+   ),
+   (
+      ABox = [],!
+      ;
+      bagof(X,(member(X,ABox),assert_mem_abox(Id,X)),_),!      
    ),
 	write(IOFD,'\n\n----Query predicates\n\n'),
 	write(IOFD,querypred(QueryPredicates)),
@@ -330,7 +370,7 @@ query_predicates_to_sql(TransformedTBox, QueryPredicates, _DBConnections, DBPred
 	write(IOFD,abox(ABox)),
    close(IOFD),
 
-   Query=X-QBody,
+   Query=QBody,
    %writec('\nplate elott:\n'+Query),
    plate(QBody,PlatedQuery,Id),   
    
@@ -365,10 +405,10 @@ test_file_to_sql(InFile,SQL,Outstream,Query) :-
 	read_test_file(InFile, axioms(ImpliesCL, ImpliesRL, TransL, ABox, 
 						_Concepts, _Roles, DBConnections, DBPredicates), 
 						_Queries, _Options),
-/*
+%/*
    write_axioms(axioms(ImpliesCL, ImpliesRL, TransL, ABox, 
 						_Concepts, _Roles, DBConnections, DBPredicates)),
-*/                  
+%*/                  
 
 	new_kb(URI),
 	set_dlog_option(unfold, URI, yes),
@@ -395,11 +435,31 @@ test_file_to_sql(InFile,SQL,Outstream,Query) :-
 
 	release_kb(URI).
 
-test:-
+test_subrole(1):-
 %   test_file_to_sql('happy2.tst',_).
 %   Query = X-(normal(not(b))-[X]),
-   Query = X-(normal(c)-[X]),
+   Query = (normal(c)-[X]),
+   test_file_to_sql('zsl_test_subrole01.tst',_,true,Query).
+   
+test_subrole(2):-   
+   Query = (normal(d)-[X]),
+   test_file_to_sql('zsl_test_subrole02.tst',_,true,Query).
+
+
+test(db6):-
+   Query = (normal(c)-[X]),
    test_file_to_sql('zsl_test06.tst',_,true,Query).
+   
+test(db7):-
+   Query = (normal(c)-[X]),
+   test_file_to_sql('zsl_test07.tst',_,true,Query).
+   
+test(db8):-
+   Query = (normal(c)-[X]),
+   test_file_to_sql('zsl_test08.tst',_,true,Query).
+   
+   
+   
     
 % to see how the transformed Tbox looks like; must see, if you want to mess with this file; see the commented part in the body of "test_file_to_sql"
 write_axioms(axioms(ImpliesCL, ImpliesRL, TransL, ABox, 
@@ -412,7 +472,8 @@ write_axioms(axioms(ImpliesCL, ImpliesRL, TransL, ABox,
       '\n\nConcepts:\n'+_Concepts+
       '\n\nRoles:\n'+_Roles+
       '\n\nDBConnections:\n'+DBConnections+
-      '\n\nDBPredicates:\n'+DBPredicates).
+      '\n\nDBPredicates:\n'+DBPredicates+
+      '--------').
    
 %%%%%%%%%%%%%%%%%%%%  Axioms format
 
@@ -458,3 +519,13 @@ select b.a from (((select 'a' as a) union (select 2+1 as a)) as b );
 % a szerepekeknél viszont az inverzet nem kell külön felvenni
 
 */
+/*
+:- spy(plate/3).
+:- spy(query_predicates_to_sql/9).
+:- spy(assert_db_abox/2).
+*/
+%:- spy(filter_concept/3).
+:- spy(plate/3).
+:- spy(plate_compound_concept/3).
+:- dynamic(dl2sql_concept_db_abox/3).
+
