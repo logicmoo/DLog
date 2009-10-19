@@ -54,6 +54,13 @@ t(11,
    
 ).
 
+t(12,
+   union(1,[X,Y],[
+      mem_abox(2,[X,Y],d,[i2-q2,i3-q3]),
+      mem_abox(3,[X,Y],e,[i4-q4,i5-q5])
+   ])   
+).
+
 test(X):-
    t(X,PreSqlStruct),
    struct2query(top_level,PreSqlStruct,SQLQ,1),
