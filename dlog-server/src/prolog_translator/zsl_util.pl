@@ -1,16 +1,31 @@
-:- module(zsl_util,[atom_append/2,writec/1,writec/2,
+
+
+:- module(zsl_util,[atom_append/2,writec/1,writec/2,writecdeb/2,writecdeb/3,
    foldl/4,foldr/4,map/3,filter/3,
    filter_distinct/2,
    tmp_id/1,
    breakc/1,break1/0,
    listing_prefix/2,
    append_all/2,
-   tr/0   
+   tr/0
+%TODO ez miert kerult be?
+%   ,term_expansion/2   
    ]).
+:- meta_predicate
+        writecdeb(+,1).
+:- meta_predicate
+        writecdeb(+,+,1).
+
+      
+    
 
 :- use_module(library(lists)).
 
+
+
+
 % usage: atom_append([a+b+c],abc).   
+% atom_append([+Atoms],?Out):-
 atom_append([Atoms],Out):-
    atom_append2(Atoms,Out). 
    
@@ -29,13 +44,48 @@ tmp_id(X):-
    tmp_id_counter(X),
    X1 is X+1,
    abolish(tmp_id_counter/1),
-   assert(tmp_id_counter(X1)),
-   breakc(X=14).
+   assert(tmp_id_counter(X1)).
+   
 
-% similar to atom_append, but it prints the result   
+% writecdeb: write-compound for debugging
+writecdeb(STR,M:DEBUGFLAG):-!,
+
+    Goal =.. [DEBUGFLAG,X],
+    (
+        call(M:Goal),
+        (
+            X=yes,writec(STR),!;
+            X=no,!;
+            throw('writec exception: illegal flag; only permitted yes or no')
+        )
+    ;
+        throw('writec exception: undefined flag:'+DEBUGFLAG+' in module '+M)
+    ).
+    
+    
+writecdeb(IOFD,STR,M:DEBUGFLAG):-!,
+    Goal =.. [DEBUGFLAG,X],
+    (
+        call(M:Goal),
+        (
+            X=yes,writec(IOFD,STR),!;
+            X=no,!;
+            throw('writec exception: illegal flag; only permitted yes or no')
+        )
+    ;
+        throw('writec exception: undefined flag:'+DEBUGFLAG+' in module '+M)
+    ).
+    
+    
+/* write compound
+     similar to the print functions in Java/Python/Pascal:
+     + operator can be used for concatenation
+ */
 writec(H+T):-   
    !,writec(H),
    write_term(T,[]).
+   
+
 
 writec(E):-
    write_term(E,[]).
@@ -47,7 +97,9 @@ writec(IOFD,H+T):-
    write_term(IOFD,T,[]).
 
 writec(IOFD,E):-
-   write_term(IOFD,E,[]).   
+   write_term(IOFD,E,[]).
+
+    
    
 % filters out for what Goal is false
 filter([],_,[]).      
@@ -126,6 +178,7 @@ filter_distinct([E],[E]).
 filter_distinct([],[]).
    
 % utility for listing predicates beginning with a prefix
+% listing_prefix(+Pref,?Name/?Arity):-
 listing_prefix(Pref,Name/Arity):-
    current_functor(Name,Arity),
    atom_concat(Pref,_,Name).

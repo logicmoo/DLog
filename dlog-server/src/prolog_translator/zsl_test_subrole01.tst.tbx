@@ -1,0 +1,44 @@
+Transformed Tbox: 
+
+Ok:
+concept(c-[], general, [ (c-[_G5126]:-init_state(_G5808), normal(c)-[_G5126]), (normal(c)-[_G5163]:-abox(c)-[_G5163]), (normal(c)-[_G4147]:-a-[_G4147, _G4148])])
+
+Ok:
+concept(c-[], general, [ (c-[_G5126]:-init_state(_G5808), normal(c)-[_G5126]), (normal(c)-[_G5163]:-abox(c)-[_G5163]), (normal(c)-[_G4147]:-a-[_G4147, _G4148])])
+
+Ok:
+concept(c-[], general, [ (c-[_G5126]:-init_state(_G5808), normal(c)-[_G5126]), (normal(c)-[_G5163]:-abox(c)-[_G5163]), (normal(c)-[_G4147]:-a-[_G4147, _G4148])])
+
+filtered:
+role(inv(a)-[], primary, [ (inv(a)-[_G5948, _G5951]:-abox(idx(a))-[_G5948, _G5951])])
+
+filtered:
+role(inv(b)-[], primary, [ (inv(b)-[_G6030, _G6033]:-abox(idx(b))-[_G6030, _G6033])])
+
+filtered:
+role(a-[], primary, [ (a-[_G6112, _G6115]:-abox(a)-[_G6112, _G6115])])
+
+filtered:
+role(b-[], primary, [ (b-[_G6194, _G6197]:-abox(b)-[_G6194, _G6197])])
+
+Ok:
+role(inv(a)-[], hierarchy, [ (inv(a)-[_G6311, _G6314]:-inv(b)-[_G6311, _G6314])])
+
+Ok:
+role(a-[], hierarchy, [ (a-[_G6357, _G6360]:-b-[_G6357, _G6360])])
+
+
+
+----Query predicates
+
+querypred([a/2])
+
+----Database predicates
+
+dbpred([])
+-----------ABOX signature
+
+abox([a/2, b/2, c/1])
+-----------ABOX assertions
+
+abox([cassertion(aconcept(c), d5), rassertion(arole(a), d1, d2), rassertion(arole(b), i1, i2)])
