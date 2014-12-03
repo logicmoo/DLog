@@ -111,7 +111,7 @@ read_dig_from_request(Request, NS-DIG) :-
 execute_dig_file(DIGFile, Reply) :-
 	read_dig(DIGFile, _NS-DIG),
 	detail(dig_iface, (execute_dig_file(DIGFile, ...) --> DIG), 'DIG content:'),
-	execute(DIG, Reply).	
+	trace,execute(DIG, Reply).	
 
 
 %execute(+Command, -Reply) throws no_such_kb

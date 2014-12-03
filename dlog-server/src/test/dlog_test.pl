@@ -233,6 +233,21 @@ try(Goal, URI, Description, Result) :-
 	).
 
 
+
+%%%%%%%%%%%%%%%%%%%    Call file    %%%%%%%%%%%%%%%%%%%%%%%%
+
+%call_test_file(+File, -Axioms, -Queries, -Options)
+call_test_file(A, Axioms, Queries, Options) :-
+		call_store(A, test(axioms([], [], [], [], [], [], [], []), [], []), test(Axioms, Queries, Options)).
+
+call_store(A,In,Out):- store_0(A,In,Out),!.
+call_store(Unknown, 
+          test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
+	  test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
+		:- !,format('%% ERROR: ~q. ~n',unknown_store_element(Unknown)).
+
+
+
 %%%%%%%%%%%%%%%%%%%    Read file    %%%%%%%%%%%%%%%%%%%%%%%%
 
 %read_test_file(+File, -Axioms, -Queries, -Options)
@@ -253,74 +268,79 @@ read_test(Str) -->
 		read_test(Str)
 	).
 
+
 %TODO: better (detailed) syntax check?
-store(concept(C), 
+store(A,In,Out):- store_0(A,In,Out).
+store(Unknown, _, _) :- throw(unknown_element(Unknown)).
+
+
+store_0(concept(C), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, [C|Concepts], Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- !.
-store(concepts(CL), 
+store_0(concepts(CL), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts1, Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- append(Concepts, CL, Concepts1), !.
-store(role(R), 
+store_0(role(R), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, [R|Roles], DBConnections, DBPredicates), Queries, Options))
 		:- !.
-store(roles(RL), 
+store_0(roles(RL), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles1, DBConnections, DBPredicates), Queries, Options))
 		:- append(Roles, RL, Roles1), !.
-store(implies(C1, C2), 
+store_0(implies(C1, C2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms([implies(C1, C2)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- !.
-store(equiv(C1, C2), 
+store_0(equiv(C1, C2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms([implies(C1, C2), implies(C2, C1)| ImpliesCL], ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), 
 				Queries, Options)) :- !.
-store(subrole(R, S), 
+store_0(subrole(R, S), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, [subrole(R, S)|ImpliesRL], TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options))
 		:- !.
-store(transitive(R), 
+store_0(transitive(R), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, [R|TransL], ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- !.
-store(assertion(R, I1, I2), 
+store_0(assertion(R, I1, I2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options))
 		 :- !.
-store(rassertion(R, I1, I2), 
+store_0(rassertion(R, I1, I2), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, [rassertion(R, I1, I2)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- !. 
-store(assertion(C, I), 
+store_0(assertion(C, I), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, [cassertion(C, I)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- !.
-store(cassertion(C, I), 
+store_0(cassertion(C, I), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, [cassertion(C, I)|ABox], Concepts, Roles, DBConnections, DBPredicates), Queries, Options)) 
 		:- !.
-store(dbConnection(Connection, DSN, User, Pass), 
+store_0(dbConnection(Connection, DSN, User, Pass), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, [connection(Connection, DSN, User, Pass)|DBConnections], DBPredicates), 
 			Queries, Options)) :- !.
-store(dbConnection(Connection, DSN), 
+store_0(dbConnection(Connection, DSN), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, [connection(Connection, DSN, _User, _Pass)|DBConnections], DBPredicates), 
 			Queries, Options)) :- !. 
-store(dbAccess(Functor, Connection, Access), 
+store_0(dbAccess(Functor, Connection, Access), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, DBPredicates), Queries, Options), 
 		test(axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBConnections, [access(Functor, Connection, Access)|DBPredicates]), 
 			Queries, Options)) :- !.
-store(query(Q, Response), 
+store_0(query(Q, Response), 
 		test(Axioms, Queries, Options), 
 		test(Axioms, [query(Q, Response)|Queries], Options)) :- !.
-store(query(Q), %Q=instance(Indiv,Concept)
+store_0(query(Q), %Q=instance(Indiv,Concept)
 		test(Axioms, Queries, Options), 
 		test(Axioms, [query(Q, true)|Queries], Options)) :- !.
-store(options(O), 
+store_0(options(O), 
 		test(Axioms, Queries, Options), 
 		test(Axioms, Queries, [O|Options])) :- !.
-store(Unknown, _, _) :- throw(unknown_element(Unknown)).
+

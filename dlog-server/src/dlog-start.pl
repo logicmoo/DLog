@@ -9,9 +9,9 @@
 					load_config_file/0, load_config_file/1]).
 
 %load config at startup
-:- initialization load_config_file.
+% :- initialization load_config_file.
 
-:- use_module('core/kb_manager', [new_kb/1, release_kb/1]).
+:- use_module('core/kb_manager' /*, [new_kb/1, release_kb/1]*/).
 :- use_module('core/console', [console/0]).
 :- use_module('interfaces/dig_iface', [execute_dig_file/2]).
 :- use_module('core/dlogger', [error/3, warning/3, info/3, detail/3]).
@@ -35,9 +35,21 @@
 
 :-dlog:start_server.
 :-debug.
-:-prolog.
-:-execute_test_files(['../src/prolog_translator/zsl_test01.tst'],text).
-% :-execute_test_files(['../src/prolog_translator/zsl_test08.tst'],text).
+:-execute_test_files(['../examples/happy/happy.tst'],text),prolog.
+:-execute_test_files(['../examples/alcoholic/ca10.tst'],text),prolog.
+:-execute_test_files(['../src/test/iocaste.tst'],text),prolog.
+:-execute_test_files(['../src/test/iocasteDB.tst'],text),prolog.
+
+:-execute_test_files(['../src/prolog_translator/zsl_test_subrole01.tst'],text).
+:-execute_test_files(['../src/prolog_translator/zsl_test_subrole02.tst'],text).
+
+
+:-execute_test_files(['../src/prolog_translator/zsl_test01.tst'],text),prolog.
+:-execute_test_files(['../src/prolog_translator/zsl_test04.tst'],text),prolog.
+:-execute_test_files(['../src/prolog_translator/zsl_test05.tst'],text),prolog.
+:-execute_test_files(['../src/prolog_translator/zsl_test06.tst'],text),prolog.
+:-execute_test_files(['../src/prolog_translator/zsl_test07.tst'],text),prolog.
+:-execute_test_files(['../src/prolog_translator/zsl_test08.tst'],text),prolog.
 
 
 :-console.
