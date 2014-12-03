@@ -11,18 +11,30 @@ cprint(X):-format(X).
 
 console :-
 	cprint('Type "quit." to quit, "help." for help.\n'),
-	repeat, 
-	catch(
+	repeat,one_console_command(R),((R==quit;R==end_of_file)).
+
+one_console_command(X):- 
+      catch(
 		(
 			read(X),
 			nonvar(X),
-			(parse_console_command(X) -> true
-			; cprint('Error in command.\n'))
+			(parse_console_command_toplevel(X) -> true
+			; (cprint('Error in command.\n'),format('~q.~n',[X])))
 		), 
-		_E,
-		fail
-	),
-	fail.
+		E,
+		(format('~q.~n',[X->E]),fail)
+	).
+
+parse_console_command_toplevel(Cmd):-parse_console_command(Cmd),!.
+parse_console_command_toplevel(halt) :- !,halt.
+parse_console_command_toplevel(quit) :- !. %was halt.
+parse_console_command_toplevel(end_of_file) :- !. %was halt.
+parse_console_command_toplevel(call(X)):-!,X.
+parse_console_command_toplevel(A) :- 
+	format('Unknown command "~w".~n', A),
+	cprint('Type "quit." to quit, "help." for help.\n').
+
+
 
 dlog_help :-	
 	get_dlog_option(description, D),
@@ -103,10 +115,8 @@ parse_console_command(execute_test_files(F, Mode)) :- !,
 		write('Mode can be omitted for text output.\n')
 	).
 
-parse_console_command(quit) :- !,
-	halt.
-parse_console_command(end_of_file) :- !,
-	halt.
+% parse_console_command(quit) :- !, halt.
+% parse_console_command(end_of_file) :- !, halt.
 
 % parse_console_command(cprint(R)) :- !,
 	% cprint(R),
@@ -121,9 +131,6 @@ parse_console_command(help) :- !,
 	dlog_help.
 parse_console_command(prolog) :- !,
 	prolog.
-parse_console_command(A) :- 
-	format('Unknown command "~w".~n', A),
-	cprint('Type "quit." to quit, "help." for help.\n').
 
 test_output_mode(text).
 test_output_mode(text(Out)) :- 

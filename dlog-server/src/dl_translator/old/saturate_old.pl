@@ -402,6 +402,7 @@ replace_occurrence(L,X,Y,R):-
 
 % decomposeClause(+Cls,-Decomposed)
 % Cls kloz esetleges dekompoziciojabol kapott klozlista Decomposed
+:-export(decomposeClause/2).
 decomposeClause(Cls,Decomposed):-
 	select(arole(R,Arg1,Arg2),Cls,Rest),
 	nonvar(Arg2),

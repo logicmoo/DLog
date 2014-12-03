@@ -458,6 +458,10 @@ portray_abox_clause(assert, Module, C) :-
 abox_headers(MName, Indexing) :-
 	headers(Indexing),
 	format(':- module(\'~w\',[]).\n',[MName]),
+        %TODO: dmiles confirm this is still OK
+        format(':- set_prolog_flag(unknown,warning).\n',[]),
+        %TODO: dmiles confirm this is still OK
+        format(':- style_check(-discontiguous).\n',[]),
 	portray_clause((
 		:- current_predicate(config:target/1)
 			->	true	%library(odbc) already loaded

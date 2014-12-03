@@ -17,7 +17,27 @@ sicstus_init :-
 	load_foreign_resource(hash_sicstus),
 	use_module(library(lists), [member/2]).
 
-swi_init :- 
+/*
+Warning: /devel/LogicmooDeveloperFramework/DLog/dlog-server/src/hash/dlog_hash.pl:47:
+        Initialization goal load_foreign_library(foreign(hash_swi),install) will be executed
+        immediately for backward compatibility reasons
+        use :- use_foreign_library/2 instead
+*/
+swi_init:- catch(swi_init0,_,(trace,swi_init0)).
+swi_init0 :- 
+	shlib:load_foreign_library(foreign(hash_swi), install),
+	(current_predicate(config:target/1)
+	%open_resource(dlog_hash, module, H) 
+	-> 
+		%close(H),
+		%library(lists) already loaded, may not be found on runtime version
+		import(lists:member/2)
+	; 
+		%all-in-one file loaded, library(lists) should be accessable
+		use_module(library(lists), [member/2])
+	).
+
+swi_init1 :- 
 	initialization(shlib:load_foreign_library(foreign(hash_swi), install)),
 	(current_predicate(config:target/1)
 	%open_resource(dlog_hash, module, H) 
@@ -31,19 +51,19 @@ swi_init :-
 	).
 
 
-:- current_predicate(config:target/1)
+target_test:- current_predicate(config:target/1)
 	->
 		(config:target(sicstus) -> sicstus_init ; true),
 		(config:target(swi) -> swi_init ; true)
 	;
 		(current_prolog_flag(dialect, swi) -> swi_init 
-		; %current_prolog_flag(language, sicstus) %sicstus/iso
+		;( %current_prolog_flag(language, sicstus) %sicstus/iso
 		  %current_prolog_flag(version, 'SICStus...') %sicstus/iso
 			sicstus_init
-		)
+		))
 	.
 
-
+:-catch(target_test,_,(trace,target_test)).
 
 %init_hash(LoopHash) :- foreign.
 

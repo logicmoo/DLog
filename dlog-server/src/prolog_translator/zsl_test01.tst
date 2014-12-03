@@ -20,4 +20,5 @@ implies(aconcept(a),aconcept(d)).
 rassertion(arole(b),i1,i2).
 rassertion(arole(c),i1,i2).
 cassertion(aconcept(a),i5).
+
 %query(instances(aconcept(a)), [i1]).

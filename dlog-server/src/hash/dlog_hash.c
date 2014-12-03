@@ -3,7 +3,8 @@
 #ifdef __SWI_PROLOG__
 	#include <pthread.h>
 	#include <SWI-Prolog.h>
-	#define MULTI_THREADED  
+	#define MULTI_THREADED
+	
 #else
 	#include <sicstus/sicstus.h>
 	#include "sicstus_compatibility.h"

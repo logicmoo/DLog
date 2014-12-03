@@ -100,6 +100,10 @@ write_tbox_header(Stream, URI) :-
 	write(Stream, '\n% ************************\n'),
 	write(Stream,   '% Header\n'),
 	write(Stream,   '% ************************\n\n'),
+        %TODO: dmiles confirm this is still OK
+        format(Stream,':- set_prolog_flag(unknown,warning).\n',[]),
+        %TODO: dmiles confirm this is still OK
+        format(Stream,':- style_check(-discontiguous).\n',[]),
 	portray_clause(Stream, (
 		sicstus_init :-
 			use_module(library(lists), [member/2]),
