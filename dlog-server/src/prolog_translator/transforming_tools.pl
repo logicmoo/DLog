@@ -12,12 +12,12 @@ headwrite(Atom) :-
 	atom_codes(Atom, Cs),
 	length(Cs, Length),
 	write_n(Length, '*'),
-	format('\% ~p~n',[Atom]),
+	format('%%\\ ~p~n',[Atom]),
 	write_n(Length, '*'),
 	nl.
 
 write_n(L, C) :-
-	write('\% '),
+	write('%%\\ '),
 	write_n0(L, C),
 	nl.
 

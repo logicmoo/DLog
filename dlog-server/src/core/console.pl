@@ -7,16 +7,17 @@
 :- use_module('../dlog', [start_server/0, stop_server/0]).
 :- use_module('../test/dlog_test', [execute_test_files/2]).
 
+cprint(X):-format(X).
 
 console :-
-	print('Type "quit." to quit, "help." for help.\n'),
+	cprint('Type "quit." to quit, "help." for help.\n'),
 	repeat, 
 	catch(
 		(
 			read(X),
 			nonvar(X),
 			(parse_console_command(X) -> true
-			; print('Error in command.\n'))
+			; cprint('Error in command.\n'))
 		), 
 		_E,
 		fail
@@ -26,24 +27,24 @@ console :-
 dlog_help :-	
 	get_dlog_option(description, D),
 	format('~a~n~n', D),
-	% print('Commands can be separated with commas (,), and end with a dot (.).\n\n'),
-	print('Available commands:\n'),
-	print('quit: Stop the server and quit DLog.\n'),
-	print('help: Print this help.\n'),
-	print('start_server: Start the server.\n'),
-	print('stop_server: Stop the server.\n'),
-	print('load_config_file(F): Load the configuration file F.\n'),
-	print('show_option(K): Show the current value of the option K.\n'),
-	print('show_option(K, URI): Show the current value of the option K for the knowledge base identified by the URI.\n'),
-	print('set_option(K, V): Set the value of the option K to V.\n'),
-	print('set_option(K, URI, V): Set the value of the option K for the knowledge base identified by the URI to V.\n'),
-	print('execute_dig_file(F): Execute a DIG command from the file F and print the result state.\n'),
-	print('execute_dig_filev(F): Execute a DIG command from the file F and print the detailed results.\n'),
-	%print('execute_dig_file(F, R): Execute a DIG command from the file F and return the results in R.\n'). %TODO?
-	print('execute_test_files(F, Mode): Execute tests specified in files F. Mode is the output mode.\n').
-	% print('print(P): print the expression P.\n'),
-	% print('nl: print a new line.\n'),
-	% print('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), print(R).\n').
+	% cprint('Commands can be separated with commas (,), and end with a dot (.).\n\n'),
+	cprint('Available commands:\n'),
+	cprint('quit: Stop the server and quit DLog.\n'),
+	cprint('help: Print this help.\n'),
+	cprint('start_server: Start the server.\n'),
+	cprint('stop_server: Stop the server.\n'),
+	cprint('load_config_file(F): Load the configuration file F.\n'),
+	cprint('show_option(K): Show the current value of the option K.\n'),
+	cprint('show_option(K, URI): Show the current value of the option K for the knowledge base identified by the URI.\n'),
+	cprint('set_option(K, V): Set the value of the option K to V.\n'),
+	cprint('set_option(K, URI, V): Set the value of the option K for the knowledge base identified by the URI to V.\n'),
+	cprint('execute_dig_file(F): Execute a DIG command from the file F and cprint the result state.\n'),
+	cprint('execute_dig_filev(F): Execute a DIG command from the file F and cprint the detailed results.\n'),
+	%cprint('execute_dig_file(F, R): Execute a DIG command from the file F and return the results in R.\n'). %TODO?
+	cprint('execute_test_files(F, Mode): Execute tests specified in files F. Mode is the output mode.\n').
+	% cprint('cprint(P): cprint the expression P.\n'),
+	% cprint('nl: cprint a new line.\n'),
+	% cprint('\nexample: execute_dig_file(\'iocaste_tells.dig\', _), execute_dig_file(\'iocaste_asks.dig\', R), cprint(R).\n').
 
 parse_console_command(load_config_file(F)) :- !,
 	load_config_file(F). %TODO start server, stop server, get/set_option
@@ -73,7 +74,7 @@ parse_console_command(execute_dig_filev(F)) :- !,
 		E,
 		(format('~w~n', E), fail)
 	),
-	print(R),
+	cprint(R),
 	nl.
 parse_console_command(execute_dig_file(F)) :- !,
 	catch(
@@ -82,7 +83,7 @@ parse_console_command(execute_dig_file(F)) :- !,
 		(format('~w~n', E), fail)
 	),
 	R =.. [H|_],
-	print(H),
+	cprint(H),
 	nl.
 % parse_console_command(execute_dig_file(F, R)) :- !,
 	% catch(
@@ -107,8 +108,8 @@ parse_console_command(quit) :- !,
 parse_console_command(end_of_file) :- !,
 	halt.
 
-% parse_console_command(print(R)) :- !,
-	% print(R),
+% parse_console_command(cprint(R)) :- !,
+	% cprint(R),
 	% nl.
 % parse_console_command(nl) :- !,
 	% nl.
@@ -122,7 +123,7 @@ parse_console_command(prolog) :- !,
 	prolog.
 parse_console_command(A) :- 
 	format('Unknown command "~w".~n', A),
-	print('Type "quit." to quit, "help." for help.\n').
+	cprint('Type "quit." to quit, "help." for help.\n').
 
 test_output_mode(text).
 test_output_mode(text(Out)) :- 
