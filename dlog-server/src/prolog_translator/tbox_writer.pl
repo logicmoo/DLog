@@ -2,6 +2,8 @@
 
 :- use_module('../core/config', [target/1, tbox_module_name/2, abox_module_name/2, get_kb_specific_options/2]).
 :- use_module(predicate_names, [predicate_name/2]).
+:- use_module(box_immediate).
+
 :- target(swi) -> 
 		use_module(prolog_translator_swi_tools, [datime/1])
 		; true.
@@ -9,19 +11,16 @@
 		use_module(library(system), [datime/1])
 		; true.
 
-write_tbox(tbox(TransformedTBox, _EqRoles, _QueryPredicates), URI, Stream) :-
+write_tbox(tbox(TransformedTBox, EqRoles, QueryPredicates), URI, Stream) :-
 	write_tbox_header(Stream, URI),
 	abox_module_name(URI, ABox),
-	write_tbox(TransformedTBox, Stream, ABox).
-	% , 
-	% write(Stream, '\n\n\n/*\n'),
-	% write(Stream, 'TransformedTBox:\n'),
-	% writeq(Stream, TransformedTBox),
-	% write(Stream, '\nEqRoles:\n'),
-	% writeq(Stream, EqRoles),
-	% write(Stream, '\nQueryPredicates:\n'),
-	% writeq(Stream, QueryPredicates),
-	% write(Stream, '\n*/\n').
+	write_tbox(TransformedTBox, Stream, ABox),
+
+	 write(Stream, '\n\n\n/*\n'),
+	 portray_clause(Stream,('TransformedTBox':- TransformedTBox)),
+	 portray_clause(Stream,('EqRoles':-EqRoles)),
+	 portray_clause(Stream,('QueryPredicates':-QueryPredicates)),
+	 write(Stream, '\n*/\n').
 	
 
 write_tbox([], Stream, _ABox) :- nl(Stream).
@@ -87,6 +86,7 @@ quantifiers_list([V|Qs], Goal0, V^Goal) :-
 	quantifiers_list(Qs, Goal0, Goal).
 
 
+
 write_tbox_header(Stream, URI) :- 
 	datime(datime(Year, Month, Day, Hour, Min, Sec)),
 	get_kb_specific_options(URI, Options),	
@@ -95,6 +95,7 @@ write_tbox_header(Stream, URI) :-
 	format(Stream, '%%\\ User defined options: ~p ~n', [Options]), 
 	format(Stream, '%%\\ Timestamp: ~d.~d.~d, ~d:~d:~d sec ~n~n',[Year, Month, Day, Hour, Min, Sec]),
 	tbox_module_name(URI, MName),
+       
 	format(Stream, ':- module(\'~w\',[]).\n',[MName]),
 
 	write(Stream, '\n% ************************\n'),

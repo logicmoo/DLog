@@ -11,6 +11,7 @@
 :- use_module('../prolog_translator/abox_translator', [assert_abox/2, write_abox/2]).
 :- use_module('../prolog_translator/tbox_translator', [tbox2prolog/4]).
 :- use_module('../prolog_translator/tbox_writer', [write_tbox/3]).
+:- use_module('../prolog_translator/box_immediate').
 :- use_module(dlogger, [info/3, detail/3, warning/3]).
 :- use_module(query, [query/4]).
 :- use_module(config, [target/1, default_kb/1, kb_uri/2, 
@@ -142,7 +143,7 @@ add_axioms0(URI, axioms(ImpliesCL, ImpliesRL, TransL, ABox, Concepts, Roles, DBC
 	add_tbox(TTarget, URI, tbox(TBox_Clauses, ImpliesRL), abox(Signature)),
 	info(kb_manager, add_axioms(URI, ...), 'Axioms added to KB.').
 
-
+add_tbox(Type, URI, TBox, ABox) :- abox_immediate(Type), !, assert_abox(URI, ABox). 
 
 add_abox(assert, URI, ABox) :- !,
 	assert_abox(URI, ABox). 
@@ -210,6 +211,11 @@ add_abox(tempfile, URI, ABox) :-
 			%%)
 		)
 	).
+
+
+add_tbox(Type, URI, TBox, ABox) :- tbox_immediate(Type), !,   %TODO: finalize dynamic? (SWI)
+  tbox2prolog(URI, TBox, ABox, TransformedTBox),
+  assert_tbox(TransformedTBox,URI),!.
 
 add_tbox(assert, URI, TBox, ABox) :- !,
 	%throw(not_implemented), %TODO

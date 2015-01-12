@@ -3,6 +3,8 @@
 % TODO: + initialization? silentDB, DB used?
 :- module(abox_translator,[assert_abox/2, write_abox/2]).
 
+:- use_module(box_immediate).
+
 :- use_module(library(lists)).
 :- use_module('../core/config').
 :- target(sicstus) -> 
@@ -47,7 +49,14 @@ write_abox(URI, abox(ABoxStr, DBConnections, DBPredicates)) :-
 	transformed_DBConnections(DBConnections, write, Module),
 	retractall(active_statement(_)), %better safe than sorry
 	transformed_abox(ABoxStr, DBPredicates, Module, Indexing, write),
-	retractall(active_statement(_)).
+	retractall(active_statement(_)),
+
+         write( '\n\n\n/*\n'),
+	 portray_clause(('ABoxStr':- ABoxStr)),
+	 portray_clause(('DBPredicates':-DBPredicates)),
+	 portray_clause(('DBConnections':-DBConnections)),
+	 write('\n*/\n').
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%

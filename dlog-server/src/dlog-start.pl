@@ -35,21 +35,21 @@
 
 :-dlog:start_server.
 :-debug.
-:-execute_test_files(['../examples/happy/happy.tst'],text),prolog.
-:-execute_test_files(['../examples/alcoholic/ca10.tst'],text),prolog.
-:-execute_test_files(['../src/test/iocaste.tst'],text),prolog.
-:-execute_test_files(['../src/test/iocasteDB.tst'],text),prolog.
+:-execute_test_files(['../examples/happy/happy.tst'],text) .
+:-execute_test_files(['../examples/alcoholic/ca10.tst'],text) .
+:-execute_test_files(['../src/test/iocaste.tst'],text) .
+% :-execute_test_files(['../src/test/iocasteDB.tst'],text) .
 
 :-execute_test_files(['../src/prolog_translator/zsl_test_subrole01.tst'],text).
 :-execute_test_files(['../src/prolog_translator/zsl_test_subrole02.tst'],text).
 
 
-:-execute_test_files(['../src/prolog_translator/zsl_test01.tst'],text),prolog.
-:-execute_test_files(['../src/prolog_translator/zsl_test04.tst'],text),prolog.
-:-execute_test_files(['../src/prolog_translator/zsl_test05.tst'],text),prolog.
-:-execute_test_files(['../src/prolog_translator/zsl_test06.tst'],text),prolog.
-:-execute_test_files(['../src/prolog_translator/zsl_test07.tst'],text),prolog.
-:-execute_test_files(['../src/prolog_translator/zsl_test08.tst'],text),prolog.
+:-execute_test_files(['../src/prolog_translator/zsl_test01.tst'],text) .
+:-execute_test_files(['../src/prolog_translator/zsl_test04.tst'],text) .
+:-execute_test_files(['../src/prolog_translator/zsl_test05.tst'],text) .
+:-execute_test_files(['../src/prolog_translator/zsl_test06.tst'],text) .
+:-execute_test_files(['../src/prolog_translator/zsl_test07.tst'],text) .
+:-execute_test_files(['../src/prolog_translator/zsl_test08.tst'],text) .
 
 
 :-console.
